@@ -1,10 +1,18 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 
 app = Flask(__name__)
 
-# Let flask-cors handle all CORS + OPTIONS preflight
-CORS(app, resources={r"/*": {"origins": "*"}})
+
+# ---- CORS: allow calls from your Neocities demo ----
+@app.after_request
+def add_cors_headers(response):
+    # Lock to your Neocities origin
+    response.headers["Access-Control-Allow-Origin"] = "https://trucite-sandbox.neocities.org"
+    response.headers["Vary"] = "Origin"
+
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return response
 
 
 @app.route("/")
@@ -12,16 +20,29 @@ def health():
     return "TruCite backend OK", 200
 
 
-@app.route("/truth-score", methods=["POST"])
+@app.route("/truth-score", methods=["GET", "POST", "OPTIONS"])
 def truth_score():
-    data = request.get_json(silent=True) or {}
-    text = (data.get("text") or "").strip()
+    # Handle CORS preflight
+    if request.method == "OPTIONS":
+        return ("", 204)
+
+    # --- Accept both GET and POST ---
+
+    if request.method == "GET":
+        # ?text=... from query string
+        text = (request.args.get("text") or "").strip()
+    else:  # POST with JSON { "text": "..." }
+        data = request.get_json(silent=True) or {}
+        text = (data.get("text") or "").strip()
+
     length = len(text)
 
-    # --- simple demo scoring logic ---
+    # Very simple toy scoring logic for demo
     base = 50
-    score = base + min(length // 20, 30)
-    score = max(0, min(100, score))
+    score = base
+    if length > 0:
+        score += min(length // 20, 30)
+    score = max(0, min(score, 100))
 
     if score >= 85:
         verdict = "Likely True / Well-Supported"
@@ -44,9 +65,5 @@ def truth_score():
 
 
 if __name__ == "__main__":
-    # This is fine for Render; they override the port
-    import os
-
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
-    
+    # Render ignores this line and uses gunicorn, but it's fine for local runs
+    app.run(host="0.0.0.0", port=10000)
