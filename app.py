@@ -2,14 +2,11 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-
-# ---- CORS: allow calls from your Neocities demo ----
+# --- CORS: allow browser calls from Neocities ---
 @app.after_request
 def add_cors_headers(response):
-    # Lock to your Neocities origin
-    response.headers["Access-Control-Allow-Origin"] = "https://trucite-sandbox.neocities.org"
-    response.headers["Vary"] = "Origin"
-
+    # For demo, allow all origins
+    response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
@@ -22,27 +19,24 @@ def health():
 
 @app.route("/truth-score", methods=["GET", "POST", "OPTIONS"])
 def truth_score():
-    # Handle CORS preflight
+    # Handle preflight OPTIONS request
     if request.method == "OPTIONS":
         return ("", 204)
 
-    # --- Accept both GET and POST ---
-
+    # Accept text from either GET ?text= or JSON body { "text": "..." }
     if request.method == "GET":
-        # ?text=... from query string
         text = (request.args.get("text") or "").strip()
-    else:  # POST with JSON { "text": "..." }
+    else:  # POST
         data = request.get_json(silent=True) or {}
         text = (data.get("text") or "").strip()
 
     length = len(text)
 
-    # Very simple toy scoring logic for demo
+    # --- very simple demo scoring logic ---
     base = 50
-    score = base
-    if length > 0:
-        score += min(length // 20, 30)
-    score = max(0, min(score, 100))
+    # add up to +20 for longer text
+    score = base + min(length // 20, 30)
+    score = max(0, min(100, score))
 
     if score >= 85:
         verdict = "Likely True / Well-Supported"
@@ -59,11 +53,14 @@ def truth_score():
             "verdict": verdict,
             "explanation": "Demo score from TruCite backend (not for production use).",
             "input_preview": text[:120],
-            "meta": {"length": length, "model": "unknown"},
+            "meta": {
+                "length": length,
+                "model": "unknown",
+            },
         }
     )
 
 
 if __name__ == "__main__":
-    # Render ignores this line and uses gunicorn, but it's fine for local runs
+    # Render ignores this; it uses gunicorn, but it's fine for local tests.
     app.run(host="0.0.0.0", port=10000)
