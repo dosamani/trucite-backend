@@ -1,16 +1,10 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
 
-
-# ----- CORS: allow browser calls from Neocities -----
-@app.after_request
-def add_cors_headers(response):
-    # For demo, allow all origins
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-    return response
+# Let flask-cors handle all CORS + OPTIONS preflight
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 
 @app.route("/")
@@ -18,20 +12,14 @@ def health():
     return "TruCite backend OK", 200
 
 
-@app.route("/truth-score", methods=["POST", "OPTIONS"])
+@app.route("/truth-score", methods=["POST"])
 def truth_score():
-    # Handle preflight OPTIONS request
-    if request.method == "OPTIONS":
-        # CORS headers already added by after_request
-        return ("", 204)
-
     data = request.get_json(silent=True) or {}
     text = (data.get("text") or "").strip()
     length = len(text)
 
-    # --- very simple demo scoring logic ---
+    # --- simple demo scoring logic ---
     base = 50
-    # add up to +30 for longer text
     score = base + min(length // 20, 30)
     score = max(0, min(100, score))
 
@@ -50,13 +38,14 @@ def truth_score():
             "verdict": verdict,
             "explanation": "Demo score from TruCite backend (not for production use).",
             "input_preview": text[:120],
-            "meta": {
-                "length": length,
-                "model": "unknown",
-            },
+            "meta": {"length": length, "model": "unknown"},
         }
     )
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    # This is fine for Render; they override the port
+    import os
+
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
