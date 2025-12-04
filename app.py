@@ -3,100 +3,47 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 
-# Allow all origins (fine for MVP; we can tighten later)
-CORS(app, resources={r"/*": {"origins": "*"}})
+# Allow calls from your Neocities sandbox
+CORS(app, resources={r"/*": {"origins": "https://trucite-sandbox.neocities.org"}})
 
-
-@app.route("/health", methods=["GET"])
+@app.route("/")
 def health():
-    """Simple health check."""
-    return jsonify({"status": "ok"}), 200
+    return "TruCite backend OK", 200
 
 
-@app.route("/truth-score", methods=["POST"])
+@app.route("/truth-score", methods=["POST", "OPTIONS"])
 def truth_score():
-    """
-    Demo truth scoring endpoint for TruCite.
+    # Handle CORS preflight
+    if request.method == "OPTIONS":
+        return "", 204
 
-    Expects JSON:
-    {
-      "text": "...",
-      "model": "gpt-4.1"  (optional)
-    }
-    """
     data = request.get_json(silent=True) or {}
-    text = (data.get("text") or "").strip()
-    model = (data.get("model") or "unknown").strip()
+    text = data.get("text", "")
 
-    # Basic guardrails
-    if not text:
-        return jsonify(
-            {
-                "error": "Missing 'text' field in request body.",
-                "truth_score": None,
-                "verdict": "Invalid input",
-            }
-        ), 400
+    # Very simple demo scoring logic
+    length = len(text)
+    base = 50
+    score = max(0, min(100, base + min(length // 20, 30)))
 
-    # --------- DEMO HEURISTIC LOGIC (MVP ONLY) ---------
-    # This is NOT real fact-checking yet — just a placeholder
-    # so we have a stable API + UI. We’ll replace this
-    # with the real TruCite engine later.
-
-    base_score = 80  # start optimistic
-
-    lowered = text.lower()
-
-    # obvious red-flag phrases → big penalty
-    red_flags = [
-        "earth is flat",
-        "world is flat",
-        "moon is made of cheese",
-        "vaccines cause autism",
-        "the sky is green on a clear day",
-    ]
-    if any(flag in lowered for flag in red_flags):
-        base_score -= 40
-
-    # if user provides sources/links, give a small boost
-    has_source_link = "http://" in lowered or "https://" in lowered
-    if has_source_link:
-        base_score += 5
-
-    # clamp between 0–100
-    truth_score = max(0, min(100, base_score))
-
-    # verdict buckets
-    if truth_score >= 85:
-        verdict = "Likely True / Well Supported"
-    elif truth_score >= 60:
+    verdict = "Questionable / High Uncertainty"
+    if score >= 85:
+        verdict = "Likely True / Well-Supported"
+    elif score >= 65:
         verdict = "Plausible / Needs Verification"
-    elif truth_score >= 40:
-        verdict = "Questionable / High Uncertainty"
-    else:
-        verdict = "Likely False or Misleading"
+    elif score < 40:
+        verdict = "Likely False / Misleading"
 
-    explanation = (
-        "Demo score from TruCite backend (not for production use). "
-        "This endpoint is wired only to showcase the verification UI, "
-        "API contract, and model-agnostic scoring pipeline."
-    )
-
-    response = {
-        "truth_score": truth_score,
+    return jsonify({
+        "truth_score": score,
         "verdict": verdict,
-        "explanation": explanation,
-        "input_preview": text[:200],
+        "explanation": "Demo score from TruCite backend (not for production use).",
+        "input_preview": text[:120],
         "meta": {
-            "model": model,
-            "length": len(text),
-            "has_sources": has_source_link,
-        },
-    }
-
-    return jsonify(response), 200
+            "length": length,
+            "model": "unknown"
+        }
+    })
 
 
-# Local dev only; Render will run via gunicorn app:app
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(host="0.0.0.0", port=10000)
