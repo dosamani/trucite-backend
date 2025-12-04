@@ -3,10 +3,10 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 
-# ----- CORS: allow Neocities (and anyone) -----
+# ----- CORS: allow browser calls from Neocities -----
 @app.after_request
 def add_cors_headers(response):
-    # For demo, allow all origins. We can tighten later.
+    # For demo, allow all origins
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
     response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
@@ -22,13 +22,14 @@ def health():
 def truth_score():
     # Handle preflight OPTIONS request
     if request.method == "OPTIONS":
+        # CORS headers already added by after_request
         return ("", 204)
 
     data = request.get_json(silent=True) or {}
     text = (data.get("text") or "").strip()
     length = len(text)
 
-    # --- very simple placeholder scoring logic ---
+    # --- very simple demo scoring logic ---
     base = 50
     # add up to +30 for longer text
     score = base + min(length // 20, 30)
@@ -58,5 +59,4 @@ def truth_score():
 
 
 if __name__ == "__main__":
-    # Render uses gunicorn in production; this is just for local run
     app.run(host="0.0.0.0", port=10000)
