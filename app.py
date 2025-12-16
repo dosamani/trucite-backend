@@ -4,9 +4,9 @@ import os
 
 app = Flask(__name__)
 
-# Allow browser calls from your Neocities site (and anywhere for now)
-# You can lock this down later by replacing "*" with "https://trucite-sandbox.neocities.org"
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+# MOST permissive CORS for debugging Neocities → Render.
+# You can lock down origins later.
+CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})
 
 @app.get("/")
 def home():
@@ -16,8 +16,12 @@ def home():
 def ping():
     return "ok"
 
-@app.post("/api/score")
+@app.route("/api/score", methods=["POST", "OPTIONS"])
 def score():
+    # Handle preflight explicitly (some browsers require this cleanly)
+    if request.method == "OPTIONS":
+        return ("", 204)
+
     data = request.get_json(silent=True) or {}
     text = (data.get("text") or "").strip()
 
@@ -28,8 +32,7 @@ def score():
             "details": "Paste some AI output first."
         }), 400
 
-    # ---- DEMO scoring (replace later with real TruCite logic) ----
-    # Simple heuristic: longer text => slightly higher score, capped
+    # Demo scoring (replace later)
     length = len(text)
     score = min(95, max(5, int(length / 20)))
 
@@ -47,7 +50,7 @@ def score():
         "details": {
             "mode": "demo-live-backend",
             "text_length": length,
-            "note": "This is a placeholder scoring function. Replace with real TruCite scoring engine."
+            "note": "Placeholder scoring. Replace with TruCite scoring engine."
         },
         "references": []
     })
