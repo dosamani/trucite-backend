@@ -1,66 +1,36 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
-
-# --- CORS: allow browser calls from Neocities ---
-@app.after_request
-def add_cors_headers(response):
-    # For demo, allow all origins
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    return response
-
+CORS(app)
 
 @app.route("/")
 def health():
     return "TruCite backend OK", 200
 
+@app.route("/api/score", methods=["POST"])
+def score():
+    data = request.get_json(force=True)
+    text = (data.get("text") or "").strip()
 
-@app.route("/truth-score", methods=["GET", "POST", "OPTIONS"])
-def truth_score():
-    # Handle preflight OPTIONS request
-    if request.method == "OPTIONS":
-        return ("", 204)
+    if not text:
+        return jsonify({
+            "score": 0,
+            "verdict": "No input provided",
+            "details": "Empty input"
+        }), 400
 
-    # Accept text from either GET ?text= or JSON body { "text": "..." }
-    if request.method == "GET":
-        text = (request.args.get("text") or "").strip()
-    else:  # POST
-        data = request.get_json(silent=True) or {}
-        text = (data.get("text") or "").strip()
-
-    length = len(text)
-
-    # --- very simple demo scoring logic ---
-    base = 50
-    # add up to +20 for longer text
-    score = base + min(length // 20, 30)
-    score = max(0, min(100, score))
-
-    if score >= 85:
-        verdict = "Likely True / Well-Supported"
-    elif score >= 65:
-        verdict = "Plausible / Needs Verification"
-    elif score >= 40:
-        verdict = "Questionable / High Uncertainty"
-    else:
-        verdict = "Likely False / Misleading"
-
-    return jsonify(
-        {
-            "truth_score": score,
-            "verdict": verdict,
-            "explanation": "Demo score from TruCite backend (not for production use).",
-            "input_preview": text[:120],
-            "meta": {
-                "length": length,
-                "model": "unknown",
-            },
-        }
+    # DEMO logic (replace later)
+    score = 82
+    verdict = "Likely reliable (demo)"
+    explanation = (
+        "This is a placeholder TruCite response. "
+        "Structural integrity appears intact, uncertainty language is present, "
+        "and no obvious hallucination patterns were detected."
     )
 
-
-if __name__ == "__main__":
-    # Render ignores this; it uses gunicorn, but it's fine for local tests.
-    app.run(host="0.0.0.0", port=10000)
+    return jsonify({
+        "score": score,
+        "verdict": verdict,
+        "details": explanation
+    })
