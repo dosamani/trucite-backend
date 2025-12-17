@@ -1,1 +1,396 @@
+/* =======================
+   BASE / RESET
+======================= */
+* { box-sizing: border-box; }
 
+html, body { width: 100%; }
+
+body {
+  margin: 0;
+  background: #000;
+  color: #fff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  line-height: 1.5;
+}
+
+a { color: #FFD700; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Kill weird browser defaults that can cause "purple" link styling */
+a:visited { color: #FFD700; }
+a:active { color: #FFD700; }
+a:focus { outline: none; }
+
+/* =======================
+   TOP NAV (WAITLIST ONLY)
+======================= */
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background: #000;
+  border-bottom: 1px solid #111;
+  padding: 10px 14px;
+}
+
+.top-nav-inner {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  display: flex;                 /* critical */
+  align-items: center;
+  justify-content: flex-end;     /* critical */
+}
+
+.top-nav-cta {
+  margin-left: auto;             /* critical: pushes to far right */
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #FFD700;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,215,0,0.55);
+  background: rgba(255,215,0,0.10);
+  white-space: nowrap;
+  box-shadow: 0 0 10px rgba(255,215,0,0.10);
+}
+
+.top-nav-cta:hover {
+  text-decoration: none;
+  filter: brightness(1.08);
+}
+
+/* =======================
+   HERO
+======================= */
+.hero {
+  text-align: center;
+  padding: 42px 16px 14px;
+}
+
+.logo {
+  height: 70px;
+  margin-bottom: 12px;
+  display: inline-block;
+}
+
+.hero h1 {
+  margin: 6px 0;
+  font-size: 1.9rem;
+}
+
+.hero-tagline {
+  margin-top: 8px;
+  font-size: 1rem;
+  color: #FFD700;
+}
+
+/* Locked key line styling */
+.hero-tagline-strong {
+  margin-top: 10px;
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  animation: goldTextPulse 2.0s ease-in-out infinite;
+}
+
+.hero-subtitle {
+  margin: 10px auto 12px;
+  max-width: 680px;
+  font-size: 0.95rem;
+  color: #ccc;
+}
+
+.hero-subtitle-tight {
+  margin-top: 0;
+  max-width: 720px;
+}
+
+.hero-mini-links {
+  margin-top: 10px;
+  font-size: 0.95rem;
+}
+
+/* =======================
+   MAIN / SECTIONS
+======================= */
+main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 18px;
+}
+
+.section-title {
+  margin-top: 64px;
+  margin-bottom: 18px;
+  font-size: 1.25rem;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #FFD700;
+}
+
+.section-subtitle {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 18px;
+  font-size: 0.95rem;
+  color: #ddd;
+}
+
+/* =======================
+   VERIFY / INPUT
+======================= */
+.verify-section {
+  text-align: center;
+  margin-top: 30px;
+}
+
+textarea {
+  width: 100%;
+  max-width: 720px;
+  height: 150px;
+  background: #000;
+  color: #fff;
+  border-radius: 10px;
+  border: 1px solid rgba(255,215,0,0.75);
+  padding: 12px;
+  font-size: 0.95rem;
+  resize: vertical;
+  box-shadow: 0 0 18px rgba(255,215,0,0.10);
+}
+
+textarea:focus {
+  outline: none;
+  border-color: rgba(255,215,0,0.95);
+  box-shadow: 0 0 22px rgba(255,215,0,0.18);
+}
+
+/* =======================
+   GLOW ANIMATIONS
+======================= */
+@keyframes goldPulse {
+  0%   { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
+  50%  { box-shadow: 0 0 22px rgba(255,215,0,0.28); }
+  100% { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
+}
+
+@keyframes goldTextPulse {
+  0%   { text-shadow: 0 0 6px rgba(255,215,0,0.18); }
+  50%  { text-shadow: 0 0 14px rgba(255,215,0,0.40); }
+  100% { text-shadow: 0 0 6px rgba(255,215,0,0.18); }
+}
+
+/* Button with glow */
+.primary-btn {
+  margin-top: 14px;
+  background: #FFD700;
+  color: #000;
+  border: 1px solid rgba(255,215,0,0.65);
+  border-radius: 10px;
+  padding: 12px 26px;
+  font-weight: 900;
+  cursor: pointer;
+  animation: goldPulse 2.2s ease-in-out infinite;
+}
+
+.primary-btn:hover {
+  filter: brightness(1.08);
+}
+
+/* =======================
+   GAUGE
+======================= */
+#gaugeContainer { margin-top: 28px; }
+
+#scoreDisplay {
+  margin-top: 8px;
+  font-size: 1.95rem;
+  font-weight: 900;
+  color: #FFD700;
+  animation: goldTextPulse 2.0s ease-in-out infinite;
+}
+
+#scoreVerdict {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+/* =======================
+   RESULT BOX
+======================= */
+.result-wrapper { margin-top: 34px; }
+
+.result-label {
+  font-size: 0.85rem;
+  color: #FFD700;
+  margin-bottom: 6px;
+}
+
+pre#result {
+  background: #0b0b0b;
+  border: 1px solid rgba(255,215,0,0.25);
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 0.8rem;
+  max-height: 280px;
+  overflow: auto;
+  box-shadow: 0 0 18px rgba(255,215,0,0.06);
+  color: #fff; /* prevent “white box” inverted themes */
+}
+
+/* =======================
+   CARD / BOX STYLE
+======================= */
+.bp-card,
+.win-card,
+.accordion-panel {
+  background: #0b0b0b !important;   /* forces dark */
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+/* =======================
+   FORCE BRIGHT OUTLINES
+   FOR HOW + WINS SECTIONS
+======================= */
+.blueprint-section .bp-card,
+.wins-section .win-card {
+  border: 1px solid rgba(255,215,0,0.55) !important;
+  box-shadow: 0 0 22px rgba(255,215,0,0.10) !important;
+}
+
+.blueprint-section .bp-card:hover,
+.wins-section .win-card:hover {
+  border-color: rgba(255,215,0,0.85) !important;
+  box-shadow: 0 0 26px rgba(255,215,0,0.18) !important;
+}
+
+/* =======================
+   HOW TRUCITE WORKS
+======================= */
+.blueprint-section { margin-top: 70px; }
+
+.blueprint-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.bp-label {
+  font-weight: 900;
+  font-size: 0.95rem;
+  color: #FFD700;
+  margin-bottom: 6px;
+}
+
+.bp-diagram {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bp-node {
+  border: 1px solid rgba(255,215,0,0.75);
+  border-radius: 14px;
+  padding: 4px 12px;
+}
+
+.bp-arrow { color: #FFD700; }
+
+/* =======================
+   WHY TRUCITE WINS
+======================= */
+.wins-section { margin-top: 70px; }
+
+.wins-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.win-card h3 {
+  margin-top: 0;
+  color: #FFD700;
+}
+
+/* =======================
+   FAQ / ACCORDION
+======================= */
+.faq-section { margin-top: 70px; }
+
+.accordion-item { margin-bottom: 10px; }
+
+.accordion-btn {
+  width: 100%;
+  background: #111;
+  color: #FFD700;
+  border: 1px solid rgba(255,215,0,0.25);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+}
+
+.accordion-btn::after {
+  content: "▾";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.accordion-btn.active::after {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.accordion-panel {
+  display: none;
+  margin-top: 6px;
+  font-size: 0.85rem;
+  border-color: rgba(255,215,0,0.20);
+}
+
+.faq-footer {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.9rem;
+}
+
+/* =======================
+   FOUNDER / LEGAL
+======================= */
+.founder-section,
+.legal-section { margin-top: 70px; }
+
+.small-link-note {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+/* =======================
+   FOOTER
+======================= */
+footer {
+  margin-top: 70px;
+  padding: 22px 14px 30px;
+  border-top: 1px solid #111;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.footer-links { margin-bottom: 8px; }
+.footer-note { color: #aaa; }
+
+/* =======================
+   RESPONSIVE
+======================= */
+@media (min-width: 720px) {
+  .blueprint-grid { grid-template-columns: repeat(3, 1fr); }
+  .wins-grid { grid-template-columns: repeat(2, 1fr); }
+}
