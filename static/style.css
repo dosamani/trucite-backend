@@ -325,3 +325,15 @@ details[open] summary::after { content: "▲"; }
   color: #FFD700;
   font-weight: 900;
 }
+
+.faq-more {
+  text-align: center !important;
+  width: 100% !important;
+  display: block !important;
+  margin-top: 14px !important;
+}
+.faq-more a {
+  display: inline-block !important;
+  font-weight: 900 !important;
+  color: #FFD700 !important;
+}
