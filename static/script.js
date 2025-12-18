@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// ✅ Permanent: same-origin endpoint when hosted on Render
+// ✅ IMPORTANT: same-origin endpoint (NO CORS problems)
 const BACKEND_ENDPOINT = "/truth-score";
 
 async function scoreText() {
@@ -32,10 +32,12 @@ async function scoreText() {
     return;
   }
 
+  // UI loading state
   scoreDisplay.textContent = "--";
   scoreVerdict.textContent = "Scoring…";
   result.textContent = "Contacting TruCite backend…";
 
+  // Reset gauge
   if (gaugeFill) {
     gaugeFill.style.transition = "none";
     gaugeFill.style.strokeDashoffset = "260";
@@ -48,18 +50,21 @@ async function scoreText() {
       body: JSON.stringify({ text })
     });
 
-    const rawText = await res.text();
-    if (!res.ok) throw new Error(`Backend ${res.status}: ${rawText}`);
+    // If endpoint exists but wrong method, you'll see 405 here
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Backend error ${res.status}. ${txt}`);
+    }
 
-    const data = JSON.parse(rawText);
-
-    const rawScore = (data.score ?? data.truth_score ?? 0);
+    const data = await res.json();
+    const rawScore = (data.truth_score ?? data.score ?? 0);
     const score = Math.max(0, Math.min(100, Number(rawScore)));
     const verdict = String(data.verdict ?? verdictFromScore(score));
 
     scoreDisplay.textContent = `${score}`;
     scoreVerdict.textContent = verdict;
 
+    // Gauge fill
     const dashTotal = 260;
     const filled = (score / 100) * dashTotal;
     const offset = dashTotal - filled;
@@ -72,12 +77,15 @@ async function scoreText() {
     }
 
     result.textContent = JSON.stringify(data, null, 2);
+
   } catch (e) {
     scoreDisplay.textContent = "--";
     scoreVerdict.textContent = "Backend connection failed";
     result.textContent =
       "❌ POST failed.\n\n" +
       "Endpoint: " + BACKEND_ENDPOINT + "\n\n" +
+      "If you see 404 here, your backend does NOT have /truth-score deployed.\n" +
+      "If you see 405, endpoint exists but method mismatch.\n\n" +
       "Error: " + (e?.message || e);
   }
 }
