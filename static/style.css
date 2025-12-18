@@ -536,3 +536,52 @@ footer {
 #wins .panel * {
   border-radius: inherit;
 }
+/* =======================
+   NORMALIZE "WHY TRUCITE WINS" CARDS
+   Make them match the rounded "How TruCite Works" style
+======================= */
+
+/* Apply the rounded card look to anything inside #wins that is acting like a card */
+#wins .bp-card,
+#wins .bright-card,
+#wins .card,
+#wins .feature,
+#wins .feature-card,
+#wins .wins-card,
+#wins .wins-item,
+#wins .pillar,
+#wins .pillar-card,
+#wins .box,
+#wins .panel,
+#wins > div > div {
+  background: #000 !important;
+  border-radius: 22px !important;              /* <— CURVED like the other section */
+  padding: 22px 18px !important;
+  border: 1.5px solid rgba(255,215,0,0.55) !important;
+  box-shadow:
+    0 0 22px rgba(255,215,0,0.12),
+    inset 0 0 14px rgba(255,215,0,0.08) !important;
+}
+
+/* Ensure spacing between wins cards */
+#wins .wins-grid,
+#wins .grid,
+#wins .features-grid,
+#wins > div {
+  gap: 22px;
+}
+
+/* Prevent any “square border” look coming from nested elements */
+#wins .bp-card * ,
+#wins .bright-card * ,
+#wins .card * ,
+#wins .feature * ,
+#wins .feature-card * ,
+#wins .wins-card * ,
+#wins .wins-item * ,
+#wins .pillar * ,
+#wins .pillar-card * ,
+#wins .box * ,
+#wins .panel * {
+  border-radius: inherit;
+}
