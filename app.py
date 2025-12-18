@@ -1,10 +1,11 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__, static_folder="static")
+# Serve /style.css, /script.js, /logo.jpg directly from ./static
+app = Flask(__name__, static_folder="static", static_url_path="")
 CORS(app)
 
-# Serve landing page
+# Landing page at /
 @app.route("/", methods=["GET"])
 def serve_index():
     return send_from_directory(app.static_folder, "index.html")
@@ -12,13 +13,9 @@ def serve_index():
 # Health check
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({
-        "ok": True,
-        "service": "trucite-backend",
-        "version": "mvp-rag-v1.1"
-    })
+    return jsonify({"ok": True, "service": "trucite-backend", "version": "mvp-rag-v1.1"})
 
-# Truth score API
+# API
 @app.route("/truth-score", methods=["POST", "OPTIONS"])
 def truth_score():
     if request.method == "OPTIONS":
@@ -27,7 +24,7 @@ def truth_score():
     data = request.get_json(silent=True) or {}
     text = (data.get("text") or "").strip()
 
-    # TEMP MVP LOGIC (replace later with real RAG)
+    # MVP placeholder logic
     score = 78
     verdict = "Plausible / Needs Verification"
 
