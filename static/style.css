@@ -1,10 +1,7 @@
-
 /* =======================
    BASE / RESET
 ======================= */
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -14,83 +11,82 @@ body {
   line-height: 1.5;
 }
 
-a {
-  color: #FFD700;
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
+a { color: #FFD700; text-decoration: none; }
+a:hover { text-decoration: underline; }
 
 /* =======================
-   TOP NAV
+   TOP NAV (WAITLIST ONLY)
 ======================= */
 .top-nav {
   position: sticky;
   top: 0;
-  z-index: 1000;
+  z-index: 999;
   background: #000;
   border-bottom: 1px solid #111;
   padding: 10px 14px;
 }
 
 .top-nav-inner {
+  width: 100%;
   max-width: 920px;
   margin: 0 auto;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
 }
 
 .top-nav-cta {
+  margin-left: auto;
   font-weight: 800;
+  font-size: 0.95rem;
   color: #FFD700;
-  padding: 6px 14px;
-  border-radius: 12px;
+  padding: 6px 12px;
+  border-radius: 10px;
   border: 1px solid rgba(255,215,0,0.55);
-  background: rgba(255,215,0,0.1);
-  box-shadow: 0 0 14px rgba(255,215,0,0.15);
+  background: rgba(255,215,0,0.10);
+  white-space: nowrap;
+  box-shadow: 0 0 10px rgba(255,215,0,0.10);
 }
+
+.top-nav-cta:hover { text-decoration: none; filter: brightness(1.08); }
 
 /* =======================
    HERO
 ======================= */
 .hero {
   text-align: center;
-  padding: 42px 16px 16px;
+  padding: 42px 16px 14px;
 }
 
-.logo {
-  height: 72px;
-  margin-bottom: 12px;
-}
+.logo { height: 70px; margin-bottom: 12px; }
 
-.hero h1 {
-  margin: 6px 0;
-  font-size: 1.9rem;
-}
+.hero h1 { margin: 6px 0; font-size: 1.9rem; }
 
-.tm {
-  font-size: 0.7em;
-  vertical-align: super;
-}
+.tm { font-size: 0.7em; vertical-align: super; }
 
 .hero-tagline {
-  font-size: 1.05rem;
+  margin-top: 8px;
+  font-size: 1rem;
   color: #FFD700;
 }
 
 .hero-subtitle {
-  max-width: 720px;
-  margin: 12px auto;
+  margin: 10px auto 12px;
+  max-width: 680px;
+  font-size: 0.95rem;
   color: #ccc;
 }
 
-.hero-missing-layer {
+.hero-missing-layer{
+  margin: 12px auto 0;
+  max-width: 720px;
+  font-size: 1.02rem;
   font-weight: 900;
   color: #FFD700;
   text-shadow: 0 0 14px rgba(255,215,0,0.25);
 }
+
+.hero-mini-links { margin-top: 10px; font-size: 0.95rem; }
 
 /* =======================
    MAIN
@@ -102,27 +98,82 @@ main {
 }
 
 .section-title {
-  margin: 64px 0 18px;
+  margin-top: 64px;
+  margin-bottom: 18px;
   font-size: 1.25rem;
   text-align: center;
+  text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #FFD700;
-  text-transform: uppercase;
 }
 
 .section-subtitle {
   text-align: center;
   max-width: 720px;
   margin: 0 auto 18px;
+  font-size: 0.95rem;
   color: #ddd;
 }
 
 /* =======================
-   VERIFY INPUT
+   FEATURE OUTLINE BOXES
+   (How TruCite Works / Why TruCite Wins)
 ======================= */
-.verify-section {
-  text-align: center;
+/* This catches multiple possible class names so we don't break again */
+.feature-box,
+.feature-card,
+.info-card,
+.card,
+.block,
+.outline-box,
+.section-box {
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,215,0,0.35);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin: 14px 0;
+  box-shadow: 0 0 18px rgba(255,215,0,0.10);
 }
+
+/* If your HTML uses <ul> inside these boxes */
+.feature-box ul,
+.feature-card ul,
+.info-card ul,
+.card ul,
+.block ul,
+.outline-box ul,
+.section-box ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.feature-box li,
+.feature-card li,
+.info-card li,
+.card li,
+.block li,
+.outline-box li,
+.section-box li {
+  margin: 6px 0;
+  color: #ddd;
+}
+
+/* Headings inside feature boxes */
+.feature-box h3,
+.feature-card h3,
+.info-card h3,
+.card h3,
+.block h3,
+.outline-box h3,
+.section-box h3 {
+  margin: 0 0 10px;
+  color: #fff;
+}
+
+/* =======================
+   VERIFY / INPUT
+======================= */
+.verify-section { text-align: center; margin-top: 30px; }
 
 textarea {
   width: 100%;
@@ -130,13 +181,15 @@ textarea {
   height: 150px;
   background: #000;
   color: #fff;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid rgba(255,215,0,0.75);
   padding: 12px;
   font-size: 0.95rem;
-  box-shadow: 0 0 18px rgba(255,215,0,0.12);
+  resize: vertical;
+  box-shadow: 0 0 18px rgba(255,215,0,0.10);
 }
 
+/* ✅ glow on focus (tap/cursor) */
 textarea:focus {
   outline: none;
   border-color: rgba(255,215,0,0.95);
@@ -144,53 +197,51 @@ textarea:focus {
 }
 
 /* =======================
-   VERIFY BUTTON
+   BUTTON
 ======================= */
 @keyframes goldPulse {
-  0% { box-shadow: 0 0 10px rgba(255,215,0,0.15); }
-  50% { box-shadow: 0 0 24px rgba(255,215,0,0.35); }
-  100% { box-shadow: 0 0 10px rgba(255,215,0,0.15); }
+  0%   { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
+  50%  { box-shadow: 0 0 22px rgba(255,215,0,0.28); }
+  100% { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
 }
 
 .primary-btn {
-  margin-top: 16px;
+  margin-top: 14px;
   background: #FFD700;
   color: #000;
-  border-radius: 12px;
-  padding: 12px 28px;
+  border: 1px solid rgba(255,215,0,0.65);
+  border-radius: 10px;
+  padding: 12px 26px;
   font-weight: 900;
-  border: none;
   cursor: pointer;
-  animation: goldPulse 2.2s infinite;
+  animation: goldPulse 2.2s ease-in-out infinite;
 }
+
+.primary-btn:hover { filter: brightness(1.08); }
 
 /* =======================
    GAUGE
 ======================= */
-#gaugeContainer {
-  margin-top: 28px;
-}
+#gaugeContainer { margin-top: 28px; }
 
 #scoreDisplay {
-  font-size: 2rem;
+  margin-top: 8px;
+  font-size: 1.95rem;
   font-weight: 900;
   color: #FFD700;
 }
 
-#scoreVerdict {
-  color: #ccc;
-}
+#scoreVerdict { margin-top: 6px; font-size: 0.9rem; color: #ccc; }
 
 /* =======================
    RESULT BOX
 ======================= */
-.result-wrapper {
-  margin-top: 32px;
-}
+.result-wrapper { margin-top: 34px; }
 
 .result-label {
-  color: #FFD700;
   font-size: 0.85rem;
+  color: #FFD700;
+  margin-bottom: 6px;
 }
 
 pre#result {
@@ -201,51 +252,65 @@ pre#result {
   font-size: 0.8rem;
   max-height: 280px;
   overflow: auto;
+  box-shadow: 0 0 18px rgba(255,215,0,0.06);
 }
 
 /* =======================
-   FAQ / ACCORDION
+   ACCORDION (FAQ / Founder / Legal)
 ======================= */
-.accordion-item {
-  margin-bottom: 14px;
-}
+.accordion-item { margin: 14px 0; }
 
 .accordion-btn {
   width: 100%;
   text-align: left;
   background: #000;
-  color: #FFD700;
-  font-weight: 800;
+  color: #FFD700;               /* ✅ questions in gold */
+  font-weight: 900;
   border-radius: 14px;
   border: 1px solid rgba(255,215,0,0.45);
-  padding: 14px 18px;
+  padding: 14px 46px 14px 18px; /* space for chevron */
   cursor: pointer;
   position: relative;
   box-shadow: 0 0 18px rgba(255,215,0,0.12);
 }
 
 .accordion-btn::after {
-  content: "▼";
+  content: "▼";                 /* ✅ chevron */
   position: absolute;
   right: 18px;
   top: 50%;
   transform: translateY(-50%);
   transition: transform 0.25s ease;
   color: #FFD700;
+  font-weight: 900;
 }
 
 .accordion-btn.active::after {
-  transform: translateY(-50%) rotate(180deg);
+  transform: translateY(-50%) rotate(180deg); /* ▼ -> ▲ feel */
 }
 
 .accordion-panel {
   display: none;
   padding: 14px 18px;
-  color: #ccc;
+  color: #fff;                  /* answers in white */
+  background: rgba(0,0,0,0.40);
   border-left: 1px solid rgba(255,215,0,0.35);
   border-right: 1px solid rgba(255,215,0,0.35);
   border-bottom: 1px solid rgba(255,215,0,0.35);
   border-radius: 0 0 14px 14px;
+}
+
+/* =======================
+   CENTER "See full FAQ list"
+======================= */
+.center-link,
+.faq-link,
+.see-faq {
+  text-align: center;
+  margin-top: 14px;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #FFD700;
 }
 
 /* =======================
@@ -257,7 +322,7 @@ footer {
 }
 
 .footer-links a {
-  margin: 0 6px;
+  margin: 0 8px;
   color: #FFD700;
 }
 
