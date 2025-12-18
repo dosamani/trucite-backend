@@ -116,61 +116,6 @@ main {
 }
 
 /* =======================
-   FEATURE OUTLINE BOXES
-   (How TruCite Works / Why TruCite Wins)
-======================= */
-/* This catches multiple possible class names so we don't break again */
-.feature-box,
-.feature-card,
-.info-card,
-.card,
-.block,
-.outline-box,
-.section-box {
-  background: rgba(0,0,0,0.55);
-  border: 1px solid rgba(255,215,0,0.35);
-  border-radius: 14px;
-  padding: 16px 18px;
-  margin: 14px 0;
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
-}
-
-/* If your HTML uses <ul> inside these boxes */
-.feature-box ul,
-.feature-card ul,
-.info-card ul,
-.card ul,
-.block ul,
-.outline-box ul,
-.section-box ul {
-  margin: 10px 0 0;
-  padding-left: 18px;
-}
-
-.feature-box li,
-.feature-card li,
-.info-card li,
-.card li,
-.block li,
-.outline-box li,
-.section-box li {
-  margin: 6px 0;
-  color: #ddd;
-}
-
-/* Headings inside feature boxes */
-.feature-box h3,
-.feature-card h3,
-.info-card h3,
-.card h3,
-.block h3,
-.outline-box h3,
-.section-box h3 {
-  margin: 0 0 10px;
-  color: #fff;
-}
-
-/* =======================
    VERIFY / INPUT
 ======================= */
 .verify-section { text-align: center; margin-top: 30px; }
@@ -189,11 +134,11 @@ textarea {
   box-shadow: 0 0 18px rgba(255,215,0,0.10);
 }
 
-/* ✅ glow on focus (tap/cursor) */
+/* ✅ glow when tapped / focused */
 textarea:focus {
   outline: none;
   border-color: rgba(255,215,0,0.95);
-  box-shadow: 0 0 28px rgba(255,215,0,0.35);
+  box-shadow: 0 0 30px rgba(255,215,0,0.40);
 }
 
 /* =======================
@@ -264,18 +209,18 @@ pre#result {
   width: 100%;
   text-align: left;
   background: #000;
-  color: #FFD700;               /* ✅ questions in gold */
+  color: #FFD700;               /* questions gold */
   font-weight: 900;
   border-radius: 14px;
   border: 1px solid rgba(255,215,0,0.45);
-  padding: 14px 46px 14px 18px; /* space for chevron */
+  padding: 14px 46px 14px 18px;
   cursor: pointer;
   position: relative;
   box-shadow: 0 0 18px rgba(255,215,0,0.12);
 }
 
 .accordion-btn::after {
-  content: "▼";                 /* ✅ chevron */
+  content: "▼";
   position: absolute;
   right: 18px;
   top: 50%;
@@ -286,13 +231,13 @@ pre#result {
 }
 
 .accordion-btn.active::after {
-  transform: translateY(-50%) rotate(180deg); /* ▼ -> ▲ feel */
+  transform: translateY(-50%) rotate(180deg);
 }
 
 .accordion-panel {
   display: none;
   padding: 14px 18px;
-  color: #fff;                  /* answers in white */
+  color: #fff;
   background: rgba(0,0,0,0.40);
   border-left: 1px solid rgba(255,215,0,0.35);
   border-right: 1px solid rgba(255,215,0,0.35);
@@ -301,16 +246,86 @@ pre#result {
 }
 
 /* =======================
-   CENTER "See full FAQ list"
+   FORCE CENTER: "See full FAQ list"
+   (works even if it has no class)
 ======================= */
-.center-link,
+a[href*="faq"],
+a[href*="FAQ"],
+a:has(span):not(.top-nav-cta) {
+  /* no global change */
+}
+
+/* Most reliable: center the container if it exists */
+.faq-more,
 .faq-link,
+.center-link,
 .see-faq {
-  text-align: center;
-  margin-top: 14px;
+  text-align: center !important;
+  display: block !important;
+  margin: 14px auto 0 !important;
+  width: 100% !important;
+}
+
+/* Nuclear option: if it’s just a single <a> line after FAQ */
+main a {
+  /* do NOT center all links */
+}
+main a[href*="faq"], 
+main a[href*="FAQ"] {
+  display: block !important;
+  text-align: center !important;
+  margin: 14px auto 0 !important;
   font-size: 1.05rem;
   font-weight: 900;
-  color: #FFD700;
+  color: #FFD700 !important;
+}
+
+/* =======================
+   RESTORE OUTLINE BOXES for:
+   HOW TRUCITE WORKS + WHY TRUCITE WINS
+   (no dependency on special class names)
+======================= */
+/* Applies to any direct content blocks under those sections */
+section[id*="work"] > div,
+section[id*="wins"] > div,
+section[id*="work"] > ul,
+section[id*="wins"] > ul,
+section[id*="work"] > p,
+section[id*="wins"] > p,
+section[id*="work"] > ol,
+section[id*="wins"] > ol {
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,215,0,0.35);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin: 14px 0;
+  box-shadow: 0 0 18px rgba(255,215,0,0.10);
+}
+
+/* If your HTML uses a wrapper class instead of section id */
+.how-it-works > div,
+.why-wins > div,
+.how-it-works > ul,
+.why-wins > ul,
+.how-it-works > p,
+.why-wins > p,
+.how-it-works > ol,
+.why-wins > ol {
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,215,0,0.35);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin: 14px 0;
+  box-shadow: 0 0 18px rgba(255,215,0,0.10);
+}
+
+/* Make headings inside those boxes pop */
+section[id*="work"] h3,
+section[id*="wins"] h3,
+.how-it-works h3,
+.why-wins h3 {
+  margin: 0 0 10px;
+  color: #fff;
 }
 
 /* =======================
