@@ -3,57 +3,97 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TruCite™ – Authenticate the Agent</title>
-
-  <!-- ✅ relative paths -->
-  <link rel="stylesheet" href="style.css" />
+  <title>TruCite.ai — Independent Verification Layer for AI Output</title>
+  <link rel="stylesheet" href="/style.css" />
 </head>
-
 <body>
 
-  <div class="top-bar">
-    <a href="https://forms.gle/G8iqhAtJxJmeMMhs7" class="waitlist-btn" target="_blank" rel="noopener">
-      Join the waitlist!! →
-    </a>
-  </div>
-
-  <div class="logo-container">
-    <img src="logo.jpg" alt="TruCite Logo" class="logo" />
-  </div>
-
-  <h1 class="title">TruCite™</h1>
-  <p class="subtitle">Authenticate the agent — verify the output.</p>
-
-  <div class="input-container">
-    <textarea id="inputText" placeholder="Paste AI-generated output here..." rows="4"></textarea>
-  </div>
-
-  <div class="button-container">
-    <button onclick="scoreText()" class="verify-btn">VERIFY</button>
-  </div>
-
-  <div class="gauge-container">
-    <svg width="220" height="120" viewBox="0 0 220 120">
-      <path d="M20 110 A90 90 0 0 1 200 110" stroke="#333" stroke-width="16" fill="none"></path>
-      <path id="gaugeFill" d="M20 110 A90 90 0 0 1 200 110"
-        stroke="#f5c84c" stroke-width="16" fill="none"
-        stroke-dasharray="260" stroke-dashoffset="260"></path>
-    </svg>
-
-    <div class="score-display">
-      <div id="scoreDisplay">--</div>
-      <div id="scoreVerdict" class="verdict">Awaiting input</div>
+  <!-- Top Nav: ONLY waitlist on top-right -->
+  <header class="top-nav" role="banner" aria-label="Top navigation">
+    <div class="top-nav-inner">
+      <a
+        href="https://forms.gle/G8iqhAtJxJmeMMhs7"
+        target="_blank"
+        rel="noopener"
+        class="top-nav-cta"
+        aria-label="Join the TruCite waitlist"
+      >
+        Join the waitlist!! →
+      </a>
     </div>
-  </div>
+  </header>
 
-  <h3 class="details-title">Validation details, explanation & references</h3>
+  <!-- HERO (LOCKED COPY) -->
+  <header class="hero">
+    <img src="/logo.jpg" alt="TruCite Logo" class="logo" />
+    <h1>TruCite.ai<sup class="tm">™</sup></h1>
 
-  <pre id="result" class="result-box">Paste text above and press VERIFY.</pre>
+    <p class="hero-tagline">Authenticate the agent — verify the output.</p>
 
-  <footer>
-    <p>© TruCite™ — AI Output Authentication</p>
-  </footer>
+    <p class="hero-subtitle">
+      Authentication tells you who the AI is. Verification tells you whether it’s right.
+      TruCite is the independent trust layer for AI-generated content — measuring truth score,
+      drift, and structural integrity across models.
+    </p>
 
-  <script src="script.js"></script>
+    <p class="hero-missing-layer">
+      TruCite is the missing verification layer between AI capability and AI reliability.
+    </p>
+
+    <p class="hero-subtitle">
+      Designed to complement retrieval systems — TruCite evaluates whether AI output is reliable,
+      not where it came from.
+    </p>
+
+    <p class="hero-mini-links">
+      <a
+        href="https://forms.gle/TAQZuVNwYBudi51i6"
+        target="_blank"
+        rel="noopener"
+      >
+        Share scenarios / suggestions
+      </a>
+    </p>
+  </header>
+
+  <main>
+    <!-- VERIFY SECTION -->
+    <section class="verify-section" id="verify">
+      <h2 class="section-title">VERIFY AI &amp; AGENT OUTPUT</h2>
+      <p class="section-subtitle">
+        Paste AI- or agent-generated text below and tap <strong>VERIFY</strong>
+        to see a demo Truth Score and verdict from the live backend.
+      </p>
+
+      <textarea id="inputText" placeholder="Paste AI- or agent-generated text here…"></textarea>
+      <button class="primary-btn" onclick="scoreText()">VERIFY</button>
+
+      <!-- Gauge -->
+      <div id="gaugeContainer" aria-label="Truth score gauge">
+        <svg id="gauge" width="220" height="120">
+          <path d="M20 100 A90 90 0 0 1 200 100" stroke="#333" stroke-width="18" fill="none" />
+          <path
+            id="gaugeFill"
+            d="M20 100 A90 90 0 0 1 200 100"
+            stroke="#FFD700"
+            stroke-width="18"
+            stroke-linecap="round"
+            fill="none"
+            stroke-dasharray="260"
+            stroke-dashoffset="260"
+          />
+        </svg>
+        <div id="scoreDisplay">--</div>
+        <div id="scoreVerdict">Score pending…</div>
+      </div>
+
+      <div class="result-wrapper">
+        <div class="result-label">Validation details, explanation &amp; references</div>
+        <pre id="result"></pre>
+      </div>
+    </section>
+  </main>
+
+  <script src="/script.js"></script>
 </body>
 </html>
