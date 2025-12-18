@@ -3,8 +3,6 @@
 ======================= */
 * { box-sizing: border-box; }
 
-html, body { background:#000 !important; }
-
 body {
   margin: 0;
   background: #000;
@@ -29,35 +27,31 @@ a:hover { text-decoration: underline; }
 }
 
 .top-nav-inner {
-  width: 100%;
   max-width: 920px;
   margin: 0 auto;
   display: flex;
-  align-items: center;
   justify-content: flex-end;
 }
 
 .top-nav-cta {
-  margin-left: auto;
-  font-weight: 800;
+  font-weight: 900;
   font-size: 0.95rem;
   color: #FFD700;
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 10px;
-  border: 1px solid rgba(255,215,0,0.70);
-  background: rgba(255,215,0,0.12);
-  white-space: nowrap;
-  box-shadow: 0 0 12px rgba(255,215,0,0.14);
+  border: 1px solid rgba(255,215,0,0.6);
+  background: rgba(255,215,0,0.10);
+  box-shadow: 0 0 14px rgba(255,215,0,0.18);
 }
 
-.top-nav-cta:hover { text-decoration: none; filter: brightness(1.10); }
+.top-nav-cta:hover { filter: brightness(1.1); }
 
 /* =======================
    HERO
 ======================= */
 .hero {
   text-align: center;
-  padding: 42px 16px 14px;
+  padding: 44px 16px 16px;
 }
 
 .logo { height: 70px; margin-bottom: 12px; }
@@ -67,30 +61,27 @@ a:hover { text-decoration: underline; }
 .tm { font-size: 0.7em; vertical-align: super; }
 
 .hero-tagline {
-  margin-top: 8px;
   font-size: 1rem;
   color: #FFD700;
 }
 
 .hero-subtitle {
-  margin: 10px auto 12px;
   max-width: 680px;
+  margin: 10px auto;
   font-size: 0.95rem;
   color: #ccc;
 }
 
-.hero-subtitle-tight { margin-top: 6px; }
-
-.hero-missing-layer{
+.hero-missing-layer {
   margin: 12px auto 0;
   max-width: 720px;
-  font-size: 1.02rem;
+  font-size: 1.05rem;
   font-weight: 900;
   color: #FFD700;
-  text-shadow: 0 0 14px rgba(255,215,0,0.25);
+  text-shadow: 0 0 16px rgba(255,215,0,0.35);
 }
 
-.hero-mini-links { margin-top: 10px; font-size: 0.95rem; }
+.hero-mini-links { margin-top: 10px; }
 
 /* =======================
    MAIN
@@ -106,7 +97,6 @@ main {
   margin-bottom: 18px;
   font-size: 1.25rem;
   text-align: center;
-  text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #FFD700;
 }
@@ -120,9 +110,15 @@ main {
 }
 
 /* =======================
-   VERIFY / INPUT
+   VERIFY / INPUT (WITH GLOW)
 ======================= */
 .verify-section { text-align: center; margin-top: 30px; }
+
+@keyframes goldGlow {
+  0% { box-shadow: 0 0 14px rgba(255,215,0,0.20); }
+  50% { box-shadow: 0 0 28px rgba(255,215,0,0.45); }
+  100% { box-shadow: 0 0 14px rgba(255,215,0,0.20); }
+}
 
 textarea {
   width: 100%;
@@ -130,39 +126,33 @@ textarea {
   height: 150px;
   background: #000;
   color: #fff;
-  border-radius: 10px;
-  border: 1px solid rgba(255,215,0,0.85);
+  border-radius: 12px;
+  border: 1px solid rgba(255,215,0,0.75);
   padding: 12px;
   font-size: 0.95rem;
   resize: vertical;
-  box-shadow: 0 0 18px rgba(255,215,0,0.12);
+  animation: goldGlow 2.8s ease-in-out infinite;
 }
 
 textarea:focus {
   outline: none;
-  border-color: rgba(255,215,0,0.98);
-  box-shadow: 0 0 24px rgba(255,215,0,0.18);
+  border-color: rgba(255,215,0,1);
+  box-shadow: 0 0 36px rgba(255,215,0,0.6);
 }
 
 /* =======================
-   GLOW ANIMATIONS
+   VERIFY BUTTON
 ======================= */
-@keyframes goldPulse {
-  0%   { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
-  50%  { box-shadow: 0 0 24px rgba(255,215,0,0.30); }
-  100% { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
-}
-
 .primary-btn {
   margin-top: 14px;
   background: #FFD700;
   color: #000;
-  border: 1px solid rgba(255,215,0,0.75);
-  border-radius: 10px;
-  padding: 12px 26px;
+  border-radius: 12px;
+  padding: 12px 28px;
   font-weight: 900;
   cursor: pointer;
-  animation: goldPulse 2.2s ease-in-out infinite;
+  border: none;
+  animation: goldGlow 2.2s ease-in-out infinite;
 }
 
 .primary-btn:hover { filter: brightness(1.08); }
@@ -179,18 +169,12 @@ textarea:focus {
   color: #FFD700;
 }
 
-#scoreVerdict { margin-top: 6px; font-size: 0.9rem; color: #ccc; }
+#scoreVerdict { font-size: 0.9rem; color: #ccc; }
 
 /* =======================
    RESULT BOX
 ======================= */
 .result-wrapper { margin-top: 34px; }
-
-.result-label {
-  font-size: 0.85rem;
-  color: #FFD700;
-  margin-bottom: 6px;
-}
 
 pre#result {
   background: #0b0b0b;
@@ -200,163 +184,52 @@ pre#result {
   font-size: 0.8rem;
   max-height: 280px;
   overflow: auto;
-  box-shadow: 0 0 18px rgba(255,215,0,0.08);
 }
 
 /* =======================
-   BRIGHT OUTLINE CARDS
+   BOX / CARD STYLES
 ======================= */
-.bright-card{
-  border: 1px solid rgba(255,215,0,0.55) !important;
-  box-shadow: 0 0 22px rgba(255,215,0,0.10);
-  background: #070707;
+.bp-card,
+.win-card,
+.accordion-panel {
+  background: #0b0b0b;
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid rgba(255,215,0,0.55);
+  box-shadow: 0 0 22px rgba(255,215,0,0.18);
 }
 
 /* =======================
-   HOW TRUCITE WORKS (Blueprint)
+   FAQ
 ======================= */
-.blueprint-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin-top: 18px;
-}
-
-.bp-card {
-  background: #070707;
-  border: 1px solid rgba(255,215,0,0.35);
-  border-radius: 14px;
-  padding: 14px;
-}
-
-.bp-label {
-  font-weight: 900;
-  color: #FFD700;
-  margin-bottom: 8px;
-}
-
-.bp-diagram {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.95;
-}
-
-.bp-node {
-  border: 1px solid rgba(255,215,0,0.45);
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 0.85rem;
-  color: #ddd;
-  background: rgba(255,215,0,0.08);
-}
-
-.bp-arrow { color: #FFD700; font-weight: 900; }
-
-/* =======================
-   WHY TRUCITE WINS
-======================= */
-.wins-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-  margin-top: 18px;
-}
-
-.win-card {
-  background: #070707;
-  border: 1px solid rgba(255,215,0,0.35);
-  border-radius: 14px;
-  padding: 14px;
-}
-
-.win-card h3 {
-  margin: 0 0 8px;
-  color: #FFD700;
-  font-size: 1rem;
-}
-
-.win-card p { margin: 0; color: #ddd; }
-
-/* =======================
-   FAQ / ACCORDION
-======================= */
-.faq-section, .founder-section, .legal-section { margin-top: 10px; }
-
-.accordion-item {
-  max-width: 820px;
-  margin: 12px auto;
-  border: 1px solid rgba(255,215,0,0.45);
-  border-radius: 14px;
-  overflow: hidden;
-  background: #070707;
-  box-shadow: 0 0 18px rgba(255,215,0,0.06);
-}
-
 .accordion-btn {
   width: 100%;
-  text-align: left;
   background: transparent;
-  color: #fff;
-  padding: 14px 14px;
-  border: none;
-  cursor: pointer;
-  font-weight: 900;
-  position: relative;
-}
-
-.accordion-btn::after {
-  content: "▾";
-  position: absolute;
-  right: 14px;
-  top: 12px;
   color: #FFD700;
-  font-size: 1.1rem;
-  transform: rotate(0deg);
-  transition: transform 0.2s ease;
+  font-weight: 900;
+  font-size: 0.95rem;
+  border: none;
+  padding: 14px;
+  text-align: left;
+  cursor: pointer;
 }
 
-.accordion-btn.active::after { transform: rotate(180deg); }
+.accordion-btn:hover { filter: brightness(1.08); }
 
 .accordion-panel {
   display: none;
-  padding: 0 14px 14px;
+  margin-top: 6px;
+  font-size: 0.85rem;
   color: #ddd;
-  border-top: 1px solid rgba(255,215,0,0.25);
 }
-
-.small-link-note { margin-top: 10px; color: #bbb; }
-
-.faq-footer {
-  text-align: center;
-  margin-top: 16px;
-  color: #ccc;
-}
-
-.inline-link { font-weight: 900; }
 
 /* =======================
    FOOTER
 ======================= */
 footer {
-  margin-top: 54px;
-  padding: 22px 16px;
+  margin-top: 70px;
+  padding: 22px 14px;
   border-top: 1px solid #111;
   text-align: center;
-  color: #aaa;
-}
-
-.footer-links { margin: 0 0 8px; font-size: 0.95rem; }
-
-.footer-note { margin: 0; font-size: 0.85rem; color: #777; }
-
-/* =======================
-   RESPONSIVE
-======================= */
-@media (max-width: 860px) {
-  .blueprint-grid { grid-template-columns: 1fr; }
-  .wins-grid { grid-template-columns: 1fr; }
+  font-size: 0.85rem;
 }
