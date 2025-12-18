@@ -1,40 +1,69 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+import os
 
-# Serve /style.css, /script.js, /logo.jpg directly from ./static
 app = Flask(__name__, static_folder="static", static_url_path="")
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Landing page at /
-@app.route("/", methods=["GET"])
-def serve_index():
+# ----------------------------
+# LANDING PAGE (Render-hosted)
+# ----------------------------
+@app.get("/")
+def home():
+    # serve /static/index.html as the homepage
     return send_from_directory(app.static_folder, "index.html")
 
-# Health check
-@app.route("/health", methods=["GET"])
+# Serve any static file: /style.css, /script.js, /logo.jpg, etc.
+@app.get("/<path:filename>")
+def static_files(filename):
+    return send_from_directory(app.static_folder, filename)
+
+# ----------------------------
+# HEALTH CHECK
+# ----------------------------
+@app.get("/health")
 def health():
-    return jsonify({"ok": True, "service": "trucite-backend", "version": "mvp-rag-v1.1"})
+    return jsonify({"ok": True})
 
-# API
-@app.route("/truth-score", methods=["POST", "OPTIONS"])
+# ----------------------------
+# TRUTH SCORE API (POST)
+# ----------------------------
+@app.post("/truth-score")
 def truth_score():
-    if request.method == "OPTIONS":
-        return ("", 204)
-
     data = request.get_json(silent=True) or {}
     text = (data.get("text") or "").strip()
 
-    # MVP placeholder logic
-    score = 78
-    verdict = "Plausible / Needs Verification"
+    if not text:
+        return jsonify({
+            "truth_score": 0,
+            "verdict": "No input",
+            "explanation": "No text provided."
+        }), 400
+
+    # Simple MVP logic for now (replace later with RAG / drift / references)
+    lowered = text.lower()
+    if "moon" in lowered and "cheese" in lowered:
+        score = 10
+        verdict = "Likely False / Misleading"
+        explanation = "The claim 'the moon is made of cheese' is a well-known false statement."
+        references = [
+            {"title": "NASA – The Moon", "url": "https://moon.nasa.gov/"}
+        ]
+    else:
+        score = 70
+        verdict = "Plausible / Needs Verification"
+        explanation = "This is an MVP heuristic score. Add evidence/RAG next."
+        references = [
+            {"title": "NASA", "url": "https://www.nasa.gov/"}
+        ]
 
     return jsonify({
-        "mode": "mvp-rag-v1.1",
         "truth_score": score,
         "verdict": verdict,
-        "references": [],
-        "explanation": "MVP placeholder score. Replace with real evidence pipeline."
+        "explanation": explanation,
+        "references": references
     })
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
