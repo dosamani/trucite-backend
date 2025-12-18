@@ -1,8 +1,6 @@
-
-// ================================
-// TruCite Frontend Script (FINAL)
-// Same-origin backend via Render
-// ================================
+// ===============================
+// TruCite Frontend Script (FULL)
+// ===============================
 
 // Accordion behavior (FAQ / Founder / Legal)
 document.addEventListener("DOMContentLoaded", () => {
@@ -20,10 +18,16 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// 🔒 SAME-ORIGIN API ENDPOINT (NO CORS)
-const BACKEND_ENDPOINT = "/api/score";
+/**
+ * ✅ Permanent fix:
+ * If frontend + backend are hosted on the SAME Render service,
+ * we call the backend using a RELATIVE URL (no domain).
+ *
+ * This avoids CORS completely.
+ */
+const BACKEND_ENDPOINT = "/truth-score";
 
-// Main verify function
+// Demo scoring call
 async function scoreText() {
   const input = document.getElementById("inputText");
   const result = document.getElementById("result");
@@ -33,16 +37,16 @@ async function scoreText() {
 
   const text = (input?.value || "").trim();
   if (!text) {
-    result.textContent = "Paste some AI or agent output, then tap VERIFY.";
+    result.textContent = "Paste some AI output first, then tap VERIFY.";
     return;
   }
 
   // UI: loading state
   scoreDisplay.textContent = "--";
   scoreVerdict.textContent = "Scoring…";
-  result.textContent = "Contacting TruCite verification layer…";
+  result.textContent = "Contacting TruCite backend…";
 
-  // Reset gauge
+  // Reset gauge (empty)
   if (gaugeFill) {
     gaugeFill.style.transition = "none";
     gaugeFill.style.strokeDashoffset = "260";
@@ -56,20 +60,22 @@ async function scoreText() {
     });
 
     if (!res.ok) {
-      const msg = await res.text();
-      throw new Error(`HTTP ${res.status}: ${msg}`);
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Backend error ${res.status}. ${txt}`);
     }
 
     const data = await res.json();
 
-    const score = Math.max(0, Math.min(100, Number(data.score || 0)));
-    const verdict = data.verdict || verdictFromScore(score);
+    // Accept either score field name
+    const rawScore = (data.score ?? data.truth_score ?? 0);
+    const score = Math.max(0, Math.min(100, Number(rawScore)));
+    const verdict = String(data.verdict ?? verdictFromScore(score));
 
-    // Update score
-    scoreDisplay.textContent = score;
+    // Update UI
+    scoreDisplay.textContent = `${score}`;
     scoreVerdict.textContent = verdict;
 
-    // Animate gauge
+    // Animate gauge fill
     const dashTotal = 260;
     const filled = (score / 100) * dashTotal;
     const offset = dashTotal - filled;
@@ -81,25 +87,24 @@ async function scoreText() {
       }, 40);
     }
 
-    // Output details
+    // Result box: show full response
     result.textContent = JSON.stringify(data, null, 2);
 
-  } catch (err) {
-    // HARD FAIL — NO FAKE SCORE
+  } catch (e) {
     scoreDisplay.textContent = "--";
     scoreVerdict.textContent = "Backend connection failed";
-
     result.textContent =
       "❌ POST failed.\n\n" +
       "Endpoint: " + BACKEND_ENDPOINT + "\n\n" +
-      "Error: " + (err?.message || err);
+      "If you are still running this from Neocities, the likely cause is CORS.\n" +
+      "Fix: host the frontend inside Render /static so this becomes same-origin.\n\n" +
+      "Error: " + (e?.message || e);
   }
 }
 
-// Score → verdict mapping
 function verdictFromScore(score) {
   if (score >= 85) return "Likely True / Well-Supported";
   if (score >= 65) return "Plausible / Needs Verification";
   if (score >= 40) return "Questionable / High Uncertainty";
   return "Likely False / Misleading";
-}
+}}
