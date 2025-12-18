@@ -1,21 +1,29 @@
 /* =======================
-   BASE / RESET
+   RESET / BASE
 ======================= */
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
   background: #000;
   color: #fff;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
-a { color: #FFD700; text-decoration: none; }
-a:hover { text-decoration: underline; }
+a {
+  color: #FFD700;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
 
 /* =======================
-   TOP NAV (WAITLIST ONLY)
+   TOP NAV
 ======================= */
 .top-nav {
   position: sticky;
@@ -27,66 +35,73 @@ a:hover { text-decoration: underline; }
 }
 
 .top-nav-inner {
-  width: 100%;
   max-width: 920px;
   margin: 0 auto;
   display: flex;
-  align-items: center;
   justify-content: flex-end;
 }
 
 .top-nav-cta {
-  margin-left: auto;
   font-weight: 800;
   font-size: 0.95rem;
   color: #FFD700;
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 10px;
   border: 1px solid rgba(255,215,0,0.55);
-  background: rgba(255,215,0,0.10);
-  white-space: nowrap;
-  box-shadow: 0 0 10px rgba(255,215,0,0.10);
+  background: rgba(255,215,0,0.1);
+  box-shadow: 0 0 10px rgba(255,215,0,0.15);
 }
-
-.top-nav-cta:hover { text-decoration: none; filter: brightness(1.08); }
 
 /* =======================
    HERO
 ======================= */
 .hero {
   text-align: center;
-  padding: 42px 16px 14px;
+  padding: 44px 16px 22px;
 }
 
-.logo { height: 70px; margin-bottom: 12px; }
+.logo {
+  height: 70px;
+  margin-bottom: 14px;
+}
 
-.hero h1 { margin: 6px 0; font-size: 1.9rem; }
+.hero h1 {
+  margin: 6px 0;
+  font-size: 2rem;
+  font-weight: 900;
+}
 
-.tm { font-size: 0.7em; vertical-align: super; }
+.tm {
+  font-size: 0.6em;
+  vertical-align: super;
+}
 
 .hero-tagline {
-  margin-top: 8px;
-  font-size: 1rem;
+  margin-top: 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
   color: #FFD700;
 }
 
 .hero-subtitle {
-  margin: 10px auto 12px;
-  max-width: 680px;
+  margin: 12px auto;
+  max-width: 720px;
   font-size: 0.95rem;
   color: #ccc;
 }
 
-.hero-missing-layer{
-  margin: 12px auto 0;
-  max-width: 720px;
-  font-size: 1.02rem;
+.hero-missing-layer {
+  margin-top: 14px;
+  font-size: 1.05rem;
   font-weight: 900;
   color: #FFD700;
   text-shadow: 0 0 14px rgba(255,215,0,0.25);
 }
 
-.hero-mini-links { margin-top: 10px; font-size: 0.95rem; }
+.hero-mini-links {
+  margin-top: 12px;
+  font-size: 0.95rem;
+}
 
 /* =======================
    MAIN
@@ -97,6 +112,9 @@ main {
   padding: 18px;
 }
 
+/* =======================
+   SECTION HEADERS
+======================= */
 .section-title {
   margin-top: 64px;
   margin-bottom: 18px;
@@ -110,15 +128,18 @@ main {
 .section-subtitle {
   text-align: center;
   max-width: 720px;
-  margin: 0 auto 18px;
+  margin: 0 auto 22px;
   font-size: 0.95rem;
   color: #ddd;
 }
 
 /* =======================
-   VERIFY / INPUT
+   VERIFY
 ======================= */
-.verify-section { text-align: center; margin-top: 30px; }
+.verify-section {
+  text-align: center;
+  margin-top: 30px;
+}
 
 textarea {
   width: 100%;
@@ -126,26 +147,26 @@ textarea {
   height: 150px;
   background: #000;
   color: #fff;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid rgba(255,215,0,0.75);
   padding: 12px;
   font-size: 0.95rem;
   resize: vertical;
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
+  box-shadow: 0 0 18px rgba(255,215,0,0.1);
 }
 
 textarea:focus {
   outline: none;
   border-color: rgba(255,215,0,0.95);
-  box-shadow: 0 0 22px rgba(255,215,0,0.18);
+  box-shadow: 0 0 24px rgba(255,215,0,0.22);
 }
 
 /* =======================
-   GLOW ANIMATIONS
+   BUTTON
 ======================= */
 @keyframes goldPulse {
-  0%   { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
-  50%  { box-shadow: 0 0 22px rgba(255,215,0,0.28); }
+  0% { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
+  50% { box-shadow: 0 0 24px rgba(255,215,0,0.28); }
   100% { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
 }
 
@@ -154,33 +175,43 @@ textarea:focus {
   background: #FFD700;
   color: #000;
   border: 1px solid rgba(255,215,0,0.65);
-  border-radius: 10px;
-  padding: 12px 26px;
+  border-radius: 12px;
+  padding: 12px 28px;
   font-weight: 900;
   cursor: pointer;
   animation: goldPulse 2.2s ease-in-out infinite;
 }
 
-.primary-btn:hover { filter: brightness(1.08); }
+.primary-btn:hover {
+  filter: brightness(1.08);
+}
 
 /* =======================
    GAUGE
 ======================= */
-#gaugeContainer { margin-top: 28px; }
+#gaugeContainer {
+  margin-top: 28px;
+}
 
 #scoreDisplay {
   margin-top: 8px;
-  font-size: 1.95rem;
+  font-size: 2rem;
   font-weight: 900;
   color: #FFD700;
 }
 
-#scoreVerdict { margin-top: 6px; font-size: 0.9rem; color: #ccc; }
+#scoreVerdict {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: #ccc;
+}
 
 /* =======================
    RESULT BOX
 ======================= */
-.result-wrapper { margin-top: 34px; }
+.result-wrapper {
+  margin-top: 34px;
+}
 
 .result-label {
   font-size: 0.85rem;
@@ -194,7 +225,100 @@ pre#result {
   border-radius: 12px;
   padding: 14px;
   font-size: 0.8rem;
-  max-height: 280px;
+  max-height: 300px;
   overflow: auto;
   box-shadow: 0 0 18px rgba(255,215,0,0.06);
+}
+
+/* =======================
+   HOW IT WORKS
+======================= */
+.blueprint-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.bp-card {
+  background: #0b0b0b;
+  border: 1px solid rgba(255,215,0,0.25);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 0 14px rgba(255,215,0,0.06);
+}
+
+.bp-label {
+  font-weight: 900;
+  color: #FFD700;
+  margin-bottom: 6px;
+}
+
+/* =======================
+   WHY TRUCITE WINS
+======================= */
+.wins-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.win-card {
+  background: #0b0b0b;
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid rgba(255,215,0,0.25);
+}
+
+.win-card h3 {
+  margin-top: 0;
+  color: #FFD700;
+}
+
+/* =======================
+   FAQ
+======================= */
+.accordion-item {
+  margin-bottom: 12px;
+}
+
+.accordion-btn {
+  width: 100%;
+  text-align: left;
+  padding: 12px;
+  font-weight: 800;
+  background: #0b0b0b;
+  border: 1px solid rgba(255,215,0,0.35);
+  border-radius: 10px;
+  color: #FFD700;
+  cursor: pointer;
+}
+
+.accordion-panel {
+  display: none;
+  padding: 12px;
+  background: #000;
+  border-left: 1px solid rgba(255,215,0,0.25);
+  border-right: 1px solid rgba(255,215,0,0.25);
+  border-bottom: 1px solid rgba(255,215,0,0.25);
+  border-radius: 0 0 10px 10px;
+  color: #ccc;
+}
+
+/* =======================
+   FOOTER
+======================= */
+footer {
+  margin-top: 80px;
+  padding: 24px 16px;
+  border-top: 1px solid #111;
+  text-align: center;
+}
+
+.footer-links {
+  margin-bottom: 8px;
+}
+
+.footer-note {
+  font-size: 0.8rem;
+  color: #777;
 }
