@@ -44,13 +44,13 @@ a:hover { text-decoration: underline; }
   color: #FFD700;
   padding: 6px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(255,215,0,0.55);
-  background: rgba(255,215,0,0.10);
+  border: 1px solid rgba(255,215,0,0.70);
+  background: rgba(255,215,0,0.12);
   white-space: nowrap;
-  box-shadow: 0 0 10px rgba(255,215,0,0.10);
+  box-shadow: 0 0 12px rgba(255,215,0,0.14);
 }
 
-.top-nav-cta:hover { text-decoration: none; filter: brightness(1.08); }
+.top-nav-cta:hover { text-decoration: none; filter: brightness(1.10); }
 
 /* =======================
    HERO
@@ -78,6 +78,8 @@ a:hover { text-decoration: underline; }
   font-size: 0.95rem;
   color: #ccc;
 }
+
+.hero-subtitle-tight { margin-top: 6px; }
 
 .hero-missing-layer{
   margin: 12px auto 0;
@@ -129,17 +131,17 @@ textarea {
   background: #000;
   color: #fff;
   border-radius: 10px;
-  border: 1px solid rgba(255,215,0,0.75);
+  border: 1px solid rgba(255,215,0,0.85);
   padding: 12px;
   font-size: 0.95rem;
   resize: vertical;
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
+  box-shadow: 0 0 18px rgba(255,215,0,0.12);
 }
 
 textarea:focus {
   outline: none;
-  border-color: rgba(255,215,0,0.95);
-  box-shadow: 0 0 22px rgba(255,215,0,0.18);
+  border-color: rgba(255,215,0,0.98);
+  box-shadow: 0 0 24px rgba(255,215,0,0.18);
 }
 
 /* =======================
@@ -147,7 +149,7 @@ textarea:focus {
 ======================= */
 @keyframes goldPulse {
   0%   { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
-  50%  { box-shadow: 0 0 22px rgba(255,215,0,0.28); }
+  50%  { box-shadow: 0 0 24px rgba(255,215,0,0.30); }
   100% { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
 }
 
@@ -155,7 +157,7 @@ textarea:focus {
   margin-top: 14px;
   background: #FFD700;
   color: #000;
-  border: 1px solid rgba(255,215,0,0.65);
+  border: 1px solid rgba(255,215,0,0.75);
   border-radius: 10px;
   padding: 12px 26px;
   font-weight: 900;
@@ -192,13 +194,22 @@ textarea:focus {
 
 pre#result {
   background: #0b0b0b;
-  border: 1px solid rgba(255,215,0,0.25);
+  border: 1px solid rgba(255,215,0,0.35);
   border-radius: 12px;
   padding: 14px;
   font-size: 0.8rem;
   max-height: 280px;
   overflow: auto;
-  box-shadow: 0 0 18px rgba(255,215,0,0.06);
+  box-shadow: 0 0 18px rgba(255,215,0,0.08);
+}
+
+/* =======================
+   BRIGHT OUTLINE CARDS
+======================= */
+.bright-card{
+  border: 1px solid rgba(255,215,0,0.55) !important;
+  box-shadow: 0 0 22px rgba(255,215,0,0.10);
+  background: #070707;
 }
 
 /* =======================
@@ -213,10 +224,9 @@ pre#result {
 
 .bp-card {
   background: #070707;
-  border: 1px solid rgba(255,215,0,0.18);
+  border: 1px solid rgba(255,215,0,0.35);
   border-radius: 14px;
   padding: 14px;
-  box-shadow: 0 0 18px rgba(255,215,0,0.06);
 }
 
 .bp-label {
@@ -236,12 +246,12 @@ pre#result {
 }
 
 .bp-node {
-  border: 1px solid rgba(255,215,0,0.25);
+  border: 1px solid rgba(255,215,0,0.45);
   border-radius: 999px;
   padding: 6px 10px;
   font-size: 0.85rem;
   color: #ddd;
-  background: rgba(255,215,0,0.06);
+  background: rgba(255,215,0,0.08);
 }
 
 .bp-arrow { color: #FFD700; font-weight: 900; }
@@ -258,10 +268,9 @@ pre#result {
 
 .win-card {
   background: #070707;
-  border: 1px solid rgba(255,215,0,0.18);
+  border: 1px solid rgba(255,215,0,0.35);
   border-radius: 14px;
   padding: 14px;
-  box-shadow: 0 0 18px rgba(255,215,0,0.06);
 }
 
 .win-card h3 {
@@ -275,18 +284,16 @@ pre#result {
 /* =======================
    FAQ / ACCORDION
 ======================= */
-.faq-section, .founder-section, .legal-section {
-  margin-top: 10px;
-}
+.faq-section, .founder-section, .legal-section { margin-top: 10px; }
 
 .accordion-item {
   max-width: 820px;
   margin: 12px auto;
-  border: 1px solid rgba(255,215,0,0.18);
+  border: 1px solid rgba(255,215,0,0.45);
   border-radius: 14px;
   overflow: hidden;
   background: #070707;
-  box-shadow: 0 0 18px rgba(255,215,0,0.05);
+  box-shadow: 0 0 18px rgba(255,215,0,0.06);
 }
 
 .accordion-btn {
@@ -312,16 +319,16 @@ pre#result {
   transition: transform 0.2s ease;
 }
 
-.accordion-btn.active::after {
-  transform: rotate(180deg);
-}
+.accordion-btn.active::after { transform: rotate(180deg); }
 
 .accordion-panel {
   display: none;
   padding: 0 14px 14px;
   color: #ddd;
-  border-top: 1px solid rgba(255,215,0,0.14);
+  border-top: 1px solid rgba(255,215,0,0.25);
 }
+
+.small-link-note { margin-top: 10px; color: #bbb; }
 
 .faq-footer {
   text-align: center;
@@ -342,16 +349,9 @@ footer {
   color: #aaa;
 }
 
-.footer-links {
-  margin: 0 0 8px;
-  font-size: 0.95rem;
-}
+.footer-links { margin: 0 0 8px; font-size: 0.95rem; }
 
-.footer-note {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #777;
-}
+.footer-note { margin: 0; font-size: 0.85rem; color: #777; }
 
 /* =======================
    RESPONSIVE
