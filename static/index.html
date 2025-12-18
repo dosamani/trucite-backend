@@ -5,58 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TruCite™ – Authenticate the Agent</title>
 
-  <!-- ✅ MUST use /static paths -->
-  <link rel="stylesheet" href="/static/style.css" />
+  <!-- ✅ relative paths -->
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
 
-  <!-- Top Bar -->
   <div class="top-bar">
-    <a href="#" class="waitlist-btn">Join the waitlist!! →</a>
+    <a href="https://forms.gle/G8iqhAtJxJmeMMhs7" class="waitlist-btn" target="_blank" rel="noopener">
+      Join the waitlist!! →
+    </a>
   </div>
 
-  <!-- Logo -->
   <div class="logo-container">
-    <img src="/static/logo.jpg" alt="TruCite Logo" class="logo" />
+    <img src="logo.jpg" alt="TruCite Logo" class="logo" />
   </div>
 
-  <!-- Hero -->
   <h1 class="title">TruCite™</h1>
   <p class="subtitle">Authenticate the agent — verify the output.</p>
 
-  <!-- Input -->
   <div class="input-container">
-    <textarea
-      id="inputText"
-      placeholder="Paste AI-generated output here..."
-      rows="4"
-    ></textarea>
+    <textarea id="inputText" placeholder="Paste AI-generated output here..." rows="4"></textarea>
   </div>
 
-  <!-- Verify Button -->
   <div class="button-container">
     <button onclick="scoreText()" class="verify-btn">VERIFY</button>
   </div>
 
-  <!-- Gauge -->
   <div class="gauge-container">
     <svg width="220" height="120" viewBox="0 0 220 120">
-      <path
-        d="M20 110 A90 90 0 0 1 200 110"
-        stroke="#333"
-        stroke-width="16"
-        fill="none"
-      />
-      <path
-        id="gaugeFill"
-        d="M20 110 A90 90 0 0 1 200 110"
-        stroke="#f5c84c"
-        stroke-width="16"
-        fill="none"
-        stroke-dasharray="260"
-        stroke-dashoffset="260"
-      />
+      <path d="M20 110 A90 90 0 0 1 200 110" stroke="#333" stroke-width="16" fill="none"></path>
+      <path id="gaugeFill" d="M20 110 A90 90 0 0 1 200 110"
+        stroke="#f5c84c" stroke-width="16" fill="none"
+        stroke-dasharray="260" stroke-dashoffset="260"></path>
     </svg>
 
     <div class="score-display">
@@ -65,22 +46,14 @@
     </div>
   </div>
 
-  <!-- Details -->
-  <h3 class="details-title">
-    Validation details, explanation & references
-  </h3>
+  <h3 class="details-title">Validation details, explanation & references</h3>
 
-  <pre id="result" class="result-box">
-Paste text above and press VERIFY.
-  </pre>
+  <pre id="result" class="result-box">Paste text above and press VERIFY.</pre>
 
-  <!-- Footer -->
   <footer>
     <p>© TruCite™ — AI Output Authentication</p>
   </footer>
 
-  <!-- ✅ MUST load script last -->
-  <script src="/static/script.js"></script>
-
+  <script src="script.js"></script>
 </body>
 </html>
