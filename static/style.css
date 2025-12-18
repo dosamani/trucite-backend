@@ -400,3 +400,57 @@ footer {
   font-size: 0.8rem;
   color: #777;
 }
+/* =======================
+   BLUEPRINT / CARD SYSTEM
+======================= */
+
+.blueprint-section {
+  margin-top: 60px;
+}
+
+.blueprint-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 22px;
+  margin-top: 28px;
+}
+
+.bp-card {
+  background: #000;
+  border-radius: 14px;
+  padding: 18px 16px;
+  position: relative;
+}
+
+/* GOLD OUTLINE CARD */
+.bright-card {
+  border: 1.5px solid rgba(255, 215, 0, 0.75);
+  box-shadow:
+    0 0 18px rgba(255, 215, 0, 0.15),
+    inset 0 0 12px rgba(255, 215, 0, 0.08);
+}
+
+/* STEP LABEL */
+.bp-label {
+  font-weight: 900;
+  color: #FFD700;
+  margin-bottom: 8px;
+}
+
+/* MINI DIAGRAM */
+.bp-diagram {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bp-node {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  color: #FFD700;
+}
