@@ -1,43 +1,55 @@
-
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", static_url_path="")
+CORS(app)  # harmless even if same-origin; keeps future flexibility
 
-# ✅ EXACT Neocities origin
-CORS(
-    app,
-    resources={
-        r"/truth-score": {
-            "origins": ["https://trucite-sandbox.neocities.org"]
-        }
-    },
-    methods=["POST", "OPTIONS"],
-    allow_headers=["Content-Type"]
-)
+# -------------------------
+# FRONTEND ROUTES (Render)
+# -------------------------
+@app.get("/")
+def home():
+    # serves /static/index.html as your homepage
+    return send_from_directory(app.static_folder, "index.html")
 
-@app.route("/health", methods=["GET"])
+@app.get("/<path:filename>")
+def static_files(filename):
+    # serves /static/style.css, /static/script.js, /static/logo.jpg, etc.
+    return send_from_directory(app.static_folder, filename)
+
+# -------------------------
+# HEALTH CHECK
+# -------------------------
+@app.get("/health")
 def health():
-    return jsonify({"ok": True})
+    return "TruCite backend ok", 200
 
-@app.route("/truth-score", methods=["POST", "OPTIONS"])
+# -------------------------
+# API ROUTE
+# -------------------------
+@app.post("/truth-score")
 def truth_score():
-    # ✅ Explicit OPTIONS handling (this is what was missing before)
-    if request.method == "OPTIONS":
-        return ("", 204)
-
     data = request.get_json(silent=True) or {}
     text = (data.get("text") or "").strip()
 
     if not text:
-        return jsonify({"error": "Missing text"}), 400
+        return jsonify({"error": "Missing 'text'"}), 400
+
+    # MVP placeholder scoring logic (replace later)
+    score = 72
+    verdict = "Plausible / Needs Verification"
 
     return jsonify({
-        "mode": "demo",
-        "score": 82,
-        "verdict": "Likely reliable"
-    })
+        "truth_score": score,
+        "score": score,
+        "verdict": verdict,
+        "details": {
+            "note": "MVP placeholder scoring logic. Replace with real verification + citations later.",
+            "input_chars": len(text)
+        },
+        "references": []
+    }), 200
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
