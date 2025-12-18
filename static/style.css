@@ -3,6 +3,8 @@
 ======================= */
 * { box-sizing: border-box; }
 
+html, body { height: 100%; }
+
 body {
   margin: 0;
   background: #000;
@@ -37,18 +39,17 @@ a:hover { text-decoration: underline; }
 
 .top-nav-cta {
   margin-left: auto;
-  font-weight: 800;
+  font-weight: 900;
   font-size: 0.95rem;
   color: #FFD700;
-  padding: 6px 12px;
-  border-radius: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
   border: 1px solid rgba(255,215,0,0.55);
   background: rgba(255,215,0,0.10);
   white-space: nowrap;
-  box-shadow: 0 0 10px rgba(255,215,0,0.10);
+  box-shadow: 0 0 14px rgba(255,215,0,0.16);
 }
-
-.top-nav-cta:hover { text-decoration: none; filter: brightness(1.08); }
+.top-nav-cta:hover { text-decoration: none; filter: brightness(1.10); }
 
 /* =======================
    HERO
@@ -83,7 +84,7 @@ a:hover { text-decoration: underline; }
   font-size: 1.02rem;
   font-weight: 900;
   color: #FFD700;
-  text-shadow: 0 0 14px rgba(255,215,0,0.25);
+  text-shadow: 0 0 16px rgba(255,215,0,0.25);
 }
 
 .hero-mini-links { margin-top: 10px; font-size: 0.95rem; }
@@ -126,7 +127,7 @@ textarea {
   height: 150px;
   background: #000;
   color: #fff;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid rgba(255,215,0,0.75);
   padding: 12px;
   font-size: 0.95rem;
@@ -137,8 +138,10 @@ textarea {
 /* ✅ glow when tapped / focused */
 textarea:focus {
   outline: none;
-  border-color: rgba(255,215,0,0.95);
-  box-shadow: 0 0 30px rgba(255,215,0,0.40);
+  border-color: rgba(255,215,0,0.98);
+  box-shadow:
+    0 0 18px rgba(255,215,0,0.25),
+    0 0 34px rgba(255,215,0,0.35);
 }
 
 /* =======================
@@ -146,7 +149,7 @@ textarea:focus {
 ======================= */
 @keyframes goldPulse {
   0%   { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
-  50%  { box-shadow: 0 0 22px rgba(255,215,0,0.28); }
+  50%  { box-shadow: 0 0 24px rgba(255,215,0,0.30); }
   100% { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
 }
 
@@ -155,13 +158,12 @@ textarea:focus {
   background: #FFD700;
   color: #000;
   border: 1px solid rgba(255,215,0,0.65);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 12px 26px;
   font-weight: 900;
   cursor: pointer;
   animation: goldPulse 2.2s ease-in-out infinite;
 }
-
 .primary-btn:hover { filter: brightness(1.08); }
 
 /* =======================
@@ -200,18 +202,87 @@ pre#result {
   box-shadow: 0 0 18px rgba(255,215,0,0.06);
 }
 
-/* =======================
-   ACCORDION (FAQ / Founder / Legal)
-======================= */
+/* =========================================================
+   ✅ RESTORE OUTLINE BOXES (YOUR REAL CLASSES)
+   HOW TRUCITE WORKS uses:
+   section#how.blueprint-section > .blueprint-grid > .bp-card.bright-card
+========================================================= */
+.blueprint-section {
+  margin-top: 44px;
+}
+
+.blueprint-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+/* the actual cards */
+.bp-card.bright-card,
+.bp-card {
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,215,0,0.45);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 0 18px rgba(255,215,0,0.12);
+}
+
+/* label in the card */
+.bp-label {
+  font-weight: 1000;
+  color: #FFD700;
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+
+/* diagram row */
+.bp-diagram {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.bp-node {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,215,0,0.35);
+  color: #FFD700;
+  background: rgba(255,215,0,0.06);
+  font-weight: 800;
+  font-size: 0.92rem;
+}
+
+.bp-arrow {
+  color: rgba(255,215,0,0.70);
+  font-weight: 900;
+}
+
+/* =========================================================
+   WHY TRUCITE WINS
+   (If it uses the SAME bp-card system, this covers it.
+   If it uses a different class, this still won’t break anything.)
+========================================================= */
+#wins .bp-card,
+#wins .bp-card.bright-card {
+  border-color: rgba(255,215,0,0.45);
+}
+
+/* =========================================================
+   FAQ / ACCORDION (boxes + chevrons)
+========================================================= */
+/* supports either your custom accordion OR <details><summary> */
 .accordion-item { margin: 14px 0; }
 
 .accordion-btn {
   width: 100%;
   text-align: left;
   background: #000;
-  color: #FFD700;               /* questions gold */
-  font-weight: 900;
-  border-radius: 14px;
+  color: #FFD700;               /* ✅ questions gold */
+  font-weight: 950;
+  border-radius: 16px;
   border: 1px solid rgba(255,215,0,0.45);
   padding: 14px 46px 14px 18px;
   cursor: pointer;
@@ -220,7 +291,7 @@ pre#result {
 }
 
 .accordion-btn::after {
-  content: "▼";
+  content: "▼";                 /* ✅ chevron */
   position: absolute;
   right: 18px;
   top: 50%;
@@ -237,25 +308,60 @@ pre#result {
 .accordion-panel {
   display: none;
   padding: 14px 18px;
-  color: #fff;
+  color: #fff;                  /* ✅ answers white */
   background: rgba(0,0,0,0.40);
   border-left: 1px solid rgba(255,215,0,0.35);
   border-right: 1px solid rgba(255,215,0,0.35);
   border-bottom: 1px solid rgba(255,215,0,0.35);
-  border-radius: 0 0 14px 14px;
+  border-radius: 0 0 16px 16px;
 }
 
-/* =======================
-   FORCE CENTER: "See full FAQ list"
-   (works even if it has no class)
-======================= */
-a[href*="faq"],
-a[href*="FAQ"],
-a:has(span):not(.top-nav-cta) {
-  /* no global change */
+/* <details> fallback style (if your FAQ uses details/summary) */
+details {
+  border: 1px solid rgba(255,215,0,0.45);
+  border-radius: 16px;
+  background: #000;
+  margin: 14px 0;
+  box-shadow: 0 0 18px rgba(255,215,0,0.12);
+  overflow: hidden;
 }
 
-/* Most reliable: center the container if it exists */
+summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 46px 14px 18px;
+  font-weight: 950;
+  color: #FFD700;               /* ✅ questions gold */
+  position: relative;
+}
+
+summary::-webkit-details-marker { display: none; }
+
+summary::after {
+  content: "▼";                 /* ✅ chevron */
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: transform 0.25s ease;
+  color: #FFD700;
+  font-weight: 900;
+}
+
+details[open] summary::after {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+details > *:not(summary) {
+  padding: 14px 18px;
+  color: #fff;                  /* ✅ answers white */
+  border-top: 1px solid rgba(255,215,0,0.25);
+  background: rgba(0,0,0,0.40);
+}
+
+/* =========================================================
+   ✅ CENTER "See full FAQ list 👉"
+========================================================= */
 .faq-more,
 .faq-link,
 .center-link,
@@ -266,66 +372,14 @@ a:has(span):not(.top-nav-cta) {
   width: 100% !important;
 }
 
-/* Nuclear option: if it’s just a single <a> line after FAQ */
-main a {
-  /* do NOT center all links */
-}
-main a[href*="faq"], 
+main a[href*="faq"],
 main a[href*="FAQ"] {
   display: block !important;
   text-align: center !important;
   margin: 14px auto 0 !important;
   font-size: 1.05rem;
-  font-weight: 900;
+  font-weight: 950;
   color: #FFD700 !important;
-}
-
-/* =======================
-   RESTORE OUTLINE BOXES for:
-   HOW TRUCITE WORKS + WHY TRUCITE WINS
-   (no dependency on special class names)
-======================= */
-/* Applies to any direct content blocks under those sections */
-section[id*="work"] > div,
-section[id*="wins"] > div,
-section[id*="work"] > ul,
-section[id*="wins"] > ul,
-section[id*="work"] > p,
-section[id*="wins"] > p,
-section[id*="work"] > ol,
-section[id*="wins"] > ol {
-  background: rgba(0,0,0,0.55);
-  border: 1px solid rgba(255,215,0,0.35);
-  border-radius: 14px;
-  padding: 16px 18px;
-  margin: 14px 0;
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
-}
-
-/* If your HTML uses a wrapper class instead of section id */
-.how-it-works > div,
-.why-wins > div,
-.how-it-works > ul,
-.why-wins > ul,
-.how-it-works > p,
-.why-wins > p,
-.how-it-works > ol,
-.why-wins > ol {
-  background: rgba(0,0,0,0.55);
-  border: 1px solid rgba(255,215,0,0.35);
-  border-radius: 14px;
-  padding: 16px 18px;
-  margin: 14px 0;
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
-}
-
-/* Make headings inside those boxes pop */
-section[id*="work"] h3,
-section[id*="wins"] h3,
-.how-it-works h3,
-.why-wins h3 {
-  margin: 0 0 10px;
-  color: #fff;
 }
 
 /* =======================
