@@ -585,3 +585,42 @@ footer {
 #wins .panel * {
   border-radius: inherit;
 }
+/* =======================
+   FORCE ROUNDED CARDS FOR "WHY TRUCITE WINS"
+   (broad fallback when section id/class is unknown)
+======================= */
+
+/* Any full-width bordered blocks that look like "wins" cards */
+section .wins-card,
+section .wins-item,
+section .feature-card,
+section .feature,
+section .pillar,
+section .pillar-card,
+section .card,
+section .box,
+section .panel {
+  border-radius: 22px !important;
+  background: #000 !important;
+  border: 1.5px solid rgba(255,215,0,0.55) !important;
+  box-shadow:
+    0 0 22px rgba(255,215,0,0.12),
+    inset 0 0 14px rgba(255,215,0,0.08) !important;
+  padding: 22px 18px !important;
+  overflow: hidden; /* prevents square-looking inner edges */
+}
+
+/* If the wins cards are just plain DIVs, apply to bordered DIVs inside main */
+main section div[style*="border"],
+main section div[style*="border:"] {
+  border-radius: 22px !important;
+  overflow: hidden !important;
+}
+
+/* Keep headings readable */
+section .wins-card h3,
+section .wins-item h3,
+section .feature-card h3,
+section .pillar h3 {
+  margin-top: 0;
+}
