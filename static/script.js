@@ -5,29 +5,20 @@
 // Accordion behavior (FAQ / Founder / Legal)
 document.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".accordion-btn");
-
   buttons.forEach((btn) => {
     btn.addEventListener("click", () => {
       btn.classList.toggle("active");
       const panel = btn.nextElementSibling;
       if (!panel) return;
-
       const isOpen = panel.style.display === "block";
       panel.style.display = isOpen ? "none" : "block";
     });
   });
 });
 
-/**
- * ✅ Permanent fix:
- * If frontend + backend are hosted on the SAME Render service,
- * we call the backend using a RELATIVE URL (no domain).
- *
- * This avoids CORS completely.
- */
+// ✅ Permanent: same-origin endpoint when hosted on Render
 const BACKEND_ENDPOINT = "/truth-score";
 
-// Demo scoring call
 async function scoreText() {
   const input = document.getElementById("inputText");
   const result = document.getElementById("result");
@@ -41,12 +32,10 @@ async function scoreText() {
     return;
   }
 
-  // UI: loading state
   scoreDisplay.textContent = "--";
   scoreVerdict.textContent = "Scoring…";
   result.textContent = "Contacting TruCite backend…";
 
-  // Reset gauge (empty)
   if (gaugeFill) {
     gaugeFill.style.transition = "none";
     gaugeFill.style.strokeDashoffset = "260";
@@ -59,23 +48,18 @@ async function scoreText() {
       body: JSON.stringify({ text })
     });
 
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`Backend error ${res.status}. ${txt}`);
-    }
+    const rawText = await res.text();
+    if (!res.ok) throw new Error(`Backend ${res.status}: ${rawText}`);
 
-    const data = await res.json();
+    const data = JSON.parse(rawText);
 
-    // Accept either score field name
     const rawScore = (data.score ?? data.truth_score ?? 0);
     const score = Math.max(0, Math.min(100, Number(rawScore)));
     const verdict = String(data.verdict ?? verdictFromScore(score));
 
-    // Update UI
     scoreDisplay.textContent = `${score}`;
     scoreVerdict.textContent = verdict;
 
-    // Animate gauge fill
     const dashTotal = 260;
     const filled = (score / 100) * dashTotal;
     const offset = dashTotal - filled;
@@ -87,17 +71,13 @@ async function scoreText() {
       }, 40);
     }
 
-    // Result box: show full response
     result.textContent = JSON.stringify(data, null, 2);
-
   } catch (e) {
     scoreDisplay.textContent = "--";
     scoreVerdict.textContent = "Backend connection failed";
     result.textContent =
       "❌ POST failed.\n\n" +
       "Endpoint: " + BACKEND_ENDPOINT + "\n\n" +
-      "If you are still running this from Neocities, the likely cause is CORS.\n" +
-      "Fix: host the frontend inside Render /static so this becomes same-origin.\n\n" +
       "Error: " + (e?.message || e);
   }
 }
@@ -107,4 +87,4 @@ function verdictFromScore(score) {
   if (score >= 65) return "Plausible / Needs Verification";
   if (score >= 40) return "Questionable / High Uncertainty";
   return "Likely False / Misleading";
-}}
+}
