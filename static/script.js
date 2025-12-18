@@ -1,6 +1,22 @@
-// TruCite Frontend Script (Render-hosted, NO Neocities)
+// ===============================
+// TruCite Frontend Script (FULL)
+// ===============================
 
-// ✅ same-origin endpoint (works because frontend + backend are on same Render domain)
+document.addEventListener("DOMContentLoaded", () => {
+  // Accordion behavior (FAQ / Founder / Legal)
+  const buttons = document.querySelectorAll(".accordion-btn");
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      btn.classList.toggle("active");
+      const panel = btn.nextElementSibling;
+      if (!panel) return;
+      const isOpen = panel.style.display === "block";
+      panel.style.display = isOpen ? "none" : "block";
+    });
+  });
+});
+
+// ✅ SAME ORIGIN: no CORS issues on Render
 const BACKEND_ENDPOINT = "/truth-score";
 
 async function scoreText() {
@@ -16,10 +32,12 @@ async function scoreText() {
     return;
   }
 
+  // UI: loading state
   scoreDisplay.textContent = "--";
   scoreVerdict.textContent = "Scoring…";
   result.textContent = "Contacting TruCite backend…";
 
+  // Reset gauge (empty)
   if (gaugeFill) {
     gaugeFill.style.transition = "none";
     gaugeFill.style.strokeDashoffset = "260";
@@ -29,23 +47,35 @@ async function scoreText() {
     const res = await fetch(BACKEND_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text })
+      body: JSON.stringify({ text }),
     });
 
-    const data = await res.json().catch(() => ({}));
+    const contentType = res.headers.get("content-type") || "";
+    let data;
 
-    if (!res.ok) {
-      throw new Error(`Backend error ${res.status}: ${JSON.stringify(data)}`);
+    if (contentType.includes("application/json")) {
+      data = await res.json();
+    } else {
+      const txt = await res.text();
+      throw new Error(`Non-JSON response. Status ${res.status}. Body: ${txt.slice(0, 180)}`);
     }
 
-    const rawScore = (data.truth_score ?? data.score ?? 0);
+    if (!res.ok) {
+      throw new Error(`Backend error ${res.status}. ${data?.explanation || ""}`.trim());
+    }
+
+    const rawScore = data.truth_score ?? data.score ?? 0;
     const score = Math.max(0, Math.min(100, Number(rawScore)));
+    const verdict = String(data.verdict ?? verdictFromScore(score));
 
+    // Update UI
     scoreDisplay.textContent = `${score}`;
-    scoreVerdict.textContent = data.verdict || "—";
+    scoreVerdict.textContent = verdict;
 
+    // Animate gauge fill
     const dashTotal = 260;
-    const offset = dashTotal - (score / 100) * dashTotal;
+    const filled = (score / 100) * dashTotal;
+    const offset = dashTotal - filled;
 
     if (gaugeFill) {
       setTimeout(() => {
@@ -54,6 +84,7 @@ async function scoreText() {
       }, 40);
     }
 
+    // Result box
     result.textContent = JSON.stringify(data, null, 2);
 
   } catch (e) {
@@ -64,4 +95,11 @@ async function scoreText() {
       "Endpoint: " + BACKEND_ENDPOINT + "\n\n" +
       "Error: " + (e?.message || e);
   }
+}
+
+function verdictFromScore(score) {
+  if (score >= 85) return "Likely True / Well-Supported";
+  if (score >= 65) return "Plausible / Needs Verification";
+  if (score >= 40) return "Questionable / High Uncertainty";
+  return "Likely False / Misleading";
 }
