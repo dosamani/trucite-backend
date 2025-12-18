@@ -243,7 +243,8 @@ pre#result {
 .bp-arrow { color: #aaa; font-weight: 900; }
 
 /* =======================
-   ACCORDION (FAQ/Founder/Legal)
+   ACCORDION (details/summary) — legacy support
+   (kept as-is; not used by your current HTML)
 ======================= */
 .accordion { max-width: 820px; margin: 0 auto; }
 
@@ -285,20 +286,90 @@ details[open] summary::after { content: "▲"; }
   line-height: 1.55;
 }
 
-/* FAQ "See full..." centered */
-.faq-more {
-  text-align: center;
+/* =======================
+   PATCH: Accordion for your current HTML
+   Uses .accordion-btn + .accordion-panel
+   (THIS is what fixes your FAQ headings + chevrons)
+======================= */
+.accordion-item { overflow: hidden; }
+
+/* Button (question line) */
+.accordion-btn{
   width: 100%;
-  display: block;
-  margin: 14px 0 0;
-}
-.faq-more a {
-  display: inline-block;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  padding: 16px 18px;
   font-weight: 900;
-  color: #FFD700;
+  font-size: 1.02rem;
+  color: #FFD700;               /* ✅ gold question text */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-/* Legal links line */
+/* Remove default button focus ring + add nice one */
+.accordion-btn:focus{
+  outline: none;
+}
+.accordion-btn:focus-visible{
+  outline: 2px solid rgba(255,215,0,0.35);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+/* Chevrons */
+.accordion-btn::after{
+  content: "▼";
+  color: #FFD700;
+  font-weight: 900;
+  flex: 0 0 auto;
+  transform: translateY(-1px);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  opacity: 0.95;
+}
+
+/* When opened (your JS toggles .active) */
+.accordion-btn.active::after{
+  content: "▲";
+}
+
+/* Panel */
+.accordion-panel{
+  display: none; /* JS shows/hides */
+  padding: 0 18px 18px;
+  border-top: 1px solid rgba(255,215,0,0.18);
+  color: #d9d9d9;
+  font-size: 1.0rem;
+  line-height: 1.55;
+}
+
+/* Ensure paragraphs inside panel don't squash weirdly */
+.accordion-panel p{ margin: 12px 0 0; }
+
+/* =======================
+   FAQ "See full..." centered
+======================= */
+.faq-footer,
+.faq-more {
+  text-align: center !important;
+  width: 100% !important;
+  display: block !important;
+  margin: 14px 0 0 !important;
+}
+
+.faq-footer a,
+.faq-more a {
+  display: inline-block !important;
+  font-weight: 900 !important;
+  color: #FFD700 !important;
+}
+
+/* =======================
+   Legal links line
+======================= */
 .legal-links {
   margin: 12px auto 0;
   text-align: center;
@@ -324,16 +395,4 @@ details[open] summary::after { content: "▲"; }
   margin-top: 10px;
   color: #FFD700;
   font-weight: 900;
-}
-
-.faq-more {
-  text-align: center !important;
-  width: 100% !important;
-  display: block !important;
-  margin-top: 14px !important;
-}
-.faq-more a {
-  display: inline-block !important;
-  font-weight: 900 !important;
-  color: #FFD700 !important;
 }
