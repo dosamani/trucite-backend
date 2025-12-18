@@ -454,3 +454,36 @@ footer {
   border: 1px solid rgba(255, 215, 0, 0.35);
   color: #FFD700;
 }
+/* =======================
+   FORCE GOLD OUTLINE ON "WHY TRUCITE WINS" CARDS
+   (covers multiple class patterns)
+======================= */
+
+#wins .bp-card,
+#wins .bright-card,
+#wins .card,
+#wins .feature,
+#wins .feature-card,
+#wins .wins-card,
+#wins .wins-item,
+#wins .pillar,
+#wins .pillar-card,
+#wins .box,
+#wins .panel {
+  background: #000;
+  border-radius: 14px;
+  padding: 18px 16px;
+  border: 1.5px solid rgba(255, 215, 0, 0.75);
+  box-shadow:
+    0 0 18px rgba(255, 215, 0, 0.15),
+    inset 0 0 12px rgba(255, 215, 0, 0.08);
+}
+
+/* If the wins section uses a grid wrapper, keep spacing consistent */
+#wins .grid,
+#wins .wins-grid,
+#wins .features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 22px;
+}
