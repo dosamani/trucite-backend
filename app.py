@@ -1,56 +1,60 @@
-import os
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+import os
 
 app = Flask(__name__, static_folder="static", static_url_path="")
-CORS(app)  # harmless even if same-origin; keeps future flexibility
 
-# -------------------------
-# FRONTEND ROUTES (Render)
-# -------------------------
-@app.get("/")
-def home():
-    # serves /static/index.html as your homepage
-    return send_from_directory(app.static_folder, "index.html")
+# CORS: allow your frontend origins (Neocities) AND allow same-origin when hosted on Render
+CORS(app, resources={r"/*": {"origins": "*"}})
 
-@app.get("/<path:filename>")
-def static_files(filename):
-    # serves /static/style.css, /static/script.js, /static/logo.jpg, etc.
-    return send_from_directory(app.static_folder, filename)
-
-# -------------------------
-# HEALTH CHECK
-# -------------------------
+# ---------- HEALTH ----------
 @app.get("/health")
 def health():
-    return "TruCite backend ok", 200
+    return jsonify({"ok": True, "service": "trucite-backend"}), 200
 
-# -------------------------
-# API ROUTE
-# -------------------------
+# ---------- SERVE FRONTEND ----------
+@app.get("/")
+def home():
+    # Serves static/index.html
+    return send_from_directory(app.static_folder, "index.html")
+
+# Serve any other static asset: /style.css, /script.js, /logo.jpg, etc.
+@app.get("/<path:path>")
+def static_proxy(path):
+    full_path = os.path.join(app.static_folder, path)
+    if os.path.isfile(full_path):
+        return send_from_directory(app.static_folder, path)
+    return jsonify({"error": "Not found", "path": path}), 404
+
+# ---------- API ----------
+# Friendly GET so browser doesn't show Method Not Allowed
+@app.get("/truth-score")
+def truth_score_get():
+    return jsonify({
+        "ok": True,
+        "note": "Use POST /truth-score with JSON: {\"text\":\"...\"}"
+    }), 200
+
 @app.post("/truth-score")
-def truth_score():
+def truth_score_post():
     data = request.get_json(silent=True) or {}
     text = (data.get("text") or "").strip()
 
     if not text:
-        return jsonify({"error": "Missing 'text'"}), 400
+        return jsonify({"error": "Missing 'text' in JSON body"}), 400
 
-    # MVP placeholder scoring logic (replace later)
-    score = 72
+    # MVP placeholder scoring (replace later with RAG, citations, drift, etc.)
+    score = 78
     verdict = "Plausible / Needs Verification"
 
     return jsonify({
         "truth_score": score,
-        "score": score,
         "verdict": verdict,
-        "details": {
-            "note": "MVP placeholder scoring logic. Replace with real verification + citations later.",
-            "input_chars": len(text)
-        },
+        "explanation": "MVP placeholder score. Replace with evidence + retrieval checks + drift scoring.",
         "references": []
     }), 200
 
+
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=10000)
