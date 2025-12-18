@@ -1,22 +1,6 @@
-// ===============================
-// TruCite Frontend Script (FULL)
-// ===============================
+// TruCite Frontend Script (Render-hosted, NO Neocities)
 
-// Accordion behavior (FAQ / Founder / Legal)
-document.addEventListener("DOMContentLoaded", () => {
-  const buttons = document.querySelectorAll(".accordion-btn");
-  buttons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      btn.classList.toggle("active");
-      const panel = btn.nextElementSibling;
-      if (!panel) return;
-      const isOpen = panel.style.display === "block";
-      panel.style.display = isOpen ? "none" : "block";
-    });
-  });
-});
-
-// ✅ IMPORTANT: same-origin endpoint (NO CORS problems)
+// ✅ same-origin endpoint (works because frontend + backend are on same Render domain)
 const BACKEND_ENDPOINT = "/truth-score";
 
 async function scoreText() {
@@ -32,12 +16,10 @@ async function scoreText() {
     return;
   }
 
-  // UI loading state
   scoreDisplay.textContent = "--";
   scoreVerdict.textContent = "Scoring…";
   result.textContent = "Contacting TruCite backend…";
 
-  // Reset gauge
   if (gaugeFill) {
     gaugeFill.style.transition = "none";
     gaugeFill.style.strokeDashoffset = "260";
@@ -50,24 +32,20 @@ async function scoreText() {
       body: JSON.stringify({ text })
     });
 
-    // If endpoint exists but wrong method, you'll see 405 here
+    const data = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`Backend error ${res.status}. ${txt}`);
+      throw new Error(`Backend error ${res.status}: ${JSON.stringify(data)}`);
     }
 
-    const data = await res.json();
     const rawScore = (data.truth_score ?? data.score ?? 0);
     const score = Math.max(0, Math.min(100, Number(rawScore)));
-    const verdict = String(data.verdict ?? verdictFromScore(score));
 
     scoreDisplay.textContent = `${score}`;
-    scoreVerdict.textContent = verdict;
+    scoreVerdict.textContent = data.verdict || "—";
 
-    // Gauge fill
     const dashTotal = 260;
-    const filled = (score / 100) * dashTotal;
-    const offset = dashTotal - filled;
+    const offset = dashTotal - (score / 100) * dashTotal;
 
     if (gaugeFill) {
       setTimeout(() => {
@@ -84,15 +62,6 @@ async function scoreText() {
     result.textContent =
       "❌ POST failed.\n\n" +
       "Endpoint: " + BACKEND_ENDPOINT + "\n\n" +
-      "If you see 404 here, your backend does NOT have /truth-score deployed.\n" +
-      "If you see 405, endpoint exists but method mismatch.\n\n" +
       "Error: " + (e?.message || e);
   }
-}
-
-function verdictFromScore(score) {
-  if (score >= 85) return "Likely True / Well-Supported";
-  if (score >= 65) return "Plausible / Needs Verification";
-  if (score >= 40) return "Questionable / High Uncertainty";
-  return "Likely False / Misleading";
 }
