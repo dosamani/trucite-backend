@@ -1,111 +1,77 @@
-# app.py
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+import os
+import re
 
-# NEW: reference grounding hook
-# Make sure you create reference_engine.py in the same folder.
-from reference_engine import find_references
-
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
 CORS(app)
 
-
-def parse_claims(text: str):
-    """
-    MVP claim parser:
-    - Splits text into simple claim candidates
-    - Keeps it intentionally basic for v1
-    """
-    if not text:
-        return []
-
-    # Split on new lines and periods as a crude first pass
-    raw_parts = []
-    for line in text.split("\n"):
-        line = line.strip()
-        if not line:
-            continue
-        raw_parts.extend([p.strip() for p in line.split(".") if p.strip()])
-
-    # Limit to avoid abuse in MVP
-    return raw_parts[:10]
+# -------------------------
+# Homepage route (THIS fixes Render 404)
+# -------------------------
+@app.route("/")
+def serve_home():
+    return send_from_directory(app.static_folder, "index.html")
 
 
-def heuristic_truth_score(text: str):
-    """
-    MVP heuristic score (placeholder):
-    - Returns a mid-range score with small adjustments
-    - This is NOT a real truth engine yet
-    """
-    if not text or len(text.strip()) < 5:
-        return 20
-
-    t = text.strip().lower()
-
-    # Small penalties for obvious nonsense keywords (demo only)
-    nonsense_markers = ["made up of candy", "made up of fudge", "completely made up of"]
-    penalty = 0
-    for m in nonsense_markers:
-        if m in t:
-            penalty += 10
-
-    # Small boost for numbers (often correlated with factual claims—but not always)
-    has_number = any(ch.isdigit() for ch in t)
-    boost = 5 if has_number else 0
-
-    base = 55
-    score = base + boost - penalty
-
-    # Clamp 0–100
-    score = max(0, min(100, score))
-    return score
-
-
-def verdict_from_score(score: int):
-    """
-    Simple mapping for MVP UI.
-    Keep your existing strings stable for now.
-    """
-    if score >= 85:
-        return "Likely True / Low Uncertainty"
-    if score >= 70:
-        return "Probably True / Moderate Uncertainty"
-    if score >= 50:
-        return "Questionable / High Uncertainty"
-    return "Likely False / High Uncertainty"
-
-
-@app.route("/health", methods=["GET"])
+# -------------------------
+# Health check
+# -------------------------
+@app.route("/health")
 def health():
-    return jsonify({"status": "ok"}), 200
+    return jsonify({"status": "ok"})
 
 
-@app.route("/truth-score", methods=["POST"])
-def truth_score():
-    data = request.get_json(silent=True) or {}
-    text = (data.get("text") or "").strip()
+# -------------------------
+# Verification endpoint
+# -------------------------
+@app.route("/verify", methods=["POST"])
+def verify():
+    data = request.get_json()
+    text = data.get("text", "").strip()
 
-    # 1) Parse claims
-    claims = parse_claims(text)
+    if not text:
+        return jsonify({
+            "score": 0,
+            "verdict": "No input",
+            "explanation": "No text provided.",
+            "claims": []
+        })
 
-    # 2) Reference grounding (MVP deterministic hook)
-    references = find_references(claims)
+    # Very simple MVP heuristic scoring (your current behavior preserved)
+    score = min(100, max(0, 100 - len(re.findall(r"\\b(fake|made up|nonsense|impossible|myth|false)\\b", text.lower())) * 15))
 
-    # 3) Score (still heuristic baseline for v1)
-    score = int(heuristic_truth_score(text))
-    verdict = verdict_from_score(score)
+    verdict = "Plausible / Needs Verification"
+    if score < 50:
+        verdict = "Questionable / High Uncertainty"
+    if score < 30:
+        verdict = "Likely False"
 
-    response = {
-        "mode": "mvp_v1",
-        "truth_score": score,
+    claims = [{
+        "id": "c1",
+        "type": "factual",
+        "text": text,
+        "confidence_weight": 1
+    }]
+
+    return jsonify({
+        "score": score,
         "verdict": verdict,
-        "explanation": "MVP score based on heuristic baseline; reference grounding is in early deterministic mode.",
-        "references": references
-    }
-
-    return jsonify(response), 200
+        "explanation": "MVP score based on heuristic mode. Reference grounding and drift tracking will be added next.",
+        "claims": claims
+    })
 
 
+# -------------------------
+# Static file support
+# -------------------------
+@app.route("/<path:path>")
+def static_proxy(path):
+    return send_from_directory(app.static_folder, path)
+
+
+# -------------------------
+# Start server
+# -------------------------
 if __name__ == "__main__":
-    # Local run (Render uses gunicorn, so this is for local dev)
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
