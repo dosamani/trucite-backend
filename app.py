@@ -1,80 +1,79 @@
-from flask import Flask, request, jsonify, Response
-from datetime import datetime, timezone
-import hashlib
+from flask import Flask, request, jsonify
+from datetime import datetime
+import re
 
 app = Flask(__name__)
 
-def utc_now_iso():
-    return datetime.now(timezone.utc).isoformat()
+@app.route("/", methods=["GET"])
+def root():
+    return f"""
+    <html>
+    <body style="background:#000;color:#f5c542;font-family:Arial;padding:40px;">
+        <h1>TruCite Backend is Running</h1>
+        <p>Status: Online</p>
+        <p>UTC: {datetime.utcnow().isoformat()}Z</p>
+    </body>
+    </html>
+    """
 
-# ---------- Core Pages ----------
-
-@app.get("/")
-def home():
-    html = """<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>TruCite Backend</title>
-</head>
-<body style="font-family:Arial;background:#0b0b0b;color:#ffd54a;padding:24px;">
-  <h2>TruCite Backend is Running</h2>
-  <p>API Status: Online</p>
-  <p>UTC: %s</p>
-</body>
-</html>""" % utc_now_iso()
-    return Response(html, mimetype="text/html")
-
-@app.get("/health")
+@app.route("/health", methods=["GET"])
 def health():
     return jsonify({
         "service": "TruCite Backend",
         "status": "ok",
-        "time_utc": utc_now_iso(),
-        "routes": ["/health", "/verify"]
+        "time_utc": datetime.utcnow().isoformat()
     })
 
-# ---------- Verification Engine (MVP) ----------
-
 def extract_claims(text):
-    return [{
-        "id": "c1",
-        "text": text,
-        "type": "factual",
-        "confidence_weight": 1
-    }]
+    sentences = re.split(r'[.?!]', text)
+    claims = []
+    for i, s in enumerate(sentences):
+        s = s.strip()
+        if len(s) > 5:
+            claims.append({
+                "id": f"c{i+1}",
+                "text": s,
+                "type": "factual",
+                "confidence_weight": 3
+            })
+    return claims
 
-def compute_truth_score(text):
-    # Simple deterministic MVP scoring
-    h = int(hashlib.sha256(text.encode()).hexdigest(), 16)
-    score = (h % 51) + 50   # 50–100 range
-    return score
+def score_claim(claim):
+    if "candy" in claim["text"].lower():
+        return 10
+    if "moon" in claim["text"].lower():
+        return 60
+    return 75
 
-def verdict_from_score(score):
-    if score >= 85:
-        return "Likely True"
-    if score >= 70:
-        return "Plausible / Needs Verification"
-    if score >= 50:
-        return "Questionable / High Uncertainty"
-    return "Likely False"
-
-@app.post("/verify")
+@app.route("/verify", methods=["POST"])
 def verify():
-    data = request.get_json(force=True)
-    text = data.get("text", "").strip()
-
-    if not text:
-        return jsonify({"error": "Missing text"}), 400
+    data = request.json
+    text = data.get("text", "")
 
     claims = extract_claims(text)
-    score = compute_truth_score(text)
-    verdict = verdict_from_score(score)
+
+    total_weight = 0
+    weighted_sum = 0
+
+    for c in claims:
+        c["score"] = score_claim(c)
+        weighted_sum += c["score"] * c["confidence_weight"]
+        total_weight += c["confidence_weight"]
+
+    final_score = int(weighted_sum / total_weight) if total_weight else 0
+
+    if final_score < 30:
+        verdict = "Low Confidence"
+    elif final_score < 60:
+        verdict = "Questionable"
+    elif final_score < 85:
+        verdict = "Needs Verification"
+    else:
+        verdict = "Highly Reliable"
 
     return jsonify({
-        "input": text,
         "claims": claims,
-        "score": score,
+        "final_score": final_score,
         "verdict": verdict,
-        "explanation": "MVP score based on deterministic heuristic. Reference grounding & drift tracking will be added next."
+        "explanation": "Multi-claim weighted analysis (TruCite Claim Engine v2)"
     })
