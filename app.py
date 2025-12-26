@@ -1,34 +1,29 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import re
 
-app = Flask(__name__, static_folder="static")
+app = Flask(__name__)
 CORS(app)
 
-# -------------------------
-# Homepage route (THIS fixes Render 404)
-# -------------------------
-@app.route("/")
-def serve_home():
-    return send_from_directory(app.static_folder, "index.html")
+@app.route("/", methods=["GET"])
+def root():
+    # If you still see 404 after this, Render is not running this app.py
+    return jsonify({
+        "service": "trucite-backend",
+        "status": "ok",
+        "routes": ["/", "/health", "/verify"],
+        "note": "If you can see this JSON, your backend routing is fixed."
+    })
 
-
-# -------------------------
-# Health check
-# -------------------------
-@app.route("/health")
+@app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"})
 
-
-# -------------------------
-# Verification endpoint
-# -------------------------
 @app.route("/verify", methods=["POST"])
 def verify():
-    data = request.get_json()
-    text = data.get("text", "").strip()
+    data = request.get_json(silent=True) or {}
+    text = (data.get("text") or "").strip()
 
     if not text:
         return jsonify({
@@ -38,8 +33,9 @@ def verify():
             "claims": []
         })
 
-    # Very simple MVP heuristic scoring (your current behavior preserved)
-    score = min(100, max(0, 100 - len(re.findall(r"\\b(fake|made up|nonsense|impossible|myth|false)\\b", text.lower())) * 15))
+    # MVP heuristic scoring (preserved)
+    hits = len(re.findall(r"\b(fake|made up|nonsense|impossible|myth|false)\b", text.lower()))
+    score = max(0, min(100, 100 - hits * 15))
 
     verdict = "Plausible / Needs Verification"
     if score < 50:
@@ -61,17 +57,5 @@ def verify():
         "claims": claims
     })
 
-
-# -------------------------
-# Static file support
-# -------------------------
-@app.route("/<path:path>")
-def static_proxy(path):
-    return send_from_directory(app.static_folder, path)
-
-
-# -------------------------
-# Start server
-# -------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
