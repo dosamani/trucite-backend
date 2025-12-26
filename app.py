@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
@@ -8,12 +9,11 @@ CORS(app)
 
 @app.route("/", methods=["GET"])
 def root():
-    # If you still see 404 after this, Render is not running this app.py
     return jsonify({
         "service": "trucite-backend",
         "status": "ok",
         "routes": ["/", "/health", "/verify"],
-        "note": "If you can see this JSON, your backend routing is fixed."
+        "message": "Root route is live. Use POST /verify with JSON: {\"text\":\"...\"}"
     })
 
 @app.route("/health", methods=["GET"])
@@ -33,7 +33,6 @@ def verify():
             "claims": []
         })
 
-    # MVP heuristic scoring (preserved)
     hits = len(re.findall(r"\b(fake|made up|nonsense|impossible|myth|false)\b", text.lower()))
     score = max(0, min(100, 100 - hits * 15))
 
