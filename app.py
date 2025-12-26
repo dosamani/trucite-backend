@@ -1,47 +1,80 @@
-from flask import Flask, jsonify, Response
+from flask import Flask, request, jsonify, Response
 from datetime import datetime, timezone
-import os
+import hashlib
 
 app = Flask(__name__)
-
-FINGERPRINT = "TRUCITE_BACKEND_HTML_FINGERPRINT_v20251226_1705"
 
 def utc_now_iso():
     return datetime.now(timezone.utc).isoformat()
 
+# ---------- Core Pages ----------
+
 @app.get("/")
 def home():
-    html = f"""<!doctype html>
+    html = """<!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TruCite Backend Fingerprint</title>
+  <meta charset="utf-8">
+  <title>TruCite Backend</title>
 </head>
 <body style="font-family:Arial;background:#0b0b0b;color:#ffd54a;padding:24px;">
-  <h2>TruCite Backend HTML is Live</h2>
-  <p><b>FINGERPRINT:</b> {FINGERPRINT}</p>
-  <p><b>UTC:</b> {utc_now_iso()}</p>
-  <p>If you still see JSON at /, Render is not serving this app.py.</p>
+  <h2>TruCite Backend is Running</h2>
+  <p>API Status: Online</p>
+  <p>UTC: %s</p>
 </body>
-</html>"""
+</html>""" % utc_now_iso()
     return Response(html, mimetype="text/html")
-
-@app.get("/__whoami")
-def whoami():
-    return jsonify({
-        "fingerprint": FINGERPRINT,
-        "utc": utc_now_iso(),
-        "cwd": os.getcwd(),
-        "files_in_cwd": sorted(os.listdir("."))[:50],
-        "env_has_port": "PORT" in os.environ,
-    })
 
 @app.get("/health")
 def health():
     return jsonify({
         "service": "TruCite Backend",
         "status": "ok",
-        "fingerprint": FINGERPRINT,
-        "utc": utc_now_iso()
+        "time_utc": utc_now_iso(),
+        "routes": ["/health", "/verify"]
+    })
+
+# ---------- Verification Engine (MVP) ----------
+
+def extract_claims(text):
+    return [{
+        "id": "c1",
+        "text": text,
+        "type": "factual",
+        "confidence_weight": 1
+    }]
+
+def compute_truth_score(text):
+    # Simple deterministic MVP scoring
+    h = int(hashlib.sha256(text.encode()).hexdigest(), 16)
+    score = (h % 51) + 50   # 50–100 range
+    return score
+
+def verdict_from_score(score):
+    if score >= 85:
+        return "Likely True"
+    if score >= 70:
+        return "Plausible / Needs Verification"
+    if score >= 50:
+        return "Questionable / High Uncertainty"
+    return "Likely False"
+
+@app.post("/verify")
+def verify():
+    data = request.get_json(force=True)
+    text = data.get("text", "").strip()
+
+    if not text:
+        return jsonify({"error": "Missing text"}), 400
+
+    claims = extract_claims(text)
+    score = compute_truth_score(text)
+    verdict = verdict_from_score(score)
+
+    return jsonify({
+        "input": text,
+        "claims": claims,
+        "score": score,
+        "verdict": verdict,
+        "explanation": "MVP score based on deterministic heuristic. Reference grounding & drift tracking will be added next."
     })
