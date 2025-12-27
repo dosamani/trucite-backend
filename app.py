@@ -1,6 +1,8 @@
 import os
 import re
 import uuid
+import json
+import hashlib
 from datetime import datetime, timezone
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -39,15 +41,10 @@ def clamp_int(n, lo=0, hi=100):
     return max(lo, min(hi, n))
 
 def simple_claim_extract(text: str, max_claims: int = 3):
-    """
-    MVP claim extraction: split into sentence-like chunks, clean, return up to max_claims.
-    """
-    # Normalize whitespace
     cleaned = re.sub(r"\s+", " ", (text or "")).strip()
     if not cleaned:
         return []
 
-    # Split into sentences-ish
     parts = re.split(r"(?<=[\.\?\!])\s+", cleaned)
     parts = [p.strip() for p in parts if p.strip()]
 
@@ -62,16 +59,12 @@ def simple_claim_extract(text: str, max_claims: int = 3):
     return claims
 
 def simple_score(text: str) -> int:
-    """
-    MVP heuristic scoring (intentionally conservative but simple).
-    """
     t = (text or "").strip().lower()
     if not t:
         return 0
 
-    score = 72  # baseline similar to your current sample
+    score = 72
 
-    # Penalize obvious nonsense markers
     nonsense_markers = [
         "moon is made of", "earth is flat", "2+2=5", "candy", "cheese", "aliens built"
     ]
@@ -80,24 +73,17 @@ def simple_score(text: str) -> int:
             score -= 18
             break
 
-    # Penalize excessive certainty without evidence language
     if any(x in t for x in ["always", "never", "guaranteed", "100%"]):
         score -= 6
 
-    # Slight boost for cautious language
     if any(x in t for x in ["may", "might", "unclear", "possibly", "likely", "suggests"]):
         score += 4
 
     return clamp_int(score)
 
 def build_trust_profile(score: int, claims_count: int):
-    """
-    Step 4.1: formalize trust signals (MVP approximations).
-    Output range is 0.0 - 1.0.
-    """
     reliability = round(score / 100.0, 2)
 
-    # Volatility is a proxy: fewer claims + lower score => higher volatility
     volatility = 0.30
     if claims_count <= 1:
         volatility += 0.15
@@ -105,10 +91,7 @@ def build_trust_profile(score: int, claims_count: int):
         volatility += 0.20
     volatility = round(min(0.95, max(0.05, volatility)), 2)
 
-    # Grounding strength: MVP proxy (we're not doing references yet)
     grounding_strength = round(max(0.05, reliability - 0.10), 2)
-
-    # Drift risk: MVP proxy (lower reliability => higher drift risk)
     drift_risk = round(min(0.95, max(0.05, 1.0 - reliability + 0.10)), 2)
 
     return {
@@ -119,32 +102,20 @@ def build_trust_profile(score: int, claims_count: int):
     }
 
 def build_risk_summary(score: int):
-    """
-    Step 4.1: simple categorical risk summary based on score.
-    """
     if score >= 85:
-        return {
-            "regulatory_exposure": "Low",
-            "misinformation_risk": "Low",
-            "model_confidence_gap": "Minimal"
-        }
+        return {"regulatory_exposure": "Low", "misinformation_risk": "Low", "model_confidence_gap": "Minimal"}
     if score >= 65:
-        return {
-            "regulatory_exposure": "Medium",
-            "misinformation_risk": "Medium",
-            "model_confidence_gap": "Moderate"
-        }
+        return {"regulatory_exposure": "Medium", "misinformation_risk": "Medium", "model_confidence_gap": "Moderate"}
     if score >= 40:
-        return {
-            "regulatory_exposure": "Medium",
-            "misinformation_risk": "High",
-            "model_confidence_gap": "Significant"
-        }
-    return {
-        "regulatory_exposure": "High",
-        "misinformation_risk": "High",
-        "model_confidence_gap": "Severe"
-    }
+        return {"regulatory_exposure": "Medium", "misinformation_risk": "High", "model_confidence_gap": "Significant"}
+    return {"regulatory_exposure": "High", "misinformation_risk": "High", "model_confidence_gap": "Severe"}
+
+def compute_hash(payload: dict) -> str:
+    """
+    Deterministic SHA-256 over canonical JSON.
+    """
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 # -----------------------------
@@ -157,9 +128,6 @@ def health():
 
 @app.get("/")
 def root():
-    """
-    Serve landing page from /static/index.html
-    """
     index_path = os.path.join(STATIC_DIR, "index.html")
     if os.path.exists(index_path):
         return send_from_directory(STATIC_DIR, "index.html")
@@ -170,14 +138,27 @@ def static_files(filename):
     return send_from_directory(STATIC_DIR, filename)
 
 def score_payload(text: str):
-    """
-    Core scoring response (used by multiple endpoints).
-    Step 4.1 adds: trust_profile, risk_summary, audit_fingerprint
-    """
     event_id = str(uuid.uuid4())
     score = simple_score(text)
     claims = simple_claim_extract(text, max_claims=3)
     verdict = verdict_from_score(score)
+    ts = utc_now_iso()
+
+    trust_profile = build_trust_profile(score=score, claims_count=len(claims))
+    risk_summary = build_risk_summary(score=score)
+
+    # Hash only the audit-relevant fields (no UI fluff)
+    audit_payload = {
+        "engine_version": ENGINE_VERSION,
+        "timestamp_utc": ts,
+        "event_id": event_id,
+        "score": score,
+        "verdict": verdict,
+        "claims": claims,
+        "trust_profile": trust_profile,
+        "risk_summary": risk_summary,
+    }
+    audit_hash = compute_hash(audit_payload)
 
     response = {
         "event_id": event_id,
@@ -188,15 +169,12 @@ def score_payload(text: str):
         ),
         "score": score,
         "verdict": verdict,
-
-        # -------- Step 4.1 additions (ONLY) --------
-        "trust_profile": build_trust_profile(score=score, claims_count=len(claims)),
-        "risk_summary": build_risk_summary(score=score),
+        "trust_profile": trust_profile,
+        "risk_summary": risk_summary,
         "audit_fingerprint": {
             "engine_version": ENGINE_VERSION,
-            "timestamp_utc": utc_now_iso(),
-            # hash intentionally deferred (Step 4.2) to avoid changing behavior
-            "hash": None
+            "timestamp_utc": ts,
+            "hash": audit_hash
         }
     }
     return response
@@ -209,7 +187,6 @@ def truth_score():
         return jsonify({"error": "Missing 'text'"}), 400
     return jsonify(score_payload(text))
 
-# Aliases for compatibility
 @app.post("/verify")
 def verify():
     data = request.get_json(silent=True) or {}
@@ -226,8 +203,6 @@ def api_score():
         return jsonify({"error": "Missing 'text'"}), 400
     return jsonify(score_payload(text))
 
-
-# Render entrypoint
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "10000"))
     app.run(host="0.0.0.0", port=port)
