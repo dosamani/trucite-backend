@@ -1,125 +1,208 @@
-# app.py
-# TruCite Backend (Render) — single-file Flask app
-# - Serves the landing page + static assets
-# - POST /truth-score returns MVP scoring payload
-# - FIXED: "Source:" / "Sources:" / "Reference(s):" / "Citation(s):" lines are parsed into references[]
-#          and DO NOT become factual claims.
-
-import os
-import re
-import uuid
-import hashlib
-from datetime import datetime, timezone
-
 from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+import hashlib
+import uuid
+from datetime import datetime, timezone
+from urllib.parse import urlparse
+import re
+import os
 
-# -----------------------------
-# App + static hosting
-# -----------------------------
 app = Flask(__name__, static_folder="static", static_url_path="/static")
-
-# Serve landing page
-@app.get("/")
-def index():
-    # expects: /static/index.html
-    return send_from_directory(app.static_folder, "index.html")
-
-# Health check
-@app.get("/health")
-def health():
-    return jsonify({"ok": True})
+CORS(app)
 
 # -----------------------------
-# Configuration: references
+# Config
 # -----------------------------
-# Allowlist domains (edit freely)
-ALLOWLIST_DOMAINS = {
+ENGINE_VERSION = "TruCite Claim Engine v2.3 (MVP)"
+
+# Allowlist: trusted reference domains only (Wikipedia blocked)
+ALLOWED_REFERENCE_DOMAINS = {
     "cdc.gov",
     "www.cdc.gov",
     "nih.gov",
     "www.nih.gov",
-    "ncbi.nlm.nih.gov",
+    "nasa.gov",
+    "www.nasa.gov",
     "who.int",
     "www.who.int",
     "fda.gov",
     "www.fda.gov",
     "cms.gov",
     "www.cms.gov",
+    "noaa.gov",
+    "www.noaa.gov",
+    "whitehouse.gov",
+    "www.whitehouse.gov",
     "sec.gov",
     "www.sec.gov",
-    "ftc.gov",
-    "www.ftc.gov",
-    "nasa.gov",
-    "www.nasa.gov",
-    "esa.int",
-    "www.esa.int",
-    "data.gov",
-    "www.data.gov",
-    "justice.gov",
-    "www.justice.gov",
-    "gov.uk",
-    "www.gov.uk",
-    "europa.eu",
-    "www.europa.eu",
+    "nature.com",
+    "www.nature.com",
+    "science.org",
+    "www.science.org",
 }
 
-# Blocklist domains (hard block)
-BLOCKLIST_DOMAINS = {
+BLOCKED_REFERENCE_DOMAINS = {
     "wikipedia.org",
     "www.wikipedia.org",
     "en.wikipedia.org",
-    "m.wikipedia.org",
-    "wikimedia.org",
-    "www.wikimedia.org",
 }
+
+REFERENCE_LINE_PREFIXES = ("source:", "sources:", "reference:", "references:", "citation:", "citations:")
+
+# -----------------------------
+# Routes
+# -----------------------------
+@app.get("/")
+def serve_index():
+    return send_from_directory("static", "index.html")
+
+@app.get("/health")
+def health():
+    return jsonify({"ok": True})
+
+@app.post("/truth-score")
+def truth_score():
+    payload = request.get_json(silent=True) or {}
+    raw_text = (payload.get("text") or "").strip()
+
+    if not raw_text:
+        return jsonify({"error": "Missing 'text'"}), 400
+
+    # -----------------------------
+    # Step 2 FIX: normalize newlines
+    # Handles real \n, \r\n, and escaped \\n
+    # -----------------------------
+    normalized = raw_text.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\r\n", "\n").replace("\r", "\n")
+
+    # Extract references first, and remove reference lines from claim text
+    references = []
+    kept_lines = []
+
+    for line in normalized.split("\n"):
+        stripped = line.strip()
+        low = stripped.lower()
+
+        # If the line starts with "Source:" etc, treat rest of line as ref text
+        if any(low.startswith(pfx) for pfx in REFERENCE_LINE_PREFIXES):
+            ref_part = stripped.split(":", 1)[1].strip() if ":" in stripped else ""
+            refs_found = extract_urls(ref_part)
+            references.extend(refs_found)
+            continue
+
+        # Otherwise, scan line for URLs too (inline refs)
+        inline_refs = extract_urls(stripped)
+        if inline_refs:
+            references.extend(inline_refs)
+
+        kept_lines.append(stripped)
+
+    # Deduplicate & enforce allowlist + blocklist
+    filtered_refs = []
+    seen = set()
+
+    for r in references:
+        dom = r["domain"]
+        if dom in BLOCKED_REFERENCE_DOMAINS:
+            continue
+        # allowlist enforcement: also permit base domain match
+        base = ".".join(dom.split(".")[-2:]) if len(dom.split(".")) >= 2 else dom
+        if (dom not in ALLOWED_REFERENCE_DOMAINS) and (base not in ALLOWED_REFERENCE_DOMAINS):
+            continue
+
+        key = (dom, r["url"])
+        if key in seen:
+            continue
+        seen.add(key)
+        filtered_refs.append(r)
+
+    # Build a clean claim text (without reference lines)
+    clean_text = " ".join([l for l in kept_lines if l]).strip()
+
+    # Claim extraction (MVP: 1 claim if any text remains)
+    claims = []
+    if clean_text:
+        claims.append({
+            "id": "c1",
+            "type": "factual",
+            "text": clean_text,
+            "confidence_weight": 1
+        })
+
+    # Score heuristic (simple MVP)
+    score = score_heuristic(clean_text, filtered_refs)
+
+    verdict = verdict_from_score(score)
+
+    event_id = str(uuid.uuid4())
+    ts = datetime.now(timezone.utc).isoformat()
+
+    audit = {
+        "engine_version": ENGINE_VERSION,
+        "hash": sha256_hex(normalized),
+        "timestamp_utc": ts
+    }
+
+    response = {
+        "score": score,
+        "verdict": verdict,
+        "claims": claims,
+        "references": filtered_refs,
+        "reference_note": "Reference grounding in allowlist mode: only trusted domains are permitted. Wikipedia blocked.",
+        "risk_summary": risk_summary(score, filtered_refs),
+        "trust_profile": trust_profile(score),
+        "event_id": event_id,
+        "audit_fingerprint": audit,
+        "explanation": "MVP mode: returning a baseline score plus extracted claims. Next steps will add reference-grounding and drift tracking."
+    }
+
+    return jsonify(response)
 
 # -----------------------------
 # Helpers
 # -----------------------------
-URL_RE = re.compile(r"https?://[^\s\)\]\}<>\"']+", re.IGNORECASE)
-
-SOURCE_LINE_RE = re.compile(
-    r"^\s*(source|sources|reference|references|citation|citations)\s*:\s*",
-    re.IGNORECASE,
-)
-
-def utc_now_iso():
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
-
-def sha256_hex(s: str) -> str:
-    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+URL_REGEX = re.compile(r"(https?://[^\s\)\]\}<>\"']+)", re.IGNORECASE)
 
 def extract_urls(text: str):
-    return URL_RE.findall(text or "")
+    if not text:
+        return []
+    urls = URL_REGEX.findall(text)
+    results = []
+    for u in urls:
+        try:
+            p = urlparse(u)
+            dom = (p.netloc or "").lower().strip()
+            if dom:
+                results.append({"domain": dom, "url": u})
+        except:
+            continue
+    return results
 
-def domain_from_url(url: str) -> str:
-    # minimal domain extraction without external libs
-    # https://www.cdc.gov/path -> www.cdc.gov
-    m = re.match(r"^https?://([^/]+)", url.strip(), re.IGNORECASE)
-    return (m.group(1).lower() if m else "")
+def sha256_hex(s: str):
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
-def is_blocked_domain(domain: str) -> bool:
-    return domain in BLOCKLIST_DOMAINS or domain.endswith(".wikipedia.org") or domain.endswith(".wikimedia.org")
+def score_heuristic(text: str, references: list):
+    # baseline
+    score = 72
 
-def is_allowed_domain(domain: str) -> bool:
-    if not domain:
-        return False
-    if is_blocked_domain(domain):
-        return False
-    if domain in ALLOWLIST_DOMAINS:
-        return True
-    # allow *.gov and *.edu by default (conservative, but practical)
-    if domain.endswith(".gov") or domain.endswith(".edu"):
-        return True
-    return False
+    low = (text or "").lower()
 
-def normalize_text_for_hash(text: str) -> str:
-    # stable hashing even if whitespace changes
-    t = (text or "").strip()
-    t = re.sub(r"\s+", " ", t)
-    return t
+    # obvious absurdity triggers
+    absurd_terms = ["made of candy", "made of cheese", "moon is 1km", "1km from earth", "flat earth"]
+    if any(t in low for t in absurd_terms):
+        score -= 18
 
-def verdict_from_score(score: int) -> str:
+    # numeric oddities
+    if "1km" in low or "1 km" in low:
+        score -= 10
+
+    # if user attaches a serious domain to nonsense, increase penalty
+    if references and any("cdc.gov" in r["domain"] or "nih.gov" in r["domain"] for r in references) and ("candy" in low or "cheese" in low or "1km" in low):
+        score -= 8
+
+    # clamp
+    return max(0, min(100, int(round(score))))
+
+def verdict_from_score(score: int):
     if score >= 85:
         return "Likely True / Well-Supported"
     if score >= 65:
@@ -128,180 +211,22 @@ def verdict_from_score(score: int) -> str:
         return "Questionable / High Uncertainty"
     return "Likely False / Misleading"
 
-def risk_summary_from_score(score: int):
-    # coarse MVP mapping
-    if score >= 80:
-        return {
-            "misinformation_risk": "Low",
-            "model_confidence_gap": "Low",
-            "regulatory_exposure": "Low",
-        }
-    if score >= 60:
-        return {
-            "misinformation_risk": "Medium",
-            "model_confidence_gap": "Moderate",
-            "regulatory_exposure": "Medium",
-        }
+def risk_summary(score: int, references: list):
+    if score >= 70:
+        return {"misinformation_risk": "Medium", "model_confidence_gap": "Moderate", "regulatory_exposure": "Medium"}
     if score >= 40:
-        return {
-            "misinformation_risk": "High",
-            "model_confidence_gap": "Significant",
-            "regulatory_exposure": "Medium",
-        }
+        return {"misinformation_risk": "High", "model_confidence_gap": "Significant", "regulatory_exposure": "Medium"}
+    return {"misinformation_risk": "High", "model_confidence_gap": "Significant", "regulatory_exposure": "High"}
+
+def trust_profile(score: int):
+    s = max(0.0, min(1.0, score / 100.0))
+    # simple consistent outputs (MVP placeholders)
     return {
-        "misinformation_risk": "High",
-        "model_confidence_gap": "Severe",
-        "regulatory_exposure": "High",
+        "reliability": round(s, 2),
+        "grounding_strength": round(max(0.05, s - 0.07), 2),
+        "drift_risk": round(min(0.95, 1.0 - s + 0.15), 2),
+        "volatility": round(min(0.95, 1.0 - s + 0.10), 2)
     }
 
-def trust_profile_from_score(score: int, references_count: int):
-    # simple derived metrics (MVP placeholders, but consistent)
-    # reliability tracks score; grounding_strength bumps with references_count
-    reliability = max(0.0, min(1.0, score / 100.0))
-    grounding_strength = max(0.0, min(1.0, 0.25 + 0.12 * references_count + 0.45 * reliability))
-    volatility = max(0.0, min(1.0, 0.15 + (1.0 - reliability) * 0.65))
-    drift_risk = max(0.0, min(1.0, 0.20 + (1.0 - reliability) * 0.75))
-    return {
-        "reliability": round(reliability, 2),
-        "grounding_strength": round(grounding_strength, 2),
-        "volatility": round(volatility, 2),
-        "drift_risk": round(drift_risk, 2),
-    }
-
-def extract_claims_and_references(raw_text: str):
-    """
-    FIXED BEHAVIOR:
-    - Lines starting with Source(s)/Reference(s)/Citation(s): are treated as citation lines.
-      URLs in those lines are extracted into references[].
-      Those lines do NOT become claims.
-    - URLs elsewhere are still extracted into references[] (allowlist mode).
-    - Claims are MVP: 1 claim = remaining text (cleaned), unless empty.
-    """
-    text = raw_text or ""
-    lines = [ln.rstrip() for ln in text.splitlines()]
-    references = []
-    kept_lines = []
-
-    for ln in lines:
-        if SOURCE_LINE_RE.match(ln):
-            # citation line: extract URLs, do not keep as claim text
-            for u in extract_urls(ln):
-                references.append(u)
-            continue
-        kept_lines.append(ln)
-
-    cleaned_text = "\n".join(kept_lines).strip()
-
-    # also extract URLs from remaining text
-    for u in extract_urls(cleaned_text):
-        references.append(u)
-
-    # de-duplicate URLs preserving order
-    seen = set()
-    deduped_urls = []
-    for u in references:
-        if u not in seen:
-            seen.add(u)
-            deduped_urls.append(u)
-
-    # Apply allowlist / blocklist
-    allowed_refs = []
-    blocked_any = False
-    for u in deduped_urls:
-        d = domain_from_url(u)
-        if is_blocked_domain(d):
-            blocked_any = True
-            continue
-        if is_allowed_domain(d):
-            allowed_refs.append({"domain": d, "url": u})
-
-    # Claims: MVP single factual claim from cleaned_text, but remove any trailing "Source:" fragments if present
-    claims = []
-    if cleaned_text:
-        claims.append({
-            "id": "c1",
-            "type": "factual",
-            "text": cleaned_text,
-            "confidence_weight": 1
-        })
-
-    reference_note = None
-    if allowed_refs:
-        reference_note = "Reference grounding in allowlist mode: only trusted domains are permitted. Wikipedia blocked."
-    else:
-        if blocked_any:
-            reference_note = "Reference grounding not enabled in MVP. Wikipedia blocked as a reference source."
-        else:
-            reference_note = "Reference grounding not enabled in MVP. Wikipedia blocked as a reference source."
-
-    return claims, allowed_refs, reference_note
-
-def score_mvp(claims, references):
-    """
-    MVP scoring heuristic (NOT true grounding yet).
-    - Penalize obviously extreme/implausible patterns (tiny distance to moon, candy, etc.)
-    - Give a modest bump if allowed references exist (still not verifying content).
-    """
-    base = 72
-    text = (claims[0]["text"] if claims else "").lower()
-
-    # quick penalties for common nonsense markers
-    penalties = 0
-    if "made of candy" in text or "made of cheese" in text:
-        penalties += 18
-    if "1km" in text or "1 km" in text:
-        penalties += 18
-    if "moon is" in text and ("1km" in text or "made of" in text):
-        penalties += 6
-
-    # slight bump for having allowlisted references (still not grounding)
-    bump = 0
-    if references:
-        bump += 4
-
-    score = base - penalties + bump
-    score = int(max(0, min(100, score)))
-    return score
-
-# -----------------------------
-# API: truth score
-# -----------------------------
-@app.post("/truth-score")
-def truth_score():
-    payload = request.get_json(silent=True) or {}
-    raw_text = (payload.get("text") or "").strip()
-
-    if not raw_text:
-        return jsonify({"error": "Missing 'text' in request body."}), 400
-
-    claims, references, reference_note = extract_claims_and_references(raw_text)
-
-    score = score_mvp(claims, references)
-    verdict = verdict_from_score(score)
-
-    norm = normalize_text_for_hash(raw_text)
-    out = {
-        "score": score,
-        "verdict": verdict,
-        "explanation": "MVP mode: returning a baseline score plus extracted claims. Next steps will add reference-grounding and drift tracking.",
-        "claims": claims,
-        "references": references,
-        "reference_note": reference_note,
-        "risk_summary": risk_summary_from_score(score),
-        "trust_profile": trust_profile_from_score(score, len(references)),
-        "event_id": str(uuid.uuid4()),
-        "audit_fingerprint": {
-            "engine_version": "TruCite Claim Engine v2.2 (MVP)",
-            "hash": sha256_hex(norm),
-            "timestamp_utc": utc_now_iso(),
-        },
-    }
-    return jsonify(out)
-
-# -----------------------------
-# Optional: run locally
-# -----------------------------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", "5000"))
-    app.run(host="0.0.0.0", port=port)
-```0
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
