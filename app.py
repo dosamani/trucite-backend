@@ -1,261 +1,307 @@
+# app.py
+# TruCite Backend (Render) — single-file Flask app
+# - Serves the landing page + static assets
+# - POST /truth-score returns MVP scoring payload
+# - FIXED: "Source:" / "Sources:" / "Reference(s):" / "Citation(s):" lines are parsed into references[]
+#          and DO NOT become factual claims.
+
 import os
 import re
-import json
 import uuid
 import hashlib
 from datetime import datetime, timezone
+
 from flask import Flask, request, jsonify, send_from_directory
 
+# -----------------------------
+# App + static hosting
+# -----------------------------
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
-# -----------------------------
-# Config
-# -----------------------------
-ENGINE_VERSION = "TruCite Claim Engine v2.2 (MVP)"
+# Serve landing page
+@app.get("/")
+def index():
+    # expects: /static/index.html
+    return send_from_directory(app.static_folder, "index.html")
 
-# Hard-block Wikipedia in MVP reference grounding
-BLOCKED_REFERENCE_DOMAINS = {
-    "wikipedia.org",
-    "www.wikipedia.org",
-    "m.wikipedia.org",
-}
+# Health check
+@app.get("/health")
+def health():
+    return jsonify({"ok": True})
 
-# Allowlist for “trusted” sources (you can expand later)
-TRUSTED_REFERENCE_ALLOWLIST = {
-    # Examples (you can edit later)
+# -----------------------------
+# Configuration: references
+# -----------------------------
+# Allowlist domains (edit freely)
+ALLOWLIST_DOMAINS = {
     "cdc.gov",
+    "www.cdc.gov",
     "nih.gov",
+    "www.nih.gov",
     "ncbi.nlm.nih.gov",
     "who.int",
+    "www.who.int",
     "fda.gov",
+    "www.fda.gov",
+    "cms.gov",
+    "www.cms.gov",
     "sec.gov",
+    "www.sec.gov",
+    "ftc.gov",
+    "www.ftc.gov",
+    "nasa.gov",
+    "www.nasa.gov",
+    "esa.int",
+    "www.esa.int",
+    "data.gov",
+    "www.data.gov",
     "justice.gov",
-    "courts.gov",
+    "www.justice.gov",
+    "gov.uk",
+    "www.gov.uk",
     "europa.eu",
-    "oecd.org",
+    "www.europa.eu",
 }
 
-DEFAULT_REFERENCE_MODE = "off"  # off | allowlist
-
+# Blocklist domains (hard block)
+BLOCKLIST_DOMAINS = {
+    "wikipedia.org",
+    "www.wikipedia.org",
+    "en.wikipedia.org",
+    "m.wikipedia.org",
+    "wikimedia.org",
+    "www.wikimedia.org",
+}
 
 # -----------------------------
 # Helpers
 # -----------------------------
+URL_RE = re.compile(r"https?://[^\s\)\]\}<>\"']+", re.IGNORECASE)
+
+SOURCE_LINE_RE = re.compile(
+    r"^\s*(source|sources|reference|references|citation|citations)\s*:\s*",
+    re.IGNORECASE,
+)
+
 def utc_now_iso():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
-
 
 def sha256_hex(s: str) -> str:
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
+def extract_urls(text: str):
+    return URL_RE.findall(text or "")
 
-def extract_claims(text: str):
+def domain_from_url(url: str) -> str:
+    # minimal domain extraction without external libs
+    # https://www.cdc.gov/path -> www.cdc.gov
+    m = re.match(r"^https?://([^/]+)", url.strip(), re.IGNORECASE)
+    return (m.group(1).lower() if m else "")
+
+def is_blocked_domain(domain: str) -> bool:
+    return domain in BLOCKLIST_DOMAINS or domain.endswith(".wikipedia.org") or domain.endswith(".wikimedia.org")
+
+def is_allowed_domain(domain: str) -> bool:
+    if not domain:
+        return False
+    if is_blocked_domain(domain):
+        return False
+    if domain in ALLOWLIST_DOMAINS:
+        return True
+    # allow *.gov and *.edu by default (conservative, but practical)
+    if domain.endswith(".gov") or domain.endswith(".edu"):
+        return True
+    return False
+
+def normalize_text_for_hash(text: str) -> str:
+    # stable hashing even if whitespace changes
+    t = (text or "").strip()
+    t = re.sub(r"\s+", " ", t)
+    return t
+
+def verdict_from_score(score: int) -> str:
+    if score >= 85:
+        return "Likely True / Well-Supported"
+    if score >= 65:
+        return "Plausible / Needs Verification"
+    if score >= 40:
+        return "Questionable / High Uncertainty"
+    return "Likely False / Misleading"
+
+def risk_summary_from_score(score: int):
+    # coarse MVP mapping
+    if score >= 80:
+        return {
+            "misinformation_risk": "Low",
+            "model_confidence_gap": "Low",
+            "regulatory_exposure": "Low",
+        }
+    if score >= 60:
+        return {
+            "misinformation_risk": "Medium",
+            "model_confidence_gap": "Moderate",
+            "regulatory_exposure": "Medium",
+        }
+    if score >= 40:
+        return {
+            "misinformation_risk": "High",
+            "model_confidence_gap": "Significant",
+            "regulatory_exposure": "Medium",
+        }
+    return {
+        "misinformation_risk": "High",
+        "model_confidence_gap": "Severe",
+        "regulatory_exposure": "High",
+    }
+
+def trust_profile_from_score(score: int, references_count: int):
+    # simple derived metrics (MVP placeholders, but consistent)
+    # reliability tracks score; grounding_strength bumps with references_count
+    reliability = max(0.0, min(1.0, score / 100.0))
+    grounding_strength = max(0.0, min(1.0, 0.25 + 0.12 * references_count + 0.45 * reliability))
+    volatility = max(0.0, min(1.0, 0.15 + (1.0 - reliability) * 0.65))
+    drift_risk = max(0.0, min(1.0, 0.20 + (1.0 - reliability) * 0.75))
+    return {
+        "reliability": round(reliability, 2),
+        "grounding_strength": round(grounding_strength, 2),
+        "volatility": round(volatility, 2),
+        "drift_risk": round(drift_risk, 2),
+    }
+
+def extract_claims_and_references(raw_text: str):
     """
-    MVP claim extraction:
-    - Treat the entire input as one factual claim if short.
-    - If longer, split into sentence-like chunks and treat each as a claim.
+    FIXED BEHAVIOR:
+    - Lines starting with Source(s)/Reference(s)/Citation(s): are treated as citation lines.
+      URLs in those lines are extracted into references[].
+      Those lines do NOT become claims.
+    - URLs elsewhere are still extracted into references[] (allowlist mode).
+    - Claims are MVP: 1 claim = remaining text (cleaned), unless empty.
     """
-    cleaned = " ".join((text or "").strip().split())
-    if not cleaned:
-        return []
+    text = raw_text or ""
+    lines = [ln.rstrip() for ln in text.splitlines()]
+    references = []
+    kept_lines = []
 
-    # Split on sentence boundaries (simple MVP heuristic)
-    parts = re.split(r"(?<=[\.\!\?])\s+", cleaned)
-    parts = [p.strip() for p in parts if p and p.strip()]
+    for ln in lines:
+        if SOURCE_LINE_RE.match(ln):
+            # citation line: extract URLs, do not keep as claim text
+            for u in extract_urls(ln):
+                references.append(u)
+            continue
+        kept_lines.append(ln)
 
+    cleaned_text = "\n".join(kept_lines).strip()
+
+    # also extract URLs from remaining text
+    for u in extract_urls(cleaned_text):
+        references.append(u)
+
+    # de-duplicate URLs preserving order
+    seen = set()
+    deduped_urls = []
+    for u in references:
+        if u not in seen:
+            seen.add(u)
+            deduped_urls.append(u)
+
+    # Apply allowlist / blocklist
+    allowed_refs = []
+    blocked_any = False
+    for u in deduped_urls:
+        d = domain_from_url(u)
+        if is_blocked_domain(d):
+            blocked_any = True
+            continue
+        if is_allowed_domain(d):
+            allowed_refs.append({"domain": d, "url": u})
+
+    # Claims: MVP single factual claim from cleaned_text, but remove any trailing "Source:" fragments if present
     claims = []
-    if len(parts) <= 1:
+    if cleaned_text:
         claims.append({
             "id": "c1",
             "type": "factual",
-            "confidence_weight": 1,
-            "text": cleaned
+            "text": cleaned_text,
+            "confidence_weight": 1
         })
-        return claims
 
-    # Cap to avoid huge payloads in MVP
-    parts = parts[:8]
-    for i, p in enumerate(parts, start=1):
-        claims.append({
-            "id": f"c{i}",
-            "type": "factual",
-            "confidence_weight": 1,
-            "text": p
-        })
-    return claims
-
-
-def simple_risk_and_score(text: str):
-    """
-    MVP scoring heuristic (non-authoritative):
-    - Penalize obvious absurdities (km distance to moon, “made of candy/cheese”, etc.)
-    - Penalize numeric claims without context
-    """
-    t = (text or "").lower()
-
-    score = 72  # baseline default
-    flags = []
-
-    absurd_markers = [
-        "made of candy", "made of cheese", "moon is cheese", "moon is candy",
-        "1km from earth", "1 km from earth", "one km from earth"
-    ]
-    for m in absurd_markers:
-        if m in t:
-            score -= 18
-            flags.append(f"absurd_marker:{m}")
-
-    # Numeric claims heuristic
-    if re.search(r"\b\d+(\.\d+)?\b", t):
-        score -= 6
-        flags.append("contains_numerics")
-
-    # Overconfident phrasing
-    if any(x in t for x in ["definitely", "guaranteed", "always", "never"]):
-        score -= 4
-        flags.append("overconfident_language")
-
-    # Clamp
-    score = max(0, min(100, score))
-
-    # Risk summary mapping
-    if score >= 85:
-        verdict = "Likely True / Well-Supported"
-        misinfo = "Low"
-        exposure = "Low"
-    elif score >= 65:
-        verdict = "Plausible / Needs Verification"
-        misinfo = "Medium"
-        exposure = "Medium"
-    elif score >= 40:
-        verdict = "Questionable / High Uncertainty"
-        misinfo = "High"
-        exposure = "Medium"
+    reference_note = None
+    if allowed_refs:
+        reference_note = "Reference grounding in allowlist mode: only trusted domains are permitted. Wikipedia blocked."
     else:
-        verdict = "Likely False / Misleading"
-        misinfo = "High"
-        exposure = "High"
+        if blocked_any:
+            reference_note = "Reference grounding not enabled in MVP. Wikipedia blocked as a reference source."
+        else:
+            reference_note = "Reference grounding not enabled in MVP. Wikipedia blocked as a reference source."
 
-    return score, verdict, {
-        "misinformation_risk": misinfo,
-        "model_confidence_gap": "Significant" if score < 70 else "Moderate",
-        "regulatory_exposure": exposure,
-        "flags": flags
-    }
+    return claims, allowed_refs, reference_note
 
-
-def build_trust_profile(score: int):
+def score_mvp(claims, references):
     """
-    MVP trust profile derived from score.
+    MVP scoring heuristic (NOT true grounding yet).
+    - Penalize obviously extreme/implausible patterns (tiny distance to moon, candy, etc.)
+    - Give a modest bump if allowed references exist (still not verifying content).
     """
-    reliability = round(score / 100.0, 2)
-    volatility = round(max(0.2, 1.0 - reliability) * 0.7 + 0.2, 2)
-    drift_risk = round(min(0.95, 1.0 - reliability * 0.85), 2)
-    grounding_strength = round(min(0.95, reliability * 0.8), 2)
+    base = 72
+    text = (claims[0]["text"] if claims else "").lower()
 
-    return {
-        "reliability": reliability,
-        "volatility": volatility,
-        "drift_risk": drift_risk,
-        "grounding_strength": grounding_strength
-    }
+    # quick penalties for common nonsense markers
+    penalties = 0
+    if "made of candy" in text or "made of cheese" in text:
+        penalties += 18
+    if "1km" in text or "1 km" in text:
+        penalties += 18
+    if "moon is" in text and ("1km" in text or "made of" in text):
+        penalties += 6
 
+    # slight bump for having allowlisted references (still not grounding)
+    bump = 0
+    if references:
+        bump += 4
 
-def references_from_text(text: str, mode: str):
-    """
-    MVP reference extractor:
-    - Looks for URLs in the text.
-    - If mode is allowlist: keep only allowlisted domains.
-    - Always block Wikipedia.
-    NOTE: This does NOT fetch anything. It only surfaces candidate references.
-    """
-    if mode not in ("off", "allowlist"):
-        mode = DEFAULT_REFERENCE_MODE
-
-    if mode == "off":
-        return [], "Reference grounding not enabled in MVP. Wikipedia blocked as a reference source."
-
-    urls = re.findall(r"https?://[^\s\)\]]+", text or "")
-    refs = []
-    for u in urls:
-        domain = re.sub(r"^https?://", "", u).split("/")[0].lower()
-
-        # strip port
-        domain = domain.split(":")[0]
-
-        # block wikipedia
-        if domain in BLOCKED_REFERENCE_DOMAINS or domain.endswith(".wikipedia.org"):
-            continue
-
-        # allowlist filter
-        if not any(domain == d or domain.endswith("." + d) for d in TRUSTED_REFERENCE_ALLOWLIST):
-            continue
-
-        refs.append({"url": u, "domain": domain})
-
-    note = "Reference grounding in allowlist mode: only trusted domains are permitted. Wikipedia blocked."
-    return refs, note
-
+    score = base - penalties + bump
+    score = int(max(0, min(100, score)))
+    return score
 
 # -----------------------------
-# Routes
+# API: truth score
 # -----------------------------
-@app.get("/health")
-def health():
-    return jsonify({"ok": True, "engine_version": ENGINE_VERSION})
-
-
 @app.post("/truth-score")
 def truth_score():
     payload = request.get_json(silent=True) or {}
-    text = (payload.get("text") or "").strip()
+    raw_text = (payload.get("text") or "").strip()
 
-    if not text:
-        return jsonify({"error": "Missing 'text' in JSON body."}), 400
+    if not raw_text:
+        return jsonify({"error": "Missing 'text' in request body."}), 400
 
-    reference_mode = (payload.get("reference_mode") or DEFAULT_REFERENCE_MODE).strip().lower()
-    claims = extract_claims(text)
+    claims, references, reference_note = extract_claims_and_references(raw_text)
 
-    score, verdict, risk_summary = simple_risk_and_score(text)
-    trust_profile = build_trust_profile(score)
+    score = score_mvp(claims, references)
+    verdict = verdict_from_score(score)
 
-    event_id = str(uuid.uuid4())
-    fp_hash = sha256_hex(f"{ENGINE_VERSION}|{text}|{event_id}|{utc_now_iso()}")
-
-    refs, ref_note = references_from_text(text, reference_mode)
-
-    resp = {
-        "event_id": event_id,
+    norm = normalize_text_for_hash(raw_text)
+    out = {
         "score": score,
         "verdict": verdict,
-        "claims": claims,
         "explanation": "MVP mode: returning a baseline score plus extracted claims. Next steps will add reference-grounding and drift tracking.",
-        "references": refs,
-        "reference_note": ref_note,
-        "risk_summary": {
-            "misinformation_risk": risk_summary["misinformation_risk"],
-            "model_confidence_gap": risk_summary["model_confidence_gap"],
-            "regulatory_exposure": risk_summary["regulatory_exposure"]
-        },
-        "trust_profile": trust_profile,
+        "claims": claims,
+        "references": references,
+        "reference_note": reference_note,
+        "risk_summary": risk_summary_from_score(score),
+        "trust_profile": trust_profile_from_score(score, len(references)),
+        "event_id": str(uuid.uuid4()),
         "audit_fingerprint": {
-            "engine_version": ENGINE_VERSION,
-            "hash": fp_hash,
-            "timestamp_utc": utc_now_iso()
-        }
+            "engine_version": "TruCite Claim Engine v2.2 (MVP)",
+            "hash": sha256_hex(norm),
+            "timestamp_utc": utc_now_iso(),
+        },
     }
-    return jsonify(resp)
-
-
-@app.get("/")
-def serve_index():
-    # Serve the landing page from /static/index.html
-    return send_from_directory(app.static_folder, "index.html")
-
+    return jsonify(out)
 
 # -----------------------------
-# Entrypoint
+# Optional: run locally
 # -----------------------------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", "10000"))
+    port = int(os.environ.get("PORT", "5000"))
     app.run(host="0.0.0.0", port=port)
+```0
