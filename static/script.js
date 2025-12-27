@@ -2,23 +2,26 @@
 // TruCite Frontend Script (FULL)
 // ===============================
 
+// Accordion behavior (FAQ / Founder / Legal)
 document.addEventListener("DOMContentLoaded", () => {
-  // Accordion behavior (FAQ / Founder / Legal)
   const buttons = document.querySelectorAll(".accordion-btn");
+
   buttons.forEach((btn) => {
     btn.addEventListener("click", () => {
       btn.classList.toggle("active");
       const panel = btn.nextElementSibling;
       if (!panel) return;
+
       const isOpen = panel.style.display === "block";
       panel.style.display = isOpen ? "none" : "block";
     });
   });
 });
 
-// ✅ SAME ORIGIN: no CORS issues on Render
-const BACKEND_ENDPOINT = "/truth-score";
+// TruCite backend endpoint (Render)
+const BACKEND_ENDPOINT = "https://trucite-backend.onrender.com/truth-score";
 
+// Demo scoring call
 async function scoreText() {
   const input = document.getElementById("inputText");
   const result = document.getElementById("result");
@@ -47,24 +50,22 @@ async function scoreText() {
     const res = await fetch(BACKEND_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      // ✅ NEW: enable allowlist reference mode
+      body: JSON.stringify({
+        text,
+        reference_mode: "allowlist"
+      })
     });
 
-    const contentType = res.headers.get("content-type") || "";
-    let data;
-
-    if (contentType.includes("application/json")) {
-      data = await res.json();
-    } else {
-      const txt = await res.text();
-      throw new Error(`Non-JSON response. Status ${res.status}. Body: ${txt.slice(0, 180)}`);
-    }
-
     if (!res.ok) {
-      throw new Error(`Backend error ${res.status}. ${data?.explanation || ""}`.trim());
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Backend error ${res.status}. ${txt}`);
     }
 
-    const rawScore = data.truth_score ?? data.score ?? 0;
+    const data = await res.json();
+
+    // Accept either score field name
+    const rawScore = (data.score ?? data.truth_score ?? 0);
     const score = Math.max(0, Math.min(100, Number(rawScore)));
     const verdict = String(data.verdict ?? verdictFromScore(score));
 
@@ -84,10 +85,11 @@ async function scoreText() {
       }, 40);
     }
 
-    // Result box
+    // Result box: show full response
     result.textContent = JSON.stringify(data, null, 2);
 
   } catch (e) {
+    // Show real failure (no fake fallback score)
     scoreDisplay.textContent = "--";
     scoreVerdict.textContent = "Backend connection failed";
     result.textContent =
