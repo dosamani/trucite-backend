@@ -1,30 +1,96 @@
 import os
 import re
-import uuid
 import json
+import uuid
 import hashlib
 from datetime import datetime, timezone
+from flask import Flask, request, jsonify, send_from_directory, make_response
 
-from flask import Flask, jsonify, request, send_from_directory
-from flask_cors import CORS
+# ===============================
+# TruCite Backend (MVP v2.2)
+# - /health (GET)
+# - /truth-score (POST)
+# - serves /static/index.html at /
+# ===============================
+
+APP_VERSION = "TruCite Claim Engine v2.2 (MVP)"
+BLOCK_WIKIPEDIA_AS_REFERENCE = True
+
+app = Flask(__name__, static_folder="static", static_url_path="/static")
 
 
-APP_NAME = "TruCite"
-ENGINE_VERSION = "TruCite Claim Engine v2 (MVP)"
-STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
-
-app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="/static")
-CORS(app, resources={r"/*": {"origins": "*"}})
-
-
-# -----------------------------
-# Helpers (kept simple / MVP)
-# -----------------------------
-
+# -------------------------------
+# Helpers
+# -------------------------------
 def utc_now_iso():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
-def verdict_from_score(score: int) -> str:
+
+def sha256_hex(s: str) -> str:
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+
+
+def clamp(n, lo=0.0, hi=1.0):
+    return max(lo, min(hi, n))
+
+
+def simple_claim_extract(text: str):
+    """
+    MVP claim extraction:
+    - Treat the input as one factual claim (for now).
+    Later: split into multiple claims with sentence segmentation + entity/number extraction.
+    """
+    cleaned = " ".join(text.strip().split())
+    if not cleaned:
+        return []
+    return [{
+        "id": "c1",
+        "type": "factual",
+        "text": cleaned,
+        "confidence_weight": 1
+    }]
+
+
+def heuristic_score(text: str):
+    """
+    MVP heuristic scoring. Purpose: demonstrate workflow & plumbing, not truth.
+    We score down when the text contains obvious impossibilities / nonsense patterns.
+    """
+    t = text.lower().strip()
+
+    # Hard red flags / obvious impossibilities
+    red_flags = [
+        "moon is made of", "moon is 1km", "earth is flat",
+        "candy", "cheese", "1km from earth"
+    ]
+
+    # Uncertainty language slightly reduces score (needs verification)
+    uncertainty_terms = [
+        "might", "maybe", "possibly", "uncertain", "not sure",
+        "could be", "suggests", "appears"
+    ]
+
+    # Overconfidence / absolute claims in risky contexts
+    absolute_terms = ["guaranteed", "always", "never", "proven", "100%"]
+
+    score = 0.72  # baseline
+
+    if any(rf in t for rf in red_flags):
+        score -= 0.18
+
+    score -= 0.04 * sum(1 for w in uncertainty_terms if w in t)
+    score -= 0.03 * sum(1 for w in absolute_terms if w in t)
+
+    # numeric density can be a risk signal if ungrounded (very rough)
+    nums = re.findall(r"\b\d+(\.\d+)?\b", t)
+    if len(nums) >= 2:
+        score -= 0.04
+
+    score = clamp(score, 0.10, 0.92)
+    return round(score * 100)
+
+
+def verdict_from_score(score: int):
     if score >= 85:
         return "Likely True / Well-Supported"
     if score >= 65:
@@ -33,175 +99,125 @@ def verdict_from_score(score: int) -> str:
         return "Questionable / High Uncertainty"
     return "Likely False / Misleading"
 
-def clamp_int(n, lo=0, hi=100):
-    try:
-        n = int(round(float(n)))
-    except Exception:
-        n = 0
-    return max(lo, min(hi, n))
 
-def simple_claim_extract(text: str, max_claims: int = 3):
-    cleaned = re.sub(r"\s+", " ", (text or "")).strip()
-    if not cleaned:
-        return []
-
-    parts = re.split(r"(?<=[\.\?\!])\s+", cleaned)
-    parts = [p.strip() for p in parts if p.strip()]
-
-    claims = []
-    for idx, p in enumerate(parts[:max_claims], start=1):
-        claims.append({
-            "id": f"c{idx}",
-            "text": p,
-            "type": "factual",
-            "confidence_weight": 1
-        })
-    return claims
-
-def simple_score(text: str) -> int:
-    t = (text or "").strip().lower()
-    if not t:
-        return 0
-
-    score = 72
-
-    nonsense_markers = [
-        "moon is made of", "earth is flat", "2+2=5", "candy", "cheese", "aliens built"
-    ]
-    for m in nonsense_markers:
-        if m in t:
-            score -= 18
-            break
-
-    if any(x in t for x in ["always", "never", "guaranteed", "100%"]):
-        score -= 6
-
-    if any(x in t for x in ["may", "might", "unclear", "possibly", "likely", "suggests"]):
-        score += 4
-
-    return clamp_int(score)
-
-def build_trust_profile(score: int, claims_count: int):
-    reliability = round(score / 100.0, 2)
-
-    volatility = 0.30
-    if claims_count <= 1:
-        volatility += 0.15
-    if score < 55:
-        volatility += 0.20
-    volatility = round(min(0.95, max(0.05, volatility)), 2)
-
-    grounding_strength = round(max(0.05, reliability - 0.10), 2)
-    drift_risk = round(min(0.95, max(0.05, 1.0 - reliability + 0.10)), 2)
-
-    return {
-        "reliability": reliability,
-        "volatility": volatility,
-        "grounding_strength": grounding_strength,
-        "drift_risk": drift_risk
-    }
-
-def build_risk_summary(score: int):
+def risk_summary_from_score(score: int):
     if score >= 85:
-        return {"regulatory_exposure": "Low", "misinformation_risk": "Low", "model_confidence_gap": "Minimal"}
+        return {
+            "misinformation_risk": "Low",
+            "model_confidence_gap": "Minimal",
+            "regulatory_exposure": "Low"
+        }
     if score >= 65:
-        return {"regulatory_exposure": "Medium", "misinformation_risk": "Medium", "model_confidence_gap": "Moderate"}
+        return {
+            "misinformation_risk": "Medium",
+            "model_confidence_gap": "Moderate",
+            "regulatory_exposure": "Low"
+        }
     if score >= 40:
-        return {"regulatory_exposure": "Medium", "misinformation_risk": "High", "model_confidence_gap": "Significant"}
-    return {"regulatory_exposure": "High", "misinformation_risk": "High", "model_confidence_gap": "Severe"}
-
-def compute_hash(payload: dict) -> str:
-    """
-    Deterministic SHA-256 over canonical JSON.
-    """
-    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-
-# -----------------------------
-# Routes
-# -----------------------------
-
-@app.get("/health")
-def health():
-    return jsonify({"ok": True, "service": "trucite-backend", "ts_utc": utc_now_iso()})
-
-@app.get("/")
-def root():
-    index_path = os.path.join(STATIC_DIR, "index.html")
-    if os.path.exists(index_path):
-        return send_from_directory(STATIC_DIR, "index.html")
-    return jsonify({"ok": True, "message": "Static index.html not found in /static"}), 200
-
-@app.get("/static/<path:filename>")
-def static_files(filename):
-    return send_from_directory(STATIC_DIR, filename)
-
-def score_payload(text: str):
-    event_id = str(uuid.uuid4())
-    score = simple_score(text)
-    claims = simple_claim_extract(text, max_claims=3)
-    verdict = verdict_from_score(score)
-    ts = utc_now_iso()
-
-    trust_profile = build_trust_profile(score=score, claims_count=len(claims))
-    risk_summary = build_risk_summary(score=score)
-
-    # Hash only the audit-relevant fields (no UI fluff)
-    audit_payload = {
-        "engine_version": ENGINE_VERSION,
-        "timestamp_utc": ts,
-        "event_id": event_id,
-        "score": score,
-        "verdict": verdict,
-        "claims": claims,
-        "trust_profile": trust_profile,
-        "risk_summary": risk_summary,
+        return {
+            "misinformation_risk": "High",
+            "model_confidence_gap": "Significant",
+            "regulatory_exposure": "Medium"
+        }
+    return {
+        "misinformation_risk": "Severe",
+        "model_confidence_gap": "Critical",
+        "regulatory_exposure": "High"
     }
-    audit_hash = compute_hash(audit_payload)
+
+
+def trust_profile_from_score(score: int):
+    # Simple mapping to keep output consistent for demo
+    r = score / 100.0
+    return {
+        "reliability": round(r, 2),
+        "grounding_strength": round(clamp(r - 0.10), 2),
+        "drift_risk": round(clamp(1.0 - r + 0.10), 2),
+        "volatility": round(clamp(1.0 - r + 0.15), 2)
+    }
+
+
+def corsify(resp):
+    # Keep permissive for MVP demo/testing.
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return resp
+
+
+# -------------------------------
+# Routes
+# -------------------------------
+@app.route("/", methods=["GET"])
+def serve_index():
+    # Serve landing page from /static/index.html
+    return send_from_directory(app.static_folder, "index.html")
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    resp = jsonify({"ok": True, "service": "trucite-backend", "version": APP_VERSION})
+    return corsify(resp)
+
+
+@app.route("/truth-score", methods=["POST", "OPTIONS"])
+def truth_score():
+    if request.method == "OPTIONS":
+        return corsify(make_response("", 204))
+
+    payload = request.get_json(silent=True) or {}
+    text = (payload.get("text") or "").strip()
+
+    if not text:
+        resp = jsonify({"error": "Missing 'text' in JSON body."})
+        return corsify(resp), 400
+
+    event_id = str(uuid.uuid4())
+    score = heuristic_score(text)
+    verdict = verdict_from_score(score)
+
+    claims = simple_claim_extract(text)
+
+    # Deterministic-ish hash for audit fingerprinting
+    # (hash includes event_id so every request is unique, but still traceable)
+    audit_hash = sha256_hex(f"{APP_VERSION}|{event_id}|{text}")
+
+    # References placeholder (no Wikipedia)
+    references = []
+    if BLOCK_WIKIPEDIA_AS_REFERENCE:
+        # keep explicit note for later reference-grounding step
+        reference_note = "Reference grounding not enabled in MVP. Wikipedia blocked as a reference source."
+    else:
+        reference_note = "Reference grounding not enabled in MVP."
 
     response = {
         "event_id": event_id,
-        "claims": claims,
-        "explanation": (
-            "MVP mode: returning a baseline score plus extracted claims. "
-            "Next steps will add reference-grounding and drift tracking."
-        ),
         "score": score,
         "verdict": verdict,
-        "trust_profile": trust_profile,
-        "risk_summary": risk_summary,
+        "explanation": "MVP mode: returning a baseline score plus extracted claims. Next steps will add reference-grounding and drift tracking.",
+        "claims": claims,
+        "references": references,
+        "reference_note": reference_note,
+        "risk_summary": risk_summary_from_score(score),
+        "trust_profile": trust_profile_from_score(score),
         "audit_fingerprint": {
-            "engine_version": ENGINE_VERSION,
-            "timestamp_utc": ts,
-            "hash": audit_hash
+            "engine_version": APP_VERSION,
+            "hash": audit_hash,
+            "timestamp_utc": utc_now_iso()
         }
     }
-    return response
 
-@app.post("/truth-score")
-def truth_score():
-    data = request.get_json(silent=True) or {}
-    text = (data.get("text") or "").strip()
-    if not text:
-        return jsonify({"error": "Missing 'text'"}), 400
-    return jsonify(score_payload(text))
+    resp = jsonify(response)
+    return corsify(resp)
 
-@app.post("/verify")
-def verify():
-    data = request.get_json(silent=True) or {}
-    text = (data.get("text") or "").strip()
-    if not text:
-        return jsonify({"error": "Missing 'text'"}), 400
-    return jsonify(score_payload(text))
 
-@app.post("/api/score")
-def api_score():
-    data = request.get_json(silent=True) or {}
-    text = (data.get("text") or "").strip()
-    if not text:
-        return jsonify({"error": "Missing 'text'"}), 400
-    return jsonify(score_payload(text))
+# -------------------------------
+# Static file support (optional)
+# -------------------------------
+@app.route("/static/<path:filename>", methods=["GET"])
+def serve_static(filename):
+    return send_from_directory(app.static_folder, filename)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "10000"))
