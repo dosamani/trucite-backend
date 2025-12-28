@@ -7,6 +7,9 @@ from flask import Flask, request, jsonify, send_from_directory
 import psycopg2
 
 app = Flask(__name__)
+@app.route("/", methods=["GET"])
+def home():
+    return send_from_directory("static", "index.html")
 
 ENGINE_VERSION = "TruCite Claim Engine v2.5 (MVP)"
 
