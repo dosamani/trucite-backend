@@ -1,107 +1,60 @@
-// ===============================
-// TruCite Frontend Script (FULL)
-// ===============================
+document.addEventListener("DOMContentLoaded", function () {
 
-// Accordion behavior (FAQ / Founder / Legal)
-document.addEventListener("DOMContentLoaded", () => {
-  const buttons = document.querySelectorAll(".accordion-btn");
+    const form = document.getElementById("claimForm");
+    const input = document.getElementById("claimInput");
+    const output = document.getElementById("result");
 
-  buttons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      btn.classList.toggle("active");
-      const panel = btn.nextElementSibling;
-      if (!panel) return;
+    if (!form || !input || !output) {
+        console.error("UI elements not found. Check your index.html IDs.");
+        return;
+    }
 
-      const isOpen = panel.style.display === "block";
-      panel.style.display = isOpen ? "none" : "block";
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const claimText = input.value.trim();
+
+        if (!claimText) {
+            output.innerText = "Please enter a claim to verify.";
+            return;
+        }
+
+        output.innerText = "Analyzing claim...";
+
+        try {
+            const response = await fetch("/verify", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ text: claimText })
+            });
+
+            if (!response.ok) {
+                throw new Error("Server returned error " + response.status);
+            }
+
+            const data = await response.json();
+
+            let display = "";
+            display += `Verdict: ${data.verdict}\n`;
+            display += `Score: ${data.score}\n\n`;
+            display += `Event ID: ${data.event_id}\n`;
+            display += `Timestamp: ${data.audit_fingerprint.timestamp_utc}\n\n`;
+
+            if (data.claims && data.claims.length > 0) {
+                display += "Claims:\n";
+                data.claims.forEach((c, i) => {
+                    display += `${i + 1}. ${c.text}\n`;
+                });
+            }
+
+            output.innerText = display;
+
+        } catch (err) {
+            console.error(err);
+            output.innerText = "Error communicating with TruCite engine.";
+        }
     });
-  });
+
 });
-
-// TruCite backend endpoint (Render)
-const BACKEND_ENDPOINT = "https://trucite-backend.onrender.com/truth-score";
-
-// Demo scoring call
-async function scoreText() {
-  const input = document.getElementById("inputText");
-  const result = document.getElementById("result");
-  const scoreDisplay = document.getElementById("scoreDisplay");
-  const scoreVerdict = document.getElementById("scoreVerdict");
-  const gaugeFill = document.getElementById("gaugeFill");
-
-  const text = (input?.value || "").trim();
-  if (!text) {
-    result.textContent = "Paste some AI output first, then tap VERIFY.";
-    return;
-  }
-
-  // UI: loading state
-  scoreDisplay.textContent = "--";
-  scoreVerdict.textContent = "Scoring…";
-  result.textContent = "Contacting TruCite backend…";
-
-  // Reset gauge (empty)
-  if (gaugeFill) {
-    gaugeFill.style.transition = "none";
-    gaugeFill.style.strokeDashoffset = "260";
-  }
-
-  try {
-    const res = await fetch(BACKEND_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      // ✅ NEW: enable allowlist reference mode
-      body: JSON.stringify({
-        text,
-        reference_mode: "allowlist"
-      })
-    });
-
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`Backend error ${res.status}. ${txt}`);
-    }
-
-    const data = await res.json();
-
-    // Accept either score field name
-    const rawScore = (data.score ?? data.truth_score ?? 0);
-    const score = Math.max(0, Math.min(100, Number(rawScore)));
-    const verdict = String(data.verdict ?? verdictFromScore(score));
-
-    // Update UI
-    scoreDisplay.textContent = `${score}`;
-    scoreVerdict.textContent = verdict;
-
-    // Animate gauge fill
-    const dashTotal = 260;
-    const filled = (score / 100) * dashTotal;
-    const offset = dashTotal - filled;
-
-    if (gaugeFill) {
-      setTimeout(() => {
-        gaugeFill.style.transition = "stroke-dashoffset 1.1s ease";
-        gaugeFill.style.strokeDashoffset = String(offset);
-      }, 40);
-    }
-
-    // Result box: show full response
-    result.textContent = JSON.stringify(data, null, 2);
-
-  } catch (e) {
-    // Show real failure (no fake fallback score)
-    scoreDisplay.textContent = "--";
-    scoreVerdict.textContent = "Backend connection failed";
-    result.textContent =
-      "❌ POST failed.\n\n" +
-      "Endpoint: " + BACKEND_ENDPOINT + "\n\n" +
-      "Error: " + (e?.message || e);
-  }
-}
-
-function verdictFromScore(score) {
-  if (score >= 85) return "Likely True / Well-Supported";
-  if (score >= 65) return "Plausible / Needs Verification";
-  if (score >= 40) return "Questionable / High Uncertainty";
-  return "Likely False / Misleading";
-}
