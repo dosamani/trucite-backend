@@ -1,18 +1,16 @@
 import os
-import json
 import hashlib
 import uuid
 from datetime import datetime
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+from urllib.parse import urlparse, unquote
 
 from flask import Flask, request, jsonify
 import psycopg2
-from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
 
 # ---------------------------------------------------------
-# DB Helpers
+# DB Helpers (No URI passed to psycopg2.connect)
 # ---------------------------------------------------------
 
 def mask_db_url(db_url: str) -> str:
@@ -28,41 +26,78 @@ def mask_db_url(db_url: str) -> str:
         pass
     return db_url
 
-def ensure_sslmode_require(db_url: str) -> str:
+def parse_db_url(db_url: str):
     """
-    Supabase Postgres requires SSL. If sslmode not present, force sslmode=require.
-    Works whether or not db_url already has query params.
+    Parse postgresql://user:pass@host:port/dbname?...
+    Returns dict suitable for psycopg2.connect(**kwargs)
     """
-    if not db_url:
-        return db_url
+    p = urlparse(db_url)
+    if p.scheme not in ("postgres", "postgresql"):
+        raise ValueError(f"Unsupported DB scheme: {p.scheme}")
 
-    parsed = urlparse(db_url)
-    q = parse_qs(parsed.query)
+    user = unquote(p.username) if p.username else None
+    password = unquote(p.password) if p.password else None
+    host = p.hostname
+    port = p.port or 5432
+    dbname = (p.path or "").lstrip("/") or "postgres"
 
-    # If sslmode already set, keep it. Otherwise require it.
-    if "sslmode" not in q:
-        q["sslmode"] = ["require"]
+    if not host or not user or password is None:
+        raise ValueError("DB URL missing host/user/password")
 
-    new_query = urlencode(q, doseq=True)
-    rebuilt = parsed._replace(query=new_query)
-    return urlunparse(rebuilt)
+    return {
+        "host": host,
+        "port": port,
+        "dbname": dbname,
+        "user": user,
+        "password": password,
+        "sslmode": "require",
+        "connect_timeout": 10,
+    }
 
 def get_db_conn():
-    db_url = os.getenv("DATABASE_URL", "").strip()
-    if not db_url:
-        raise RuntimeError("DATABASE_URL is not set")
+    """
+    Priority:
+    1) If DATABASE_URL is set, parse it and connect with keyword args.
+    2) Else use separate env vars: DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+    """
+    db_url = (os.getenv("DATABASE_URL") or "").strip()
 
-    db_url_ssl = ensure_sslmode_require(db_url)
-    # connect_timeout prevents long stalls on cold start
-    return psycopg2.connect(db_url_ssl, connect_timeout=10)
+    if db_url:
+        # IMPORTANT: use your FULL URL with password already included.
+        # Psycopg2 will NOT accept DSN-style parsing errors if we avoid passing the URI.
+        kwargs = parse_db_url(db_url)
+        return psycopg2.connect(**kwargs)
+
+    # Fallback: separate vars
+    host = os.getenv("DB_HOST", "").strip()
+    port = int(os.getenv("DB_PORT", "5432"))
+    dbname = os.getenv("DB_NAME", "postgres").strip()
+    user = os.getenv("DB_USER", "postgres").strip()
+    password = os.getenv("DB_PASSWORD", "").strip()
+
+    if not host or not password:
+        raise RuntimeError("DATABASE_URL not set and DB_HOST/DB_PASSWORD not set")
+
+    return psycopg2.connect(
+        host=host,
+        port=port,
+        dbname=dbname,
+        user=user,
+        password=password,
+        sslmode="require",
+        connect_timeout=10,
+    )
 
 # ---------------------------------------------------------
 # Database Startup Test
 # ---------------------------------------------------------
 
 def db_startup_ping():
-    db_url = os.getenv("DATABASE_URL", "").strip()
-    print(f"[DB] DATABASE_URL detected: {mask_db_url(db_url)}")
+    db_url = (os.getenv("DATABASE_URL") or "").strip()
+    if db_url:
+        print(f"[DB] DATABASE_URL detected: {mask_db_url(db_url)}")
+    else:
+        print("[DB] DATABASE_URL not set; using DB_HOST/DB_USER/DB_PASSWORD vars")
 
     conn = None
     cur = None
@@ -76,11 +111,13 @@ def db_startup_ping():
         print(f"[DB] Startup ping FAILED: {repr(e)}")
     finally:
         try:
-            if cur: cur.close()
+            if cur:
+                cur.close()
         except Exception:
             pass
         try:
-            if conn: conn.close()
+            if conn:
+                conn.close()
         except Exception:
             pass
 
@@ -148,11 +185,13 @@ def verify():
         print(f"[DB] Insert failed: {repr(e)}")
     finally:
         try:
-            if cur: cur.close()
+            if cur:
+                cur.close()
         except Exception:
             pass
         try:
-            if conn: conn.close()
+            if conn:
+                conn.close()
         except Exception:
             pass
 
