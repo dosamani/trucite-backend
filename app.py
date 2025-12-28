@@ -3,7 +3,7 @@ import hashlib
 import uuid
 from datetime import datetime, timezone
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import psycopg2
 
 app = Flask(__name__)
