@@ -3,8 +3,11 @@ import uuid
 import hashlib
 from datetime import datetime, timezone
 
-from flask import Flask, request, jsonify, send_from_directory
-import psycopg2
+from flask import send_from_directory
+
+@app.get("/")
+def home():
+    return send_from_directory("static", "index.html")
 
 
 # ============================================================
