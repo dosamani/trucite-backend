@@ -92,6 +92,22 @@ details, summary { -webkit-tap-highlight-color: transparent; }
   text-shadow: 0 0 14px rgba(255,215,0,0.25);
 }
 
+/* Missing in baseline but used in current HTML */
+.hero-subtitle-tight{
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.hero-mini-links{
+  margin: 10px 0 0;
+  text-align: center;
+  font-weight: 900;
+}
+.hero-mini-links a{
+  color: #FFD700;
+  font-weight: 900;
+}
+
 /* =======================
    MAIN
 ======================= */
@@ -109,6 +125,15 @@ main {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #FFD700;
+}
+
+/* Missing but used in current HTML */
+.section-subtitle{
+  max-width: 760px;
+  margin: 0 auto 14px;
+  color: #ccc;
+  font-size: 0.98rem;
+  text-align: center;
 }
 
 /* =======================
@@ -242,9 +267,38 @@ pre#result {
 }
 .bp-arrow { color: #aaa; font-weight: 900; }
 
+/* Missing wrappers used by current HTML */
+.blueprint-section,
+.wins-section,
+.faq-section,
+.founder-section,
+.legal-section{
+  margin-top: 36px;
+}
+
+.blueprint-grid,
+.wins-grid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+@media (min-width: 820px){
+  .wins-grid{ grid-template-columns: 1fr 1fr; }
+}
+
+/* win-card class used in HTML */
+.win-card{
+  border: 1px solid rgba(255,215,0,0.45);
+  border-radius: 18px;
+  background: rgba(0,0,0,0.65);
+  box-shadow: 0 0 18px rgba(255,215,0,0.10);
+  padding: 18px;
+  margin: 0;
+}
+
 /* =======================
-   ACCORDION (details/summary) — legacy support
-   (kept as-is; not used by your current HTML)
+   ACCORDION (details/summary)
 ======================= */
 .accordion { max-width: 820px; margin: 0 auto; }
 
@@ -289,7 +343,7 @@ details[open] summary::after { content: "▲"; }
 /* =======================
    PATCH: Accordion for your current HTML
    Uses .accordion-btn + .accordion-panel
-   (THIS is what fixes your FAQ headings + chevrons)
+   (kept; harmless if unused)
 ======================= */
 .accordion-item { overflow: hidden; }
 
@@ -303,7 +357,7 @@ details[open] summary::after { content: "▲"; }
   padding: 16px 18px;
   font-weight: 900;
   font-size: 1.02rem;
-  color: #FFD700;               /* ✅ gold question text */
+  color: #FFD700;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -338,7 +392,7 @@ details[open] summary::after { content: "▲"; }
 
 /* Panel */
 .accordion-panel{
-  display: none; /* JS shows/hides */
+  display: none;
   padding: 0 18px 18px;
   border-top: 1px solid rgba(255,215,0,0.18);
   color: #d9d9d9;
@@ -395,4 +449,11 @@ details[open] summary::after { content: "▲"; }
   margin-top: 10px;
   color: #FFD700;
   font-weight: 900;
+}
+
+/* footer-note appears in HTML */
+.footer-note{
+  color: #bbb;
+  margin: 10px 0 0;
+  font-size: 0.95rem;
 }
