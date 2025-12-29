@@ -9,7 +9,7 @@
        Render/Flask is serving /static folder at ROOT.
        So these must be /style.css, /logo.jpg, /script.js (NOT /static/...)
   -->
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
@@ -31,7 +31,7 @@
 
   <!-- HERO (LOCKED COPY) -->
   <header class="hero" aria-label="Hero">
-    <img src="/logo.jpg" alt="TruCite Logo">
+    <img src="/static/logo.jpg" alt="TruCite Logo">
     <h1>TruCite.ai<sup class="tm">™</sup></h1>
 
     <p class="hero-tagline">Authenticate the agent — verify the output.</p>
@@ -128,11 +128,12 @@
       <a href="https://forms.gle/TAQZuVNwYBudi51i6"
          target="_blank" rel="noopener">Suggestions / Feedback</a>
     </div>
+    <script src="/static/script.js"></script>
 
     <p class="footer-note">© 2025 TruCite.ai — Independent Verification Layer for AI Output</p>
   </footer>
 
   <!-- IMPORTANT: Root path, NOT /static/script.js -->
-  <script src="/script.js"></script>
+  
 </body>
 </html>
