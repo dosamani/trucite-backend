@@ -1,70 +1,102 @@
 async function scoreText() {
   const inputEl = document.getElementById("inputText");
+  const evidenceEl = document.getElementById("evidenceText");
   const resultEl = document.getElementById("result");
+
   const scoreDisplay = document.getElementById("scoreDisplay");
   const scoreVerdict = document.getElementById("scoreVerdict");
   const gaugeFill = document.getElementById("gaugeFill");
 
-  const text = (inputEl?.value || "").trim();
+  const claimsSection = document.getElementById("claimsSection");
+  const claimsBody = document.getElementById("claimsBody");
+  const driftLine = document.getElementById("driftLine");
 
-  // UI reset
-  resultEl.textContent = "";
-  scoreDisplay.textContent = "--";
-  scoreVerdict.textContent = "Scoring…";
-  if (gaugeFill) gaugeFill.style.strokeDashoffset = "260";
+  const text = (inputEl.value || "").trim();
+  const evidence = (evidenceEl?.value || "").trim();
 
   if (!text) {
-    scoreVerdict.textContent = "Paste some AI output first.";
-    resultEl.textContent = "No input provided.";
+    alert("Paste some AI output first.");
     return;
   }
 
+  // UI reset
+  resultEl.textContent = "Scoring...";
+  scoreDisplay.textContent = "--";
+  scoreVerdict.textContent = "Scoring…";
+  gaugeFill.style.strokeDashoffset = "260";
+  claimsSection.style.display = "none";
+  claimsBody.innerHTML = "";
+  driftLine.textContent = "";
+
   try {
-    const res = await fetch("/score", {
+    const resp = await fetch("/api/score", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }) // IMPORTANT: backend expects { text: "..." }
+      body: JSON.stringify({ text, evidence })
     });
 
-    // If backend throws an HTML error page, show it
-    const raw = await res.text();
-
-    if (!res.ok) {
-      scoreVerdict.textContent = "Error communicating with TruCite engine.";
-      resultEl.textContent =
-        `HTTP ${res.status} ${res.statusText}\n\n` +
-        raw.slice(0, 4000);
-      return;
+    if (!resp.ok) {
+      const t = await resp.text();
+      throw new Error(`HTTP ${resp.status}: ${t}`);
     }
 
-    let data;
-    try {
-      data = JSON.parse(raw);
-    } catch (e) {
-      scoreVerdict.textContent = "Engine returned non-JSON response.";
-      resultEl.textContent = raw.slice(0, 4000);
-      return;
-    }
+    const data = await resp.json();
 
-    // Render score
+    // Gauge update
     const score = Number(data.score ?? 0);
-    const verdict = data.verdict || data.scoreVerdict || "—";
-
-    scoreDisplay.textContent = isFinite(score) ? String(score) : "--";
-    scoreVerdict.textContent = verdict;
-
-    // Gauge fill (0–100)
-    const dashTotal = 260;
     const clamped = Math.max(0, Math.min(100, score));
-    const offset = dashTotal - (dashTotal * clamped) / 100;
-    if (gaugeFill) gaugeFill.style.strokeDashoffset = String(offset);
+    const dash = 260 - (260 * clamped / 100);
+    gaugeFill.style.strokeDashoffset = String(dash);
 
-    // Pretty print details
+    scoreDisplay.textContent = clamped.toFixed(0);
+    scoreVerdict.textContent = data.verdict || "—";
+
+    // Claim-level table
+    if (Array.isArray(data.claims) && data.claims.length > 0) {
+      claimsSection.style.display = "block";
+
+      if (data.drift) {
+        const d = data.drift;
+        if (d.has_prior) {
+          driftLine.textContent =
+            `Drift: prior=${d.prior_timestamp_utc}, score_delta=${d.score_delta}, ` +
+            `verdict_changed=${d.verdict_changed}, flag=${d.drift_flag}`;
+        } else {
+          driftLine.textContent = "Drift: no prior run for this input.";
+        }
+      }
+
+      data.claims.forEach((c, idx) => {
+        const tr = document.createElement("tr");
+
+        const tdIdx = document.createElement("td");
+        tdIdx.textContent = String(idx + 1);
+
+        const tdClaim = document.createElement("td");
+        tdClaim.textContent = c.text || "";
+
+        const tdScore = document.createElement("td");
+        tdScore.textContent = String(c.score ?? "");
+
+        const tdVerdict = document.createElement("td");
+        tdVerdict.textContent = c.verdict || "";
+
+        const tdTags = document.createElement("td");
+        tdTags.textContent = (c.risk_tags && c.risk_tags.length) ? c.risk_tags.join(", ") : "-";
+
+        tr.appendChild(tdIdx);
+        tr.appendChild(tdClaim);
+        tr.appendChild(tdScore);
+        tr.appendChild(tdVerdict);
+        tr.appendChild(tdTags);
+
+        claimsBody.appendChild(tr);
+      });
+    }
+
     resultEl.textContent = JSON.stringify(data, null, 2);
   } catch (err) {
-    scoreVerdict.textContent = "Error communicating with TruCite engine.";
-    resultEl.textContent =
-      `Network/JS error:\n${String(err)}\n\n` +
-      "If this persists, the backend may be restarting on Render.";
+    resultEl.textContent = `Error communicating with TruCite engine:\n${err.message}`;
+    scoreVerdict.textContent = "Engine error";
   }
 }
