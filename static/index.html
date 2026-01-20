@@ -6,18 +6,20 @@
 
   <title>TruCite — Independent AI Verification for Regulated AI</title>
 
+  <!-- Primary OpenGraph -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://trucite.ai" />
   <meta property="og:title" content="TruCite — Independent AI Verification for Regulated AI" />
-  <meta property="og:description" content="TruCite measures hallucination risk, citation integrity, and auditability of AI output for legal, healthcare, and other high-liability workflows." />
+  <meta property="og:description" content="TruCite scores hallucination risk, citation integrity, and audit-grade reliability of AI output for legal, healthcare, finance, and other high-liability workflows." />
   <meta property="og:image" content="https://trucite.ai/static/logo.jpg" />
 
+  <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="TruCite — Independent AI Verification for Regulated AI" />
-  <meta name="twitter:description" content="Independent AI verification platform for hallucination detection, citation integrity, and audit-grade reliability scoring." />
+  <meta name="twitter:description" content="Independent AI verification layer for claim-level scoring, evidence-needed prompts, and audit-grade reliability." />
   <meta name="twitter:image" content="https://trucite.ai/static/logo.jpg" />
 
-  <link rel="stylesheet" href="/static/style.css?v=28" />
+  <link rel="stylesheet" href="/static/style.css?v=24" />
 </head>
 <body>
 
@@ -36,37 +38,34 @@
     </div>
   </header>
 
-  <!-- HERO -->
+  <!-- HERO (LOCKED COPY + minimal accuracy updates) -->
   <header class="hero" aria-label="Hero">
     <img src="/static/logo.jpg?v=1" alt="TruCite Logo" class="logo" />
     <h1>TruCite.ai<sup class="tm">™</sup></h1>
 
     <p class="hero-tagline">
-      Audit-Grade AI Verification for High-Liability Workflows
+      Independent AI Verification & Trust Layer
     </p>
 
     <p class="hero-subtitle">
-      Detect fabricated citations, hallucinated facts, and misalignment risk — before AI output becomes liability.
+      Detect hallucinations, fabricated citations, and hidden risk — before AI output becomes liability.
     </p>
 
     <p class="hero-subtitle">
-      TruCite is the independent verification <strong>decision layer</strong> between AI capability and AI reliability.
-      It evaluates output integrity, internal consistency, uncertainty signals, and drift risk — producing a reliability score,
-      a clear verdict (approve / flag / defer), and an audit trail.
-    </p>
-
-    <p class="hero-subtitle">
-      <strong>First wedge:</strong> legal research &amp; writing — where fabricated citations can trigger sanctions, malpractice exposure,
-      and reputational damage. Built for law, healthcare, finance, and other high-liability domains where AI mistakes carry real consequences.
+      TruCite evaluates structural integrity, internal consistency, uncertainty signals, citation patterns,
+      and drift risk in AI-generated content — producing audit-grade reliability scores for regulated
+      and high-liability environments.
+      <br /><br />
+      Built for law, healthcare, finance, and other domains where AI mistakes carry real consequences.
     </p>
 
     <p class="hero-missing-layer">
-      Reliability is a decision — not a guess.
+      TruCite is the missing verification layer between AI capability and AI reliability.
     </p>
 
     <p class="hero-subtitle hero-subtitle-tight">
-      Retrieval can show where an answer <em>might</em> have come from. TruCite decides whether the output is safe to rely on —
-      then logs an audit-ready record.
+      Designed to complement retrieval systems — TruCite evaluates whether AI output is reliable,
+      not where it came from.
     </p>
 
     <p class="hero-mini-links">
@@ -80,53 +79,49 @@
     <!-- VERIFY SECTION -->
     <section class="verify-section" id="verify">
       <h2 class="section-title">VERIFY AI &amp; AGENT OUTPUT</h2>
-
       <p class="section-subtitle">
         Paste AI- or agent-generated text below and tap <strong>VERIFY</strong>.
-        Optionally attach evidence (URL/PMID/DOI) to see how TruCite changes its risk posture.
+        TruCite returns an overall reliability score + verdict, plus claim-level scoring,
+        audit fingerprinting, and evidence-needed prompts where sources are missing.
       </p>
 
       <textarea id="inputText" placeholder="Paste AI- or agent-generated text here…"></textarea>
-
-      <!-- NEW: Evidence box -->
-      <textarea id="evidenceText" class="evidence-box"
-        placeholder="Evidence / sources (optional). Paste URLs, DOIs, PMIDs, or brief citations here…"></textarea>
-
       <button class="primary-btn" onclick="scoreText()">VERIFY</button>
+
+      <!-- Quick test prompts -->
+      <div class="result-wrapper" style="max-width: 720px; margin-left:auto; margin-right:auto;">
+        <div class="result-label">Quick tests (copy/paste)</div>
+        <pre style="white-space: pre-wrap;">
+1) Aspirin reduces MI risk by 23% (2019)
+2) The Moon is 1 km from Earth and made of candy
+3) Aspirin reduces MI risk by 23% (2019) PMID: 28721952
+PubMed example link to test: https://pubmed.ncbi.nlm.nih.gov/28721952/
+        </pre>
+      </div>
 
       <!-- Gauge -->
       <div id="gaugeContainer" aria-label="Truth score gauge">
         <svg id="gauge" width="220" height="120">
-          <path d="M20 100 A90 90 0 0 1 200 100" stroke="#333" stroke-width="18" fill="none" />
-          <path id="gaugeFill" d="M20 100 A90 90 0 0 1 200 100"
-            stroke="#FFD700" stroke-width="18" stroke-linecap="round" fill="none"
-            stroke-dasharray="260" stroke-dashoffset="260"
+          <path
+            d="M20 100 A90 90 0 0 1 200 100"
+            stroke="#333"
+            stroke-width="18"
+            fill="none"
+          />
+          <path
+            id="gaugeFill"
+            d="M20 100 A90 90 0 0 1 200 100"
+            stroke="#FFD700"
+            stroke-width="18"
+            stroke-linecap="round"
+            fill="none"
+            stroke-dasharray="260"
+            stroke-dashoffset="260"
           />
         </svg>
         <div id="scoreDisplay">--</div>
         <div id="scoreVerdict">Score pending…</div>
       </div>
-
-      <!-- Claim-level summary -->
-      <section id="claimsSection" class="claims-section" style="display:none;">
-        <h3 class="claims-title">Claim-level scoring (MVP)</h3>
-        <p id="driftLine" class="drift-line"></p>
-
-        <div class="claims-table-wrap">
-          <table class="claims-table" aria-label="Claim scoring table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Claim</th>
-                <th>Score</th>
-                <th>Verdict</th>
-                <th>Risk tags</th>
-              </tr>
-            </thead>
-            <tbody id="claimsBody"></tbody>
-          </table>
-        </div>
-      </section>
 
       <div class="result-wrapper">
         <div class="result-label">Validation details, explanation &amp; references</div>
@@ -134,20 +129,281 @@
       </div>
     </section>
 
-    <!-- FOOTER LINKS -->
-    <footer class="site-footer" id="feedback">
-      <p class="footer-links">
-        <a href="https://docs.google.com/document/d/1oHfzoXv-t0LZNdFwfMUjQKfy8tv9RQJo--HhLYRkPto/edit?usp=drivesdk" target="_blank" rel="noopener">FAQ</a>
-        •
-        <a href="https://docs.google.com/document/d/1IQM-Qe-SARh9zOm6HT7YYhYxfO4Q2GEVDTt9ZavyA5E/edit?usp=drivesdk" target="_blank" rel="noopener">Legal</a>
-        •
-        <a href="https://forms.gle/TAQZuVNwYBudi51i6" target="_blank" rel="noopener">Suggestions / Feedback</a>
-      </p>
-      <p class="footer-note">© 2025 TruCite.ai — Independent Verification Layer for AI Output</p>
-    </footer>
+    <!-- HOW TRUCITE WORKS -->
+    <section id="how" class="blueprint-section">
+      <h2 class="section-title">How TruCite Works</h2>
+      <div class="blueprint-grid">
+        <div class="bp-card bright-card">
+          <div class="bp-label">1. Ingest</div>
+          <p>TruCite receives AI output, metadata (model, context), and optional sources (URLs / DOI / PMID).</p>
+          <div class="bp-diagram">
+            <span class="bp-node">AI</span>
+            <span class="bp-arrow">→</span>
+            <span class="bp-node">TruCite</span>
+          </div>
+        </div>
 
+        <div class="bp-card bright-card">
+          <div class="bp-label">2. Analyze</div>
+          <p>We inspect structure, numeric/stat patterns, citation signals, uncertainty language, and known hallucination risk markers.</p>
+          <div class="bp-diagram">
+            <span class="bp-node">Structure</span>
+            <span class="bp-node">Signals</span>
+            <span class="bp-node">Patterns</span>
+          </div>
+        </div>
+
+        <div class="bp-card bright-card">
+          <div class="bp-label">3. Score &amp; Log</div>
+          <p>
+            TruCite returns a score + verdict, claim-level breakdown, and a human-readable explanation.
+            Enterprise mode adds persistent audit logs and drift analytics across time.
+          </p>
+          <div class="bp-diagram">
+            <span class="bp-node">Score</span>
+            <span class="bp-node">Verdict</span>
+            <span class="bp-node">Audit</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WHY TRUCITE WINS -->
+    <section id="why" class="wins-section">
+      <h2 class="section-title">Why TruCite Wins</h2>
+      <div class="wins-grid">
+        <div class="win-card bright-card">
+          <h3>Independent Verification Layer</h3>
+          <p>
+            TruCite independently evaluates AI output for reliability, grounding, and risk before it is used in real-world decisions —
+            preventing hallucinated facts, fabricated citations, and hidden model failures from becoming legal, financial, or operational liabilities.
+          </p>
+        </div>
+
+        <div class="win-card bright-card">
+          <h3>Model &amp; Architecture Agnostic</h3>
+          <p>
+            TruCite works across LLMs, agents, retrieval systems, and emerging AI architectures. It does not rely on vendor-provided confidence scores
+            or internal model signals — ensuring neutral, consistent, and auditable reliability assessment.
+          </p>
+        </div>
+
+        <div class="win-card bright-card">
+          <h3>Evidence-Needed Prompts</h3>
+          <p>
+            TruCite flags claim types that require proof (numeric/stat claims, citation-like claims) and returns evidence-needed guidance
+            (e.g., “Provide DOI/PMID/URL”) so teams can quickly close verification gaps.
+          </p>
+        </div>
+
+        <div class="win-card bright-card">
+          <h3>Built for Drift &amp; Compliance</h3>
+          <p>
+            TruCite monitors behavioral drift, uncertainty signals, and reliability decay over time, generating audit-ready evidence
+            for regulated environments such as law, healthcare, finance, and enterprise risk management.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ's -->
+    <section id="faq" class="faq-section">
+      <h2 class="section-title">FAQ's</h2>
+
+      <div class="accordion">
+        <details>
+          <summary>What does the TruCite symbol mean?</summary>
+          <div class="acc-body">
+            The symbol is inspired in part by the Egyptian concept of <strong>Ma’at</strong> — truth and balance —
+            where a feather is weighed against the heart. The golden feather represents <strong>truth</strong>, the
+            blue orb represents <strong>signal</strong> being evaluated, and the curved arc represents the
+            <strong>verification layer</strong> weighing evidence before a truth score is rendered.
+          </div>
+        </details>
+
+        <details>
+          <summary>How is TruCite different from OpenEvidence?</summary>
+          <div class="acc-body">
+            OpenEvidence (and similar tools) primarily focus on <strong>retrieval and citations</strong> — surfacing
+            sources to support an answer. TruCite is a <strong>verification layer</strong>: we score the
+            <strong>output itself</strong> for reliability (structure, internal consistency, uncertainty signals,
+            drift risk) and return an audit-grade verdict.
+          </div>
+        </details>
+
+        <details>
+          <summary>Is this just “AI correcting AI”? Isn’t that risky?</summary>
+          <div class="acc-body">
+            TruCite does not replace your models or generate new content. It operates as an independent verification
+            layer that scores AI outputs using structural integrity, uncertainty language, and known risk patterns.
+          </div>
+        </details>
+
+        <details>
+          <summary>How is TruCite future-proof if models keep changing?</summary>
+          <div class="acc-body">
+            We are model-agnostic. TruCite analyzes properties of the output itself — coherence, structure, specificity,
+            patterns, drift vs historical outputs — rather than relying on one vendor’s internal confidence signal.
+          </div>
+        </details>
+
+        <details>
+          <summary>Can TruCite detect model drift or silent behavior changes?</summary>
+          <div class="acc-body">
+            Yes — in enterprise mode. TruCite can track outputs over time for the same prompt or workflow and flag when
+            a model upgrade or prompt change causes behavior to diverge.
+          </div>
+        </details>
+
+        <details>
+          <summary>What exactly is a “truth score”?</summary>
+          <div class="acc-body">
+            The truth score is a composite indicator — not a magical oracle. It blends structural features (numerics,
+            references, internal consistency), linguistic uncertainty and hallucination signals, and known
+            false-pattern heuristics. In enterprise mode, evidence-backed validation can be added.
+          </div>
+        </details>
+
+        <details>
+          <summary>Why now? Haven’t we had fact-checking for years?</summary>
+          <div class="acc-body">
+            Traditional fact-checking was built for human-written news in a slow cycle. AI changes the tempo: millions of
+            outputs across multiple models, updated weekly, embedded in agents and workflows.
+          </div>
+        </details>
+
+        <details>
+          <summary>Why didn’t the big players build this themselves?</summary>
+          <div class="acc-body">
+            Big tech optimized for speed, scale, and engagement — not auditability. TruCite starts from the opposite direction:
+            verification-first.
+          </div>
+        </details>
+
+        <details>
+          <summary>Who is TruCite for?</summary>
+          <div class="acc-body">
+            Teams deploying AI copilots or agents into production; institutions in legal, healthcare, finance, and
+            compliance who need auditability; and AI vendors who want an independent verification layer.
+          </div>
+        </details>
+
+        <details>
+          <summary>Does TruCite store my content?</summary>
+          <div class="acc-body">
+            In this public demo, no. In enterprise deployments, TruCite can store encrypted audit trails under strict
+            retention and access policies.
+          </div>
+        </details>
+
+        <p class="faq-more">
+          <a
+            href="https://docs.google.com/document/d/1oHfzoXv-t0LZNdFwfMUjQKfy8tv9RQJo--HhLYRkPto/edit?usp=drivesdk"
+            target="_blank"
+            rel="noopener"
+          >
+            See full FAQ list 👉
+          </a>
+        </p>
+      </div>
+    </section>
+
+    <!-- FOUNDER STORY -->
+    <section id="founder" class="founder-section">
+      <h2 class="section-title">Founder Story</h2>
+
+      <div class="accordion">
+        <details>
+          <summary>Read story</summary>
+          <div class="acc-body">
+            TruCite was founded by <strong>Mani Subramanian, MD, MMI</strong> —
+            physician executive, clinical informatics architect, and technology strategist —
+            to solve a growing problem: AI now generates decisions, content, and guidance,
+            but offers no accountability for correctness.
+            <br /><br />
+            TruCite is not a chatbot or a fact-checker; it is a verification layer — a system that measures signal integrity,
+            structured reasoning, uncertainty patterns, and contextual grounding so machine-generated output can be audited,
+            verified, and trusted.
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- LEGAL / NOTICES -->
+    <section id="legal" class="legal-section">
+      <h2 class="section-title">Legal &amp; Notices</h2>
+
+      <div class="accordion">
+        <details>
+          <summary>Privacy</summary>
+          <div class="acc-body">
+            Your demo input is processed only for the purpose of returning a score. For production and enterprise deployments,
+            a full privacy and data governance policy applies.
+          </div>
+        </details>
+
+        <details>
+          <summary>Disclaimer</summary>
+          <div class="acc-body">
+            TruCite’s scores are heuristic indicators, not legal, clinical, or financial advice. They are meant to support
+            human review — not replace professional judgment.
+          </div>
+        </details>
+
+        <details>
+          <summary>Patent &amp; Status</summary>
+          <div class="acc-body">
+            Certain aspects of TruCite’s scoring, drift detection, and verification framework may be covered by pending
+            intellectual property filings.
+          </div>
+        </details>
+
+        <p class="faq-more">
+          Legal docs:
+          <a
+            href="https://docs.google.com/document/d/1IQM-Qe-SARh9zOm6HT7YYhYxfO4Q2GEVDTt9ZavyA5E/edit?usp=drivesdk"
+            target="_blank"
+            rel="noopener"
+          >
+            Terms of Service
+          </a>
+          &nbsp;•&nbsp;
+          <a
+            href="https://docs.google.com/document/d/1ZBRksw_MOzfvP4cqxxnQp54cz-aqXF5j-jsur-EdL3E/edit?usp=drivesdk"
+            target="_blank"
+            rel="noopener"
+          >
+            Privacy Policy
+          </a>
+        </p>
+      </div>
+    </section>
   </main>
 
-  <script src="/static/script.js?v=29"></script>
+  <!-- FOOTER -->
+  <footer class="site-footer" id="feedback">
+    <p class="footer-links">
+      <a
+        href="https://docs.google.com/document/d/1oHfzoXv-t0LZNdFwfMUjQKfy8tv9RQJo--HhLYRkPto/edit?usp=drivesdk"
+        target="_blank"
+        rel="noopener"
+      >FAQ</a>
+      •
+      <a
+        href="https://docs.google.com/document/d/1IQM-Qe-SARh9zOm6HT7YYhYxfO4Q2GEVDTt9ZavyA5E/edit?usp=drivesdk"
+        target="_blank"
+        rel="noopener"
+      >Legal</a>
+      •
+      <a
+        href="https://forms.gle/TAQZuVNwYBudi51i6"
+        target="_blank"
+        rel="noopener"
+      >Suggestions / Feedback</a>
+    </p>
+    <p class="footer-note">© 2025 TruCite.ai — Independent Verification Layer for AI Output</p>
+  </footer>
+
+  <script src="/static/script.js?v=24"></script>
 </body>
 </html>
