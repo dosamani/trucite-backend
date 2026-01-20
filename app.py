@@ -1,19 +1,19 @@
-# app.py — TruCite backend (MVP)
-# Adds:
-# 1) Implausible/world-knowledge red-flag rules (implausible_claim, distance_implausible, material_implausible, etc.)
-# 2) Evidence-aware rescoring (PMID/DOI/URL reduces citation_unverified penalty; weak evidence is partial)
+# app.py — TruCite backend (MVP) — FastAPI + static landing page
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import Optional, List, Dict, Any
 import hashlib
 import re
 from datetime import datetime, timezone
+from pathlib import Path
 
-app = FastAPI(title="TruCite Engine", version="0.3.0")
+app = FastAPI(title="TruCite Engine", version="0.3.1")
 
-# CORS: keep permissive for MVP demo
+# CORS (permissive for MVP demo)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,346 +22,232 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ----------------------------
-# Models
-# ----------------------------
+# ---------- Static site (landing page) ----------
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
+
+# Mount /static if folder exists
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+def home():
+    """
+    Serve static/index.html as the landing page.
+    """
+    index_path = STATIC_DIR / "index.html"
+    if not index_path.exists():
+        # If missing, return a clear error so you know it's a file placement issue
+        return HTMLResponse(
+            "<h1>TruCite backend is running</h1><p>Missing static/index.html</p>",
+            status_code=200,
+        )
+    return HTMLResponse(index_path.read_text(encoding="utf-8"), status_code=200)
+
+# ---------- API Models ----------
 class VerifyRequest(BaseModel):
     text: str
-    evidence: Optional[str] = ""  # optional sources pasted by user (URLs/DOIs/PMIDs/citations)
+    evidence: Optional[str] = None  # URLs/DOIs/PMIDs/etc
 
-# ----------------------------
-# Simple in-memory drift (MVP)
-# ----------------------------
-DRIFT_MEMORY: Dict[str, Dict[str, Any]] = {}  # key=fingerprint -> {score, verdict, timestamp_utc, claim_count}
-
-# ----------------------------
-# Utility: hashing / fingerprints
-# ----------------------------
-def sha256_text(s: str) -> str:
-    return hashlib.sha256(s.encode("utf-8")).hexdigest()
-
-def now_utc() -> str:
+# ---------- Utility / Heuristic Engine ----------
+def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
-# ----------------------------
-# Claim segmentation (MVP)
-# ----------------------------
-def segment_claims(text: str) -> List[str]:
-    # Conservative segmentation: split on newlines, semicolons, sentence endings
-    raw = re.split(r"[\n;]+|(?<=[\.\?\!])\s+", text.strip())
-    claims = [c.strip() for c in raw if c and c.strip()]
-    # Hard cap for MVP safety
-    return claims[:8] if claims else []
+def sha256_hex(s: str) -> str:
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
-# ----------------------------
-# Evidence parsing
-# ----------------------------
-URL_RE = re.compile(r"(https?://[^\s\)]+)", re.IGNORECASE)
-DOI_RE = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", re.IGNORECASE)
-PMID_RE = re.compile(r"\bPMID\s*:\s*\d+\b|\bPMID\s*\d+\b|\b\d{7,9}\b", re.IGNORECASE)  # includes bare 7-9 digits as weak PMID hint
+def extract_claims(text: str) -> List[str]:
+    """
+    Very lightweight claim segmentation for MVP:
+    split on newline and sentence-ish boundaries, keep non-empty.
+    """
+    text = (text or "").strip()
+    if not text:
+        return []
+    # Split on newlines first
+    parts = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        # Further split by sentence boundaries
+        segs = re.split(r"(?<=[\.\?\!])\s+", line)
+        for s in segs:
+            s = s.strip()
+            if s:
+                parts.append(s)
+    return parts[:25]  # cap for MVP
 
-def parse_evidence(evidence: str) -> Dict[str, Any]:
-    ev = (evidence or "").strip()
-    urls = URL_RE.findall(ev) if ev else []
-    dois = DOI_RE.findall(ev) if ev else []
-    pmids = PMID_RE.findall(ev) if ev else []
-
-    # "Strong" evidence: URL or DOI or explicit PMID label
-    has_strong = bool(urls or dois or re.search(r"\bPMID\b", ev, re.IGNORECASE))
-    # "Weak" evidence: some citation-ish text but no identifiers
-    has_any_text = bool(ev)
-    has_weak = has_any_text and not has_strong
-
-    return {
-        "has_sources_provided": has_any_text,
-        "has_url": bool(urls),
-        "has_doi": bool(dois),
-        "has_pmid": bool(pmids),
-        "urls": urls[:5],
-        "dois": list({d.lower() for d in dois})[:5],
-        "pmids": pmids[:5],
-        "strength": "strong" if has_strong else ("weak" if has_weak else "none"),
-    }
-
-# ----------------------------
-# Signal extraction
-# ----------------------------
-ABSOLUTE_WORDS = ["always", "never", "guaranteed", "proves", "proven", "cure", "100%", "no risk"]
-HEDGE_WORDS = ["may", "might", "could", "suggests", "likely", "possibly", "uncertain", "preliminary"]
-
-def extract_signals(claim: str, evidence_meta: Dict[str, Any]) -> Dict[str, Any]:
+def signal_flags(claim: str, evidence: str = "") -> Dict[str, Any]:
     c = claim.lower()
 
-    numerics = re.findall(r"\b\d+(\.\d+)?\b", claim)
+    has_url = bool(re.search(r"https?://", claim)) or bool(re.search(r"https?://", evidence or ""))
+    has_doi = bool(re.search(r"\b10\.\d{4,9}/\S+\b", claim)) or bool(re.search(r"\b10\.\d{4,9}/\S+\b", evidence or ""))
+    has_pmid = bool(re.search(r"\bPMID[:\s]*\d+\b", claim, re.IGNORECASE)) or bool(re.search(r"\bPMID[:\s]*\d+\b", evidence or "", re.IGNORECASE))
+    has_year = bool(re.search(r"\b(19|20)\d{2}\b", claim))
     has_percent = "%" in claim
-    has_year = bool(re.search(r"\b(19\d{2}|20\d{2})\b", claim))
-    has_citation_like = bool(has_year) or bool(re.search(r"\b(et al\.|randomized|trial|meta-analysis|systematic review)\b", c))
+    numeric_count = len(re.findall(r"\d+(\.\d+)?", claim))
+    has_numerics = numeric_count > 0
+    has_citation_like = bool(has_year or has_doi or has_pmid)
+    has_sources_provided = bool((evidence or "").strip()) or has_url or has_doi or has_pmid
 
-    absolute_count = sum(1 for w in ABSOLUTE_WORDS if w in c)
-    hedge_count = sum(1 for w in HEDGE_WORDS if w in c)
+    absolute_count = len(re.findall(r"\b(always|never|guarantee|proves|definitely|100%)\b", c))
+    hedge_count = len(re.findall(r"\b(may|might|could|suggests|possibly|likely|unclear)\b", c))
 
     return {
-        "numeric_count": len(numerics),
-        "has_numerics": len(numerics) > 0,
-        "has_percent": has_percent,
+        "has_url": has_url,
+        "has_doi": has_doi,
+        "has_pmid": has_pmid,
         "has_year": has_year,
+        "has_percent": has_percent,
+        "has_numerics": has_numerics,
+        "numeric_count": numeric_count,
         "has_citation_like": has_citation_like,
-        "has_url": evidence_meta.get("has_url", False),
-        "has_doi": evidence_meta.get("has_doi", False),
-        "has_sources_provided": evidence_meta.get("has_sources_provided", False),
+        "has_sources_provided": has_sources_provided,
         "absolute_count": absolute_count,
         "hedge_count": hedge_count,
     }
 
-# ----------------------------
-# Feature 1: World-knowledge / implausibility rules (MVP)
-# ----------------------------
-DISTANCE_PAT = re.compile(r"\b(\d+(?:\.\d+)?)\s*(km|kilometer|kilometers|m|meter|meters)\b", re.IGNORECASE)
+def score_claim(claim: str, evidence: str = "") -> Dict[str, Any]:
+    sig = signal_flags(claim, evidence)
+    risk_tags = []
 
-def world_knowledge_risk_tags(claim: str) -> List[str]:
-    c = claim.lower()
-    tags = []
+    # classify claim type
+    claim_type = "general_claim"
+    if sig["has_numerics"] or sig["has_percent"] or sig["has_citation_like"]:
+        claim_type = "numeric_or_stat_claim"
 
-    # blatant absurd material/biology cues
-    if any(x in c for x in ["made up of candy", "made of candy", "made of chocolate", "made of marshmallow"]):
-        tags.append("material_implausible")
-        tags.append("implausible_claim")
+    # baseline score starts higher = more uncertain (worse)
+    score = 70
 
-    # moon distance sanity check
-    # If claim mentions moon and gives a tiny distance in km/m, flag.
-    if "moon" in c:
-        m = DISTANCE_PAT.search(claim)
-        if m:
-            val = float(m.group(1))
-            unit = m.group(2).lower()
-            # convert to km
-            km = val / 1000.0 if unit.startswith("m") else val
-            # anything < 10,000 km is absurd for Earth-Moon distance
-            if km < 10000:
-                tags.append("distance_implausible")
-                tags.append("implausible_claim")
+    # absolute language increases risk
+    if sig["absolute_count"] > 0:
+        score -= 10
+        risk_tags.append("absolute_language")
 
-    # other quick absurdities (keep minimal to avoid false positives)
-    if any(x in c for x in ["sun is cold", "humans breathe water", "earth is flat"]):
-        tags.append("implausible_claim")
+    # numeric/stat claims without sources are higher risk
+    if claim_type == "numeric_or_stat_claim":
+        risk_tags.append("numeric_claim")
+        if not sig["has_sources_provided"]:
+            score -= 20
+            risk_tags.append("citation_unverified")
+        else:
+            # if evidence exists, slightly improve (still not "verified" in MVP)
+            score += 5
 
-    return list(dict.fromkeys(tags))  # de-dup preserving order
+    # if explicit URL/DOI/PMID provided, reduce risk a bit
+    if sig["has_url"] or sig["has_doi"] or sig["has_pmid"]:
+        score += 5
 
-# ----------------------------
-# Scoring logic (MVP heuristics)
-# ----------------------------
-def evidence_needed_block(claim: str, claim_type: str) -> Dict[str, Any]:
-    # Light guidance for demo UX
+    # clamp
+    score = max(0, min(100, score))
+
+    # verdict
+    if score <= 55:
+        verdict = "High risk / do not rely"
+    elif score <= 75:
+        verdict = "Unclear / needs verification"
+    else:
+        verdict = "Low risk / likely reliable"
+
+    evidence_needed = None
+    if claim_type == "numeric_or_stat_claim" and ("citation_unverified" in risk_tags):
+        evidence_needed = {
+            "required": True,
+            "reason": "Claim includes numeric/statistical or citation-like content without an attached source (URL/DOI/PMID) or provided evidence.",
+            "acceptable_evidence_examples": [
+                "Peer-reviewed paper link (DOI/PMID/URL)",
+                "Clinical guideline link (e.g., society guideline URL)",
+                "Regulatory label / official statement URL",
+                "Internal policy document reference (enterprise mode)",
+            ],
+            "suggested_query": f"{claim} clinical trial meta-analysis PMID",
+        }
+
     return {
-        "required": True,
-        "reason": "Claim includes numeric/statistical or citation-like content without an attached source (URL/DOI) or provided evidence.",
-        "acceptable_evidence_examples": [
-            "Peer-reviewed paper link (DOI/PMID/URL)",
-            "Clinical guideline link (e.g., society guideline URL)",
-            "Regulatory label / official statement URL",
-            "Internal policy document reference (enterprise mode)"
-        ],
-        "suggested_query": f"{claim} clinical trial meta-analysis PMID"
+        "text": claim,
+        "claim_type": claim_type,
+        "signals": sig,
+        "risk_tags": list(dict.fromkeys(risk_tags)),
+        "score": score,
+        "verdict": verdict,
+        "evidence_needed": evidence_needed,
     }
 
-def base_score_from_signals(signals: Dict[str, Any]) -> int:
-    # Start at 80 (neutral-ish), subtract risk, add small credit for hedging
-    score = 80
+# simple in-memory drift per input hash (MVP)
+_prior: Dict[str, Dict[str, Any]] = {}
 
-    # numeric/stat claims without evidence are risky
-    if signals["has_numerics"]:
-        score -= 12
-    if signals["has_percent"]:
-        score -= 10
-    if signals["has_citation_like"]:
-        score -= 10
-    if signals["absolute_count"] > 0:
-        score -= 10 * min(signals["absolute_count"], 2)
+def drift_for_input(input_text: str, score: int, verdict: str) -> Dict[str, Any]:
+    key = sha256_hex(input_text.strip().lower())
+    prev = _prior.get(key)
+    if not prev:
+        _prior[key] = {"ts": utc_now_iso(), "score": score, "verdict": verdict, "claim_count": None}
+        return {
+            "has_prior": False,
+            "prior_timestamp_utc": None,
+            "score_delta": None,
+            "verdict_changed": False,
+            "drift_flag": False,
+            "claim_count_delta": None,
+            "notes": "MVP in-memory drift. Enterprise mode persists histories and compares behavior over time.",
+        }
+    score_delta = score - prev["score"]
+    verdict_changed = verdict != prev["verdict"]
+    drift_flag = verdict_changed or abs(score_delta) >= 15
+    _prior[key] = {"ts": utc_now_iso(), "score": score, "verdict": verdict, "claim_count": None}
+    return {
+        "has_prior": True,
+        "prior_timestamp_utc": prev["ts"],
+        "score_delta": score_delta,
+        "verdict_changed": verdict_changed,
+        "drift_flag": drift_flag,
+        "claim_count_delta": None,
+        "notes": "MVP in-memory drift. Enterprise mode persists histories and compares behavior over time.",
+    }
 
-    # hedging indicates awareness of uncertainty (slight positive)
-    if signals["hedge_count"] > 0:
-        score += min(signals["hedge_count"], 2) * 2
-
-    return max(0, min(100, score))
-
-def apply_world_knowledge_penalty(score: int, wk_tags: List[str]) -> int:
-    # If implausible, force score down meaningfully
-    if "implausible_claim" in wk_tags:
-        score -= 25
-    if "distance_implausible" in wk_tags:
-        score -= 15
-    if "material_implausible" in wk_tags:
-        score -= 10
-    return max(0, min(100, score))
-
-def apply_evidence_adjustment(score: int, signals: Dict[str, Any], evidence_meta: Dict[str, Any]) -> int:
-    """
-    Feature 2: evidence-aware rescoring.
-    - If the claim looks citation-like or numeric and user provided STRONG evidence (URL/DOI/explicit PMID), restore points.
-    - If weak evidence (text but no identifiers), restore fewer points.
-    """
-    needs_evidence = (signals["has_numerics"] or signals["has_percent"] or signals["has_citation_like"] or signals["has_year"])
-
-    if not needs_evidence:
-        return score
-
-    strength = evidence_meta.get("strength", "none")
-
-    if strength == "strong":
-        # restore risk penalties substantially
-        score += 18
-    elif strength == "weak":
-        # restore a little, still likely "needs verification"
-        score += 8
-    else:
-        # none: no change
-        pass
-
-    return max(0, min(100, score))
-
-def verdict_from_score(score: int) -> str:
-    if score >= 85:
-        return "Approve / low risk"
-    if score >= 65:
-        return "Unclear / needs verification"
-    return "High risk / do not rely"
-
-def claim_type_from_signals(signals: Dict[str, Any], wk_tags: List[str]) -> str:
-    if "implausible_claim" in wk_tags:
-        return "world_knowledge_conflict"
-    if signals["has_numerics"] or signals["has_percent"]:
-        return "numeric_or_stat_claim"
-    return "general_claim"
-
-# ----------------------------
-# Routes
-# ----------------------------
+# ---------- Routes ----------
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "trucite-engine", "version": app.version}
+    return {"status": "ok", "service": "trucite-engine", "ts": utc_now_iso()}
 
 @app.post("/verify")
 def verify(req: VerifyRequest):
     text = (req.text or "").strip()
     if not text:
-        raise HTTPException(status_code=400, detail="Empty text")
+        raise HTTPException(status_code=400, detail="text is required")
 
-    evidence_meta = parse_evidence(req.evidence or "")
-
-    # Segment claims
-    claims = segment_claims(text)
+    evidence = (req.evidence or "").strip()
+    claims = extract_claims(text)
     if not claims:
-        claims = [text[:800]]
+        raise HTTPException(status_code=400, detail="no claims detected")
 
-    claim_results = []
-    overall_scores = []
+    claim_results = [score_claim(c, evidence) for c in claims]
 
-    for claim in claims:
-        wk_tags = world_knowledge_risk_tags(claim)
-        signals = extract_signals(claim, evidence_meta)
+    # overall score is min of claim scores (most risky dominates)
+    overall_score = min([c["score"] for c in claim_results])
+    overall_verdict = claim_results[[c["score"] for c in claim_results].index(overall_score)]["verdict"]
 
-        # baseline
-        score = base_score_from_signals(signals)
-        # world-knowledge penalty
-        score = apply_world_knowledge_penalty(score, wk_tags)
-        # evidence adjustment
-        score = apply_evidence_adjustment(score, signals, evidence_meta)
+    drift = drift_for_input(text, overall_score, overall_verdict)
 
-        ctype = claim_type_from_signals(signals, wk_tags)
-        verdict = verdict_from_score(score)
-
-        # risk tags
-        risk_tags = []
-
-        # numeric/citation risk
-        if signals["has_numerics"]:
-            risk_tags.append("numeric_claim")
-        if signals["has_citation_like"] or signals["has_year"]:
-            # only flag as unverified if no strong evidence
-            if evidence_meta.get("strength") != "strong":
-                risk_tags.append("citation_unverified")
-
-        # world-knowledge tags
-        risk_tags.extend(wk_tags)
-
-        # evidence needed block (only for numeric/citation type + no strong evidence)
-        evidence_needed = None
-        if (ctype in ["numeric_or_stat_claim"] or signals["has_citation_like"] or signals["has_year"]) and evidence_meta.get("strength") != "strong":
-            evidence_needed = evidence_needed_block(claim, ctype)
-
-        claim_results.append({
-            "text": claim,
-            "score": score,
-            "verdict": verdict,
-            "risk_tags": list(dict.fromkeys(risk_tags)),
-            "signals": signals,
-            "claim_type": ctype,
-            "evidence_needed": evidence_needed
-        })
-        overall_scores.append(score)
-
-    # Overall score: mean (simple MVP)
-    overall = int(round(sum(overall_scores) / max(1, len(overall_scores))))
-    overall_verdict = verdict_from_score(overall)
-
-    # Audit fingerprint (input+evidence)
-    fp_source = f"{text}\n---EVIDENCE---\n{(req.evidence or '').strip()}"
-    fp = sha256_text(fp_source)
-    event_id = fp[:12]
-
-    # Drift: compare same fingerprint (MVP in-memory)
-    drift = {
-        "has_prior": False,
-        "prior_timestamp_utc": None,
-        "score_delta": None,
-        "verdict_changed": False,
-        "drift_flag": False,
-        "claim_count_delta": None,
-        "notes": "MVP in-memory drift. Enterprise mode persists histories and compares behavior over time."
-    }
-
-    prior = DRIFT_MEMORY.get(fp)
-    if prior:
-        drift["has_prior"] = True
-        drift["prior_timestamp_utc"] = prior["timestamp_utc"]
-        drift["score_delta"] = overall - prior["score"]
-        drift["claim_count_delta"] = len(claim_results) - prior.get("claim_count", len(claim_results))
-        drift["verdict_changed"] = (overall_verdict != prior["verdict"])
-        # drift flag if score moves a lot OR verdict changes
-        drift["drift_flag"] = drift["verdict_changed"] or (abs(drift["score_delta"]) >= 15)
-
-    # Persist this run
-    DRIFT_MEMORY[fp] = {
-        "score": overall,
-        "verdict": overall_verdict,
-        "timestamp_utc": now_utc(),
-        "claim_count": len(claim_results)
-    }
-
-    response = {
-        "score": overall,
-        "verdict": overall_verdict,
-        "explanation": (
-            "MVP heuristic verification. This demo flags risk via claim segmentation, numeric/stat patterns, "
-            "citation signals, world-knowledge implausibility cues, absolute language, and uncertainty cues. "
-            "Evidence (URLs/DOIs/PMIDs) reduces 'citation_unverified' risk. Enterprise mode adds evidence-backed "
-            "checks, source validation, and persistent drift analytics."
-        ),
-        "input": {
-            "length_chars": len(text),
-            "num_claims": len(claim_results)
-        },
-        "claims": claim_results,
-        "uncertainty_map": {
-            "risk_tags": list(dict.fromkeys([t for c in claim_results for t in (c.get("risk_tags") or [])]))
-        },
-        "audit_fingerprint": {
-            "sha256": fp,
-            "timestamp_utc": now_utc()
-        },
+    event_id = sha256_hex(text)[:12]
+    payload = {
+        "audit_fingerprint": {"sha256": sha256_hex(text), "timestamp_utc": utc_now_iso()},
         "event_id": event_id,
+        "input": {"length_chars": len(text), "num_claims": len(claim_results)},
+        "score": overall_score,
+        "verdict": overall_verdict,
+        "claims": claim_results,
         "drift": drift,
-        "evidence_meta": evidence_meta
+        "uncertainty_map": {"risk_tags": list({t for c in claim_results for t in c["risk_tags"]})},
+        "explanation": (
+            "MVP heuristic verification. This demo flags risk via claim segmentation, "
+            "numeric/stat patterns, citation signals, absolute language, and uncertainty cues. "
+            "Enterprise mode adds evidence-backed checks, source validation, and persistent drift analytics."
+        ),
     }
+    return JSONResponse(payload)
 
-    return response
+# Helpful: make sure OPTIONS preflight does not surprise you
+@app.options("/{rest_of_path:path}")
+def options_preflight(rest_of_path: str):
+    return JSONResponse({"ok": True})
