@@ -1,7 +1,10 @@
 // /static/script.js
-// TruCite MVP - frontend verify handler (explicit backend URL to avoid 404s from embeds/previews)
+const API_BASE = "https://trucite-backend.onrender.com";
 
-const API_BASE = "https://trucite-backend.onrender.com"; // <-- your Render backend service
+window.addEventListener("load", () => {
+  // quick visible sanity check in case script isn't loading
+  console.log("TruCite script.js loaded");
+});
 
 async function scoreText() {
   const input = document.getElementById("inputText");
@@ -10,72 +13,67 @@ async function scoreText() {
   const scoreVerdict = document.getElementById("scoreVerdict");
   const gaugeFill = document.getElementById("gaugeFill");
 
-  // Hard fail fast if IDs mismatch
   if (!input || !result || !scoreDisplay || !scoreVerdict || !gaugeFill) {
-    console.error("Missing required elements. Check IDs in index.html.");
+    const missing = [
+      !input ? "inputText" : null,
+      !result ? "result" : null,
+      !scoreDisplay ? "scoreDisplay" : null,
+      !scoreVerdict ? "scoreVerdict" : null,
+      !gaugeFill ? "gaugeFill" : null
+    ].filter(Boolean).join(", ");
+    alert("Missing HTML element IDs: " + missing);
     return;
   }
 
   const text = (input.value || "").trim();
-
   if (!text) {
-    result.textContent = "Please paste AI- or agent-generated text to verify.";
+    result.textContent = "Paste AI output above, then tap VERIFY.";
     scoreDisplay.textContent = "--";
     scoreVerdict.textContent = "Score pending…";
     gaugeFill.style.strokeDashoffset = "260";
     return;
   }
 
-  // UI reset
   result.textContent = "Analyzing…";
   scoreDisplay.textContent = "--";
-  scoreVerdict.textContent = "Score pending…";
+  scoreVerdict.textContent = "Calling engine…";
   gaugeFill.style.strokeDashoffset = "260";
 
   try {
-    // IMPORTANT: Call backend explicitly so /verify never 404s due to origin mismatch
     const resp = await fetch(`${API_BASE}/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text })
     });
 
-    // If backend returns HTML (common for 404/502), show it clearly
-    const contentType = resp.headers.get("content-type") || "";
+    const bodyText = await resp.text(); // read once
     if (!resp.ok) {
-      const bodyText = await resp.text();
       throw new Error(`HTTP ${resp.status}: ${bodyText}`);
     }
 
-    const data = contentType.includes("application/json")
-      ? await resp.json()
-      : JSON.parse(await resp.text());
+    let data;
+    try {
+      data = JSON.parse(bodyText);
+    } catch {
+      throw new Error("Engine returned non-JSON: " + bodyText.slice(0, 200));
+    }
 
-    // Pull top-level score/verdict (fallback to first-claim if needed)
-    const score = Number(
-      data?.score ?? data?.claims?.[0]?.score ?? 0
-    );
-
-    const verdict =
-      data?.verdict ?? data?.claims?.[0]?.verdict ?? "--";
+    const score = Number(data?.score ?? data?.claims?.[0]?.score ?? 0);
+    const verdict = data?.verdict ?? data?.claims?.[0]?.verdict ?? "—";
 
     scoreDisplay.textContent = String(score);
     scoreVerdict.textContent = verdict;
 
-    // Gauge fill (0..100 maps to 260..0 dashoffset)
     const clamped = Math.max(0, Math.min(100, score));
     const offset = 260 - (260 * (clamped / 100));
     gaugeFill.style.strokeDashoffset = String(offset);
 
-    // Render full response for now (MVP)
     result.textContent = JSON.stringify(data, null, 2);
-
   } catch (e) {
-    console.error(e);
     scoreVerdict.textContent = "Error";
     scoreDisplay.textContent = "--";
     gaugeFill.style.strokeDashoffset = "260";
     result.textContent = `Error communicating with TruCite engine:\n${e.message}`;
+    alert("VERIFY failed: " + e.message);
   }
 }
-```0
