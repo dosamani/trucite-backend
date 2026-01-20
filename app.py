@@ -14,6 +14,10 @@ from flask_cors import CORS
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 CORS(app)
 
+@app.get("/")
+def home():
+    return "TruCite backend is alive. Root route works.", 200
+
 # -----------------------------
 # In-memory lightweight drift store (MVP)
 # Keyed by a stable fingerprint of normalized input.
