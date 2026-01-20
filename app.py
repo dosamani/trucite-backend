@@ -7,63 +7,60 @@ from typing import List, Dict, Any, Tuple
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-# IMPORTANT:
-# This app serves your landing page from /static/index.html
-# So your repo must contain: static/index.html, static/style.css, static/script.js, static/logo.jpg, etc.
-
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 CORS(app)
 
-@app.get("/")
-def home():
-    return "TruCite backend is alive. Root route works.", 200
-
-# -----------------------------
-# In-memory lightweight drift store (MVP)
-# Keyed by a stable fingerprint of normalized input.
-# NOTE: Render dynos can restart, so this is best-effort.
-# -----------------------------
+# In-memory drift store (MVP)
 DRIFT_STORE: Dict[str, Dict[str, Any]] = {}
 
-# -----------------------------
-# Serve Landing Page
-# -----------------------------
+
+# ------------------------------------------------------------------
+# ROOT ROUTE — will always return something (never 404)
+# ------------------------------------------------------------------
 @app.get("/")
 def home():
-    # Serve static/index.html as the landing page
-    static_dir = app.static_folder  # "static"
-    index_path = os.path.join(static_dir, "index.html")
+    """
+    Serve landing page if present:
+      - static/index.html (preferred)
+      - index.html in repo root (fallback)
+    Otherwise return a simple alive banner so / never 404s.
+    """
 
-    if os.path.exists(index_path):
+    # Preferred: /static/index.html
+    static_dir = app.static_folder  # "static"
+    static_index = os.path.join(static_dir, "index.html")
+    if os.path.exists(static_index):
         return send_from_directory(static_dir, "index.html")
+
+    # Fallback: /index.html at repo root
+    root_dir = os.getcwd()
+    root_index = os.path.join(root_dir, "index.html")
+    if os.path.exists(root_index):
+        return send_from_directory(root_dir, "index.html")
+
+    # Final fallback: never 404 at root
     return (
-        "TruCite backend is running, but static/index.html was not found. "
-        "Ensure your landing page is located at /static/index.html.",
-        404,
+        "TruCite backend is running. "
+        "Add static/index.html (preferred) or index.html in repo root.",
+        200,
     )
 
 
-# Optional: handle favicon to avoid noisy 404s in logs
-@app.get("/favicon.ico")
-def favicon():
-    static_dir = app.static_folder
-    ico = os.path.join(static_dir, "favicon.ico")
-    if os.path.exists(ico):
-        return send_from_directory(static_dir, "favicon.ico")
-    return ("", 204)
-
-
-# -----------------------------
-# Health
-# -----------------------------
+# ------------------------------------------------------------------
+# HEALTH CHECK
+# ------------------------------------------------------------------
 @app.get("/health")
 def health():
-    return jsonify({"ok": True, "service": "trucite-backend", "time_utc": utc_now_iso()}), 200
+    return jsonify({
+        "ok": True,
+        "service": "trucite-backend",
+        "time_utc": utc_now_iso()
+    }), 200
 
 
-# -----------------------------
-# Verify (POST only)
-# -----------------------------
+# ------------------------------------------------------------------
+# VERIFY ENDPOINT
+# ------------------------------------------------------------------
 @app.post("/verify")
 def verify():
     payload = request.get_json(silent=True) or {}
@@ -72,17 +69,13 @@ def verify():
     if not text:
         return jsonify({"error": "Missing 'text' in request body."}), 400
 
-    # Normalize + fingerprint
     normalized = normalize_text(text)
     sha = sha256_hex(normalized)
     event_id = sha[:12]
     ts = utc_now_iso()
 
-    # Claim extraction
     claims = extract_claims(text)
     claim_objs = []
-
-    # Per-claim scoring
     per_scores = []
     risk_tags_union = set()
 
@@ -100,13 +93,15 @@ def verify():
             "signals": derive_signals(c)
         })
 
-    # Aggregate
-    overall_score, overall_verdict = aggregate_score(per_scores, risk_tags_union)
+    overall_score, overall_verdict = aggregate_score(
+        per_scores, risk_tags_union
+    )
 
-    # Drift (best-effort)
-    drift = compute_drift(sha, overall_score, overall_verdict, claim_objs, ts)
+    drift = compute_drift(
+        sha, overall_score, overall_verdict, claim_objs, ts
+    )
 
-    response = {
+    return jsonify({
         "event_id": event_id,
         "audit_fingerprint": {
             "sha256": sha,
@@ -119,8 +114,9 @@ def verify():
         "verdict": overall_verdict,
         "score": overall_score,
         "explanation": (
-            "MVP heuristic verification. TruCite does not 'prove truth' here; it flags risk using "
-            "claim segmentation, uncertainty cues, citation/number patterns, and consistency signals. "
+            "MVP heuristic verification. This demo flags risk via "
+            "claim segmentation, uncertainty cues, citation/number "
+            "patterns, and basic consistency signals. "
             "Enterprise mode adds evidence-backed checks and persistence."
         ),
         "claims": claim_objs,
@@ -128,14 +124,12 @@ def verify():
             "risk_tags": sorted(list(risk_tags_union))
         },
         "drift": drift
-    }
-
-    return jsonify(response), 200
+    }), 200
 
 
-# -----------------------------
-# Helpers
-# -----------------------------
+# ------------------------------------------------------------------
+# UTILITIES
+# ------------------------------------------------------------------
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -151,15 +145,9 @@ def normalize_text(s: str) -> str:
 
 
 def extract_claims(text: str) -> List[str]:
-    """
-    MVP claim segmentation:
-    - Splits on sentence boundaries and bullets
-    - Keeps short meaningful clauses
-    - De-duplicates
-    """
     t = text.replace("\r\n", "\n").replace("\r", "\n")
     t = re.sub(r"\n{2,}", "\n", t)
-    t = re.sub(r"[\u2022•\-]\s+", "\n", t)  # bullets -> new line
+    t = re.sub(r"[\u2022•\-]\s+", "\n", t)
 
     parts = re.split(r"(?<=[\.\?\!])\s+|\n+", t)
     cleaned = []
@@ -167,10 +155,9 @@ def extract_claims(text: str) -> List[str]:
 
     for p in parts:
         p = p.strip()
-        if not p:
+        if not p or len(p) < 12:
             continue
-        if len(p) < 12:
-            continue
+
         p = p.strip(" \t\n-–—•")
         k = normalize_text(p)
         if k in seen:
@@ -185,20 +172,32 @@ def extract_claims(text: str) -> List[str]:
 
 
 def derive_signals(claim: str) -> Dict[str, Any]:
-    c = claim
-    numerics = re.findall(r"\b\d+(\.\d+)?\b", c)
-    has_percent = bool(re.search(r"\b\d+(\.\d+)?\s*%\b", c))
-    has_citation_like = bool(re.search(r"\b(v\.|vs\.|§|U\.S\.|F\.\d+d|WL\s*\d+|No\.\s*\d+)\b", c))
-    has_url = "http://" in c or "https://" in c or "www." in c
+    numerics = re.findall(r"\b\d+(\.\d+)?\b", claim)
+    has_percent = bool(
+        re.search(r"\b\d+(\.\d+)?\s*%\b", claim)
+    )
+    has_citation_like = bool(
+        re.search(
+            r"\b(v\.|vs\.|§|U\.S\.|F\.\d+d|WL\s*\d+|No\.\s*\d+)\b",
+            claim,
+        )
+    )
+    has_url = "http://" in claim or "https://" in claim or "www." in claim
 
-    hedges = count_matches(c, [
-        r"\bmay\b", r"\bmight\b", r"\bcould\b", r"\bpossible\b", r"\bpossibly\b",
-        r"\bunclear\b", r"\bunknown\b", r"\bestimate\b", r"\bapprox\b", r"\bapproximately\b",
-        r"\blikely\b", r"\bunlikely\b"
+    hedges = count_matches(claim, [
+        r"\bmay\b", r"\bmight\b", r"\bcould\b",
+        r"\bpossible\b", r"\bpossibly\b",
+        r"\bunclear\b", r"\bunknown\b",
+        r"\bestimate\b", r"\bapprox\b",
+        r"\bapproximately\b", r"\blikely\b",
+        r"\bunlikely\b"
     ])
-    absolutes = count_matches(c, [
-        r"\balways\b", r"\bnever\b", r"\bguarantee\b", r"\bproves?\b", r"\bdefinitely\b",
-        r"\b100%\b", r"\bmust\b"
+
+    absolutes = count_matches(claim, [
+        r"\balways\b", r"\bnever\b",
+        r"\bguarantee\b", r"\bproves?\b",
+        r"\bdefinitely\b", r"\b100%\b",
+        r"\bmust\b"
     ])
 
     return {
@@ -221,9 +220,7 @@ def count_matches(text: str, patterns: List[str]) -> int:
 
 
 def score_claim(claim: str) -> Tuple[int, str, List[str]]:
-    c = claim.strip()
-    signals = derive_signals(c)
-
+    signals = derive_signals(claim)
     base = 70
     tags = []
 
@@ -247,10 +244,10 @@ def score_claim(claim: str) -> Tuple[int, str, List[str]]:
         base += 3
         tags.append("source_link_present")
 
-    if len(c) < 25:
+    if len(claim) < 25:
         base -= 6
         tags.append("too_short")
-    if len(c) > 240:
+    if len(claim) > 240:
         base -= 6
         tags.append("too_long")
 
@@ -289,7 +286,14 @@ def aggregate_score(scores: List[int], tags: set) -> Tuple[int, str]:
     return overall, verdict
 
 
-def compute_drift(key_sha: str, score: int, verdict: str, claims: List[Dict[str, Any]], ts: str) -> Dict[str, Any]:
+def compute_drift(
+    key_sha: str,
+    score: int,
+    verdict: str,
+    claims: List[Dict[str, Any]],
+    ts: str
+) -> Dict[str, Any]:
+
     prev = DRIFT_STORE.get(key_sha)
     drift = {
         "has_prior": False,
@@ -298,15 +302,22 @@ def compute_drift(key_sha: str, score: int, verdict: str, claims: List[Dict[str,
         "verdict_changed": False,
         "claim_count_delta": None,
         "drift_flag": False,
-        "notes": "MVP in-memory drift. Enterprise mode persists histories and compares workflow-level behavior over time."
+        "notes": (
+            "MVP in-memory drift. Enterprise mode persists "
+            "histories and compares behavior over time."
+        )
     }
 
     if prev:
         drift["has_prior"] = True
         drift["prior_timestamp_utc"] = prev.get("timestamp_utc")
         drift["score_delta"] = score - int(prev.get("score", 0))
-        drift["verdict_changed"] = (verdict != prev.get("verdict"))
-        drift["claim_count_delta"] = len(claims) - int(prev.get("num_claims", 0))
+        drift["verdict_changed"] = (
+            verdict != prev.get("verdict")
+        )
+        drift["claim_count_delta"] = (
+            len(claims) - int(prev.get("num_claims", 0))
+        )
 
         if abs(drift["score_delta"]) >= 10 or drift["verdict_changed"]:
             drift["drift_flag"] = True
@@ -321,6 +332,9 @@ def compute_drift(key_sha: str, score: int, verdict: str, claims: List[Dict[str,
     return drift
 
 
+# ------------------------------------------------------------------
+# RUN
+# ------------------------------------------------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "10000"))
     app.run(host="0.0.0.0", port=port)
