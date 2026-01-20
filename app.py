@@ -4,24 +4,23 @@
 #  - Serves static assets at "/static/*" from ./static
 #  - Provides "/health" for uptime checks
 #  - Provides "/verify" for scoring
+#
+# IMPORTANT: This file is defensive about local module function names
+# (claim_parser/reference_engine) so Render won't crash on import errors.
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Callable
 from pathlib import Path
-
-# Local modules (these must exist in repo root)
-from claim_parser import extract_claims  # type: ignore
-from reference_engine import evidence_aware_rescore  # type: ignore
 
 import hashlib
 import re
 from datetime import datetime, timezone
 
-app = FastAPI(title="TruCite Engine", version="0.3.2")
+app = FastAPI(title="TruCite Engine", version="0.3.3")
 
 # CORS: permissive for MVP demo
 app.add_middleware(
@@ -38,7 +37,6 @@ app.add_middleware(
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 
-# Mount /static if folder exists
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
@@ -50,7 +48,6 @@ def home():
     """
     index_path = STATIC_DIR / "index.html"
     if not index_path.exists():
-        # Clear error if file missing
         return HTMLResponse(
             "<h1>TruCite backend is running</h1>"
             "<p>Missing <code>static/index.html</code>. Add it to your repo.</p>",
@@ -68,6 +65,74 @@ def health():
 
 
 # ----------------------------
+# Dynamic imports (defensive)
+# ----------------------------
+def _load_claim_extractor() -> Callable[[str], List[Dict[str, Any]]]:
+    """
+    Returns a function that takes text -> list of claim dicts.
+    Works even if claim_parser exports different names.
+    """
+    try:
+        import claim_parser  # type: ignore
+
+        # Most likely names across your iterations
+        for fn_name in ("extract_claims", "parse_claims", "split_claims", "get_claims"):
+            fn = getattr(claim_parser, fn_name, None)
+            if callable(fn):
+                return fn  # type: ignore
+
+        # If module has something else, fail gracefully
+        def fallback(text: str) -> List[Dict[str, Any]]:
+            return [{
+                "text": text.strip(),
+                "claim_type": "general_claim",
+                "signals": {
+                    "has_url": bool(re.search(r"https?://", text, re.IGNORECASE)),
+                    "has_year": bool(re.search(r"\b(19|20)\d{2}\b", text)),
+                    "has_percent": bool(re.search(r"\d+(\.\d+)?\s*%", text)),
+                    "has_numerics": bool(re.search(r"\d", text)),
+                },
+                "risk_tags": ["parser_fallback"],
+                "score": 70,
+            }]
+        return fallback
+
+    except Exception:
+        # If import itself fails, don't crash deploy
+        def fallback(text: str) -> List[Dict[str, Any]]:
+            return [{
+                "text": text.strip(),
+                "claim_type": "general_claim",
+                "signals": {
+                    "has_url": bool(re.search(r"https?://", text, re.IGNORECASE)),
+                    "has_year": bool(re.search(r"\b(19|20)\d{2}\b", text)),
+                    "has_percent": bool(re.search(r"\d+(\.\d+)?\s*%", text)),
+                    "has_numerics": bool(re.search(r"\d", text)),
+                },
+                "risk_tags": ["parser_import_failed"],
+                "score": 70,
+            }]
+        return fallback
+
+
+def _load_evidence_rescorer() -> Optional[Callable[..., Any]]:
+    """
+    Optional evidence-aware rescoring.
+    """
+    try:
+        import reference_engine  # type: ignore
+        fn = getattr(reference_engine, "evidence_aware_rescore", None)
+        if callable(fn):
+            return fn  # type: ignore
+        return None
+    except Exception:
+        return None
+
+
+CLAIM_EXTRACTOR = _load_claim_extractor()
+EVIDENCE_RESCORER = _load_evidence_rescorer()
+
+# ----------------------------
 # Verify API
 # ----------------------------
 class VerifyRequest(BaseModel):
@@ -80,24 +145,23 @@ def sha256_hex(s: str) -> str:
 
 
 def detect_url_doi_pmid(evidence_text: str) -> Dict[str, bool]:
-    """
-    Lightweight detectors for evidence strings.
-    """
     t = evidence_text or ""
     has_url = bool(re.search(r"https?://", t, re.IGNORECASE))
     has_doi = bool(re.search(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", t, re.IGNORECASE))
-    has_pmid = bool(re.search(r"\bPMID\s*:\s*\d+\b|\bPMID\s*\d+\b|\b\d{6,9}\b", t, re.IGNORECASE))
+    has_pmid = bool(re.search(r"\bPMID\s*:?\s*\d+\b", t, re.IGNORECASE)) or bool(re.search(r"\b\d{6,9}\b", t))
     return {"has_url": has_url, "has_doi": has_doi, "has_pmid": has_pmid}
+
+
+def verdict_from_score(score: int) -> str:
+    if score <= 55:
+        return "High risk / do not rely"
+    if score <= 75:
+        return "Unclear / needs verification"
+    return "Lower risk / seems supported"
 
 
 @app.post("/verify")
 def verify(payload: VerifyRequest):
-    """
-    MVP heuristic verifier.
-    - Splits claims
-    - Scores risk using heuristic rules
-    - If evidence is provided (URL/DOI/PMID), applies evidence-aware rescore
-    """
     text = (payload.text or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="Missing text")
@@ -105,41 +169,36 @@ def verify(payload: VerifyRequest):
     evidence_text = (payload.evidence or "").strip()
     evidence_flags = detect_url_doi_pmid(evidence_text)
 
-    # 1) Extract claims
-    claims = extract_claims(text)
-
-    # 2) Build response structure
     now = datetime.now(timezone.utc).isoformat()
     audit_sha = sha256_hex(text + "|" + evidence_text + "|" + now)
     event_id = audit_sha[:12]
 
-    # 3) Score each claim (heuristic baseline)
+    claims = CLAIM_EXTRACTOR(text)
+    if not isinstance(claims, list):
+        claims = [{"text": text, "claim_type": "general_claim", "signals": {}, "risk_tags": ["parser_bad_output"], "score": 70}]
+
     scored_claims: List[Dict[str, Any]] = []
     for c in claims:
-        claim_text = c.get("text", "")
-        claim_type = c.get("claim_type", "general_claim")
+        claim_text = str(c.get("text", "")).strip() or text
+        claim_type = str(c.get("claim_type", "general_claim"))
         signals = c.get("signals", {}) or {}
 
-        # baseline score from parser
-        score = int(c.get("score", 70))
-        risk_tags = list(c.get("risk_tags", []))
+        try:
+            score = int(c.get("score", 70))
+        except Exception:
+            score = 70
 
-        # If numeric/stat claim without evidence: penalize
+        risk_tags = list(c.get("risk_tags", [])) if isinstance(c.get("risk_tags", []), list) else []
+
         if claim_type in ("numeric_or_stat_claim", "medical_claim", "legal_claim"):
             if not (evidence_flags["has_url"] or evidence_flags["has_doi"] or evidence_flags["has_pmid"]):
                 score = min(score, 55)
                 if "citation_unverified" not in risk_tags:
                     risk_tags.append("citation_unverified")
-                if "numeric_claim" not in risk_tags and claim_type == "numeric_or_stat_claim":
+                if claim_type == "numeric_or_stat_claim" and "numeric_claim" not in risk_tags:
                     risk_tags.append("numeric_claim")
 
-        # Verdict mapping
-        if score <= 55:
-            verdict = "High risk / do not rely"
-        elif score <= 75:
-            verdict = "Unclear / needs verification"
-        else:
-            verdict = "Lower risk / seems supported"
+        verdict = verdict_from_score(score)
 
         evidence_needed = None
         if "citation_unverified" in risk_tags:
@@ -155,45 +214,30 @@ def verify(payload: VerifyRequest):
                 "suggested_query": f"{claim_text} PMID",
             }
 
-        scored_claims.append(
-            {
-                "text": claim_text,
-                "claim_type": claim_type,
-                "signals": signals,
-                "risk_tags": risk_tags,
-                "score": score,
-                "verdict": verdict,
-                "evidence_needed": evidence_needed,
-            }
-        )
+        scored_claims.append({
+            "text": claim_text,
+            "claim_type": claim_type,
+            "signals": signals,
+            "risk_tags": risk_tags,
+            "score": score,
+            "verdict": verdict,
+            "evidence_needed": evidence_needed,
+        })
 
-    # 4) Overall score = min/avg blend (conservative)
-    if scored_claims:
-        min_score = min(c["score"] for c in scored_claims)
-        avg_score = sum(c["score"] for c in scored_claims) / len(scored_claims)
-        overall = int(round((min_score * 0.6) + (avg_score * 0.4)))
-    else:
-        overall = 70
+    min_score = min(c["score"] for c in scored_claims) if scored_claims else 70
+    avg_score = (sum(c["score"] for c in scored_claims) / len(scored_claims)) if scored_claims else 70
+    overall = int(round((min_score * 0.6) + (avg_score * 0.4)))
+    overall_verdict = verdict_from_score(overall)
 
-    if overall <= 55:
-        overall_verdict = "High risk / do not rely"
-    elif overall <= 75:
-        overall_verdict = "Unclear / needs verification"
-    else:
-        overall_verdict = "Lower risk / seems supported"
-
-    # 5) Evidence-aware rescore (only if evidence provided)
-    # This function should reduce risk if evidence contains DOI/PMID/URL.
-    if evidence_text and (evidence_flags["has_url"] or evidence_flags["has_doi"] or evidence_flags["has_pmid"]):
+    if EVIDENCE_RESCORER and evidence_text and (evidence_flags["has_url"] or evidence_flags["has_doi"] or evidence_flags["has_pmid"]):
         try:
-            scored_claims, overall, overall_verdict = evidence_aware_rescore(
+            scored_claims, overall, overall_verdict = EVIDENCE_RESCORER(
                 scored_claims=scored_claims,
                 evidence_text=evidence_text,
                 current_overall=overall,
                 current_verdict=overall_verdict,
             )
         except Exception:
-            # Never crash MVP verify if evidence module fails
             pass
 
     response = {
