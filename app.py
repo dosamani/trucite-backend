@@ -282,6 +282,10 @@ def verify():
 
     return jsonify(out), 200
 
+@app.get("/routes")
+def routes():
+    return jsonify(sorted([str(r) for r in app.url_map.iter_rules()]))
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=PORT)
