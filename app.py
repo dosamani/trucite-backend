@@ -6,11 +6,8 @@ import re
 import traceback
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
-
-# CORS: allow same-origin + safe cross-origin testing
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=False)
 
-# MVP drift store (in-memory)
 prior_events = {}
 
 # -----------------------
@@ -19,25 +16,34 @@ prior_events = {}
 
 @app.route("/", methods=["GET"])
 def serve_index():
-    # Your index.html is inside /static (as you stated)
+    # Your index.html is inside /static
     return send_from_directory("static", "index.html")
-
 
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"}), 200
 
+@app.route("/routes", methods=["GET"])
+def routes():
+    # Lets us confirm which routes are actually deployed
+    out = []
+    for rule in app.url_map.iter_rules():
+        out.append({
+            "rule": str(rule),
+            "methods": sorted([m for m in rule.methods if m not in ("HEAD", "OPTIONS")])
+        })
+    return jsonify({"routes": sorted(out, key=lambda x: x["rule"])}), 200
 
+# IMPORTANT: Support BOTH /verify and /api/verify to avoid 404s
 @app.route("/verify", methods=["POST", "OPTIONS"])
+@app.route("/api/verify", methods=["POST", "OPTIONS"])
 def verify():
-    # Handle preflight cleanly (prevents "engine error" in many deployments)
     if request.method == "OPTIONS":
         return _cors_preflight_ok()
 
     try:
         data = request.get_json(silent=True) or {}
 
-        # Accept multiple keys so frontend changes don't break backend
         text = (
             (data.get("text") or "")
             or (data.get("claim") or "")
@@ -46,14 +52,15 @@ def verify():
         ).strip()
 
         if not text:
-            return jsonify({"error": "No text provided", "expected_keys": ["text", "claim", "input", "content"]}), 400
+            return jsonify({
+                "error": "No text provided",
+                "expected_keys": ["text", "claim", "input", "content"]
+            }), 400
 
-        # Fingerprint
         sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
         event_id = sha[:12]
         timestamp_utc = datetime.datetime.utcnow().isoformat() + "Z"
 
-        # Claim segmentation (MVP)
         claims = split_claims(text)
 
         scored_claims = []
@@ -63,42 +70,32 @@ def verify():
             signals = extract_signals(c)
             risk_tags = []
 
-            # --- Risk rules (MVP) ---
             if signals["has_numerics"]:
                 risk_tags.append("numeric_claim")
 
-            # citation-like but no URL/DOI provided
             if signals["has_citation_like"] and not (signals["has_url"] or signals["has_doi"]):
                 risk_tags.append("citation_unverified")
 
-            # --- Score logic (MVP heuristic) ---
             score = 100
 
-            # numerics/stat claims raise risk
             if signals["has_numerics"]:
                 score -= 18
 
-            # citation-like patterns without actual resolvable source raise risk
             if "citation_unverified" in risk_tags:
                 score -= 25
 
-            # absolute language raises risk (overconfidence)
             if signals["absolute_count"] > 0:
                 score -= min(12, 3 * signals["absolute_count"])
 
-            # lack of hedge language can indicate overconfidence (light penalty)
             if signals["hedge_count"] == 0:
                 score -= 5
 
-            # clamp
             score = max(20, min(100, score))
-
             verdict = classify_verdict(score)
 
             claim_type = "general_claim"
             evidence_needed = {"required": False}
 
-            # If numeric/stat claim OR citation-like but not sourced, require evidence
             if signals["has_numerics"] or "citation_unverified" in risk_tags:
                 claim_type = "numeric_or_stat_claim"
                 evidence_needed = {
@@ -125,7 +122,6 @@ def verify():
 
             overall_score = min(overall_score, score)
 
-        # Drift (MVP in-memory)
         drift = {
             "has_prior": text in prior_events,
             "drift_flag": False,
@@ -142,11 +138,9 @@ def verify():
             drift["score_delta"] = overall_score - prior["score"]
             drift["verdict_changed"] = classify_verdict(overall_score) != prior["verdict"]
             drift["claim_count_delta"] = len(claims) - prior["claim_count"]
-
             if drift["score_delta"] is not None and abs(drift["score_delta"]) >= 15:
                 drift["drift_flag"] = True
 
-        # Save current run
         prior_events[text] = {
             "timestamp_utc": timestamp_utc,
             "score": overall_score,
@@ -175,11 +169,10 @@ def verify():
         return jsonify(response), 200
 
     except Exception as e:
-        # Return error payload (so frontend shows something useful)
         err = {
             "error": "Backend exception in /verify",
             "message": str(e),
-            "trace": traceback.format_exc().splitlines()[-8:]  # last lines only
+            "trace": traceback.format_exc().splitlines()[-12:]
         }
         return jsonify(err), 500
 
@@ -195,29 +188,22 @@ def _cors_preflight_ok():
     resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     return resp
 
-
 def split_claims(text: str):
-    # Split on sentence-ish separators, keep it simple for MVP
     parts = re.split(r"[.;]\s*|\n+", text)
     return [p.strip() for p in parts if p.strip()]
 
-
 def extract_signals(text: str):
-    # numeric patterns
     has_numerics = bool(re.search(r"\d", text))
     numeric_count = len(re.findall(r"\d+(?:\.\d+)?", text))
     has_percent = "%" in text
 
-    # sources
     has_url = bool(re.search(r"https?://", text, re.I))
     has_year = bool(re.search(r"\b(19|20)\d{2}\b", text))
     has_doi = bool(re.search(r"\b10\.\d{4,9}/[-._;()/:A-Za-z0-9]+\b", text))
 
-    # language cues
     hedge_count = len(re.findall(r"\b(may|might|could|possibly|likely|probably|suggests|appears)\b", text, re.I))
     absolute_count = len(re.findall(r"\b(always|never|guaranteed|proves|definitely|certainly|must)\b", text, re.I))
 
-    # citation-like cues
     has_citation_like = bool(re.search(r"\(\s*\d{4}\s*\)|\bPMID\b|\bDOI\b|\bPubMed\b", text, re.I))
 
     return {
@@ -233,16 +219,12 @@ def extract_signals(text: str):
         "has_sources_provided": has_url or has_doi
     }
 
-
 def classify_verdict(score: int):
-    # Keep consistent with your UI expectations
     if score >= 80:
         return "Likely reliable"
     if score >= 60:
         return "Unclear / needs verification"
     return "High risk / do not rely"
 
-
 if __name__ == "__main__":
-    # Render uses gunicorn typically; this is fine for local/dev
     app.run(host="0.0.0.0", port=10000)
