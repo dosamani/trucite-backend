@@ -1,230 +1,287 @@
-from flask import Flask, request, jsonify, send_from_directory, make_response
-from flask_cors import CORS
-import hashlib
-import datetime
+import os
 import re
-import traceback
+import json
+import time
+import hashlib
+from datetime import datetime, timezone
+from flask import Flask, request, jsonify, send_from_directory
 
-app = Flask(__name__, static_folder="static", static_url_path="/static")
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=False)
+# -----------------------------
+# Flask setup
+# -----------------------------
+app = Flask(__name__, static_folder="static")
 
-prior_events = {}
+# Ensure Render uses this port
+PORT = int(os.environ.get("PORT", 10000))
 
-# -----------------------
-# ROUTES
-# -----------------------
+# -----------------------------
+# Helpers
+# -----------------------------
+ABSOLUTE_TERMS = [
+    "always", "never", "guaranteed", "proven", "definitely", "certainly",
+    "undeniably", "everyone knows", "no doubt", "100%", "must be"
+]
 
-@app.route("/", methods=["GET"])
-def serve_index():
-    # Your index.html is inside /static
-    return send_from_directory("static", "index.html")
+HEDGE_TERMS = [
+    "may", "might", "could", "possibly", "likely", "appears", "suggests",
+    "unclear", "unknown", "not sure", "needs verification", "cannot confirm"
+]
 
-@app.route("/health", methods=["GET"])
-def health():
-    return jsonify({"status": "ok"}), 200
+CITATION_LIKE = re.compile(r"\b(19|20)\d{2}\b|\bPMID\b|\bDOI\b|\bvs\.\b|\bv\.\b|\bWL\b|\bF\.\d+d\b|\bU\.S\.\b", re.IGNORECASE)
+URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
+DOI_RE = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", re.IGNORECASE)
+PERCENT_RE = re.compile(r"\b\d+(\.\d+)?%\b")
+NUMERIC_RE = re.compile(r"\b\d+(\.\d+)?\b")
 
-@app.route("/routes", methods=["GET"])
-def routes():
-    # Lets us confirm which routes are actually deployed
-    out = []
-    for rule in app.url_map.iter_rules():
-        out.append({
-            "rule": str(rule),
-            "methods": sorted([m for m in rule.methods if m not in ("HEAD", "OPTIONS")])
-        })
-    return jsonify({"routes": sorted(out, key=lambda x: x["rule"])}), 200
 
-# IMPORTANT: Support BOTH /verify and /api/verify to avoid 404s
-@app.route("/verify", methods=["POST", "OPTIONS"])
-@app.route("/api/verify", methods=["POST", "OPTIONS"])
-def verify():
-    if request.method == "OPTIONS":
-        return _cors_preflight_ok()
+def sha256_hex(s: str) -> str:
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
-    try:
-        data = request.get_json(silent=True) or {}
 
-        text = (
-            (data.get("text") or "")
-            or (data.get("claim") or "")
-            or (data.get("input") or "")
-            or (data.get("content") or "")
-        ).strip()
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
-        if not text:
-            return jsonify({
-                "error": "No text provided",
-                "expected_keys": ["text", "claim", "input", "content"]
-            }), 400
 
-        sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
-        event_id = sha[:12]
-        timestamp_utc = datetime.datetime.utcnow().isoformat() + "Z"
+def count_terms(text: str, terms) -> int:
+    t = text.lower()
+    return sum(1 for term in terms if term in t)
 
-        claims = split_claims(text)
 
-        scored_claims = []
-        overall_score = 100
+def segment_claims(text: str):
+    """
+    Lightweight claim segmentation:
+    Splits on line breaks, bullets, and sentence-ish delimiters.
+    """
+    raw = re.split(r"[\n\r]+|•|- |\u2022|(?<=[.?!;])\s+", text.strip())
+    claims = [c.strip() for c in raw if c and c.strip()]
+    # Cap to avoid huge payloads
+    return claims[:12]
 
-        for c in claims:
-            signals = extract_signals(c)
-            risk_tags = []
 
-            if signals["has_numerics"]:
-                risk_tags.append("numeric_claim")
+# In-memory drift store (MVP)
+# key: sha256(text) => {"score": int, "verdict": str, "ts": iso}
+DRIFT_STORE = {}
 
-            if signals["has_citation_like"] and not (signals["has_url"] or signals["has_doi"]):
-                risk_tags.append("citation_unverified")
 
-            score = 100
+def analyze_claim(claim: str):
+    lc = claim.strip()
+    abs_count = count_terms(lc, ABSOLUTE_TERMS)
+    hedge_count = count_terms(lc, HEDGE_TERMS)
 
-            if signals["has_numerics"]:
-                score -= 18
+    has_url = bool(URL_RE.search(lc))
+    has_doi = bool(DOI_RE.search(lc))
+    has_citation_like = bool(CITATION_LIKE.search(lc))
 
-            if "citation_unverified" in risk_tags:
-                score -= 25
+    nums = NUMERIC_RE.findall(lc)
+    numeric_count = len(nums)
+    has_numerics = numeric_count > 0
+    has_percent = bool(PERCENT_RE.search(lc))
+    has_year = bool(re.search(r"\b(19|20)\d{2}\b", lc))
 
-            if signals["absolute_count"] > 0:
-                score -= min(12, 3 * signals["absolute_count"])
+    # Risk tags
+    risk_tags = []
+    claim_type = "general_claim"
 
-            if signals["hedge_count"] == 0:
-                score -= 5
+    if has_numerics or has_percent or has_year:
+        risk_tags.append("numeric_claim")
+        claim_type = "numeric_or_stat_claim"
 
-            score = max(20, min(100, score))
-            verdict = classify_verdict(score)
+    # If it looks like a citation but no URL/DOI provided, flag
+    has_sources_provided = has_url or has_doi
+    if has_citation_like and not has_sources_provided:
+        risk_tags.append("citation_unverified")
 
-            claim_type = "general_claim"
-            evidence_needed = {"required": False}
+    if abs_count >= 1:
+        risk_tags.append("absolute_language")
 
-            if signals["has_numerics"] or "citation_unverified" in risk_tags:
-                claim_type = "numeric_or_stat_claim"
-                evidence_needed = {
-                    "required": True,
-                    "reason": "Claim includes numeric/statistical or citation-like content without an attached source (URL/DOI) or provided evidence.",
-                    "acceptable_evidence_examples": [
-                        "Peer-reviewed paper link (DOI/PMID/URL)",
-                        "Clinical guideline link (e.g., society guideline URL)",
-                        "Regulatory label / official statement URL",
-                        "Internal policy document reference (enterprise mode)"
-                    ],
-                    "suggested_query": f"{c} clinical trial meta-analysis PMID"
-                }
+    if len(lc) > 240:
+        risk_tags.append("long_claim")
 
-            scored_claims.append({
-                "text": c,
-                "score": score,
-                "verdict": verdict,
-                "risk_tags": risk_tags,
-                "signals": signals,
-                "claim_type": claim_type,
-                "evidence_needed": evidence_needed
-            })
+    # Scoring heuristic (0..100, higher = safer)
+    score = 72
 
-            overall_score = min(overall_score, score)
+    # Penalize numeric/citation claims without evidence
+    if "numeric_claim" in risk_tags:
+        score -= 12
+    if "citation_unverified" in risk_tags:
+        score -= 10
 
-        drift = {
-            "has_prior": text in prior_events,
+    # Absolute language penalizes
+    if "absolute_language" in risk_tags:
+        score -= 8
+
+    # Hedge language slightly improves (signals uncertainty)
+    if hedge_count >= 1:
+        score += 4
+
+    # URL/DOI improves
+    if has_sources_provided:
+        score += 8
+
+    # Clamp
+    score = max(0, min(100, score))
+
+    # Verdict bands
+    if score >= 80:
+        verdict = "Low risk / likely reliable"
+    elif score >= 60:
+        verdict = "Unclear / needs verification"
+    else:
+        verdict = "High risk / do not rely"
+
+    evidence_needed = None
+    if claim_type == "numeric_or_stat_claim" and not has_sources_provided:
+        evidence_needed = {
+            "required": True,
+            "reason": "Claim includes numeric/statistical or citation-like content without an attached source (URL/DOI) or provided evidence.",
+            "acceptable_evidence_examples": [
+                "Peer-reviewed paper link (DOI/PMID/URL)",
+                "Clinical guideline link (e.g., society guideline URL)",
+                "Regulatory label / official statement URL",
+                "Internal policy document reference (enterprise mode)"
+            ],
+            "suggested_query": f"{lc} clinical trial meta-analysis PMID"
+        }
+
+    return {
+        "text": lc,
+        "score": score,
+        "verdict": verdict,
+        "risk_tags": risk_tags,
+        "claim_type": claim_type,
+        "signals": {
+            "absolute_count": abs_count,
+            "hedge_count": hedge_count,
+            "has_url": has_url,
+            "has_doi": has_doi,
+            "has_citation_like": has_citation_like,
+            "has_numerics": has_numerics,
+            "numeric_count": numeric_count,
+            "has_percent": has_percent,
+            "has_year": has_year,
+            "has_sources_provided": has_sources_provided
+        },
+        "evidence_needed": evidence_needed
+    }
+
+
+def drift_check(text_hash: str, score: int, verdict: str):
+    prior = DRIFT_STORE.get(text_hash)
+    if not prior:
+        DRIFT_STORE[text_hash] = {"score": score, "verdict": verdict, "ts": utc_now_iso()}
+        return {
+            "has_prior": False,
             "drift_flag": False,
             "score_delta": None,
             "verdict_changed": False,
             "prior_timestamp_utc": None,
-            "notes": "MVP in-memory drift. Enterprise mode persists histories and compares behavior over time.",
-            "claim_count_delta": None
+            "claim_count_delta": None,
+            "notes": "MVP in-memory drift. Enterprise mode persists histories and compares behavior over time."
         }
 
-        if text in prior_events:
-            prior = prior_events[text]
-            drift["prior_timestamp_utc"] = prior["timestamp_utc"]
-            drift["score_delta"] = overall_score - prior["score"]
-            drift["verdict_changed"] = classify_verdict(overall_score) != prior["verdict"]
-            drift["claim_count_delta"] = len(claims) - prior["claim_count"]
-            if drift["score_delta"] is not None and abs(drift["score_delta"]) >= 15:
-                drift["drift_flag"] = True
+    score_delta = score - prior["score"]
+    verdict_changed = verdict != prior["verdict"]
+    drift_flag = verdict_changed or abs(score_delta) >= 15
 
-        prior_events[text] = {
-            "timestamp_utc": timestamp_utc,
-            "score": overall_score,
-            "verdict": classify_verdict(overall_score),
-            "claim_count": len(claims)
-        }
-
-        response = {
-            "event_id": event_id,
-            "input": {"length_chars": len(text), "num_claims": len(claims)},
-            "score": overall_score,
-            "verdict": classify_verdict(overall_score),
-            "audit_fingerprint": {"sha256": sha, "timestamp_utc": timestamp_utc},
-            "claims": scored_claims,
-            "drift": drift,
-            "uncertainty_map": {
-                "risk_tags": list({tag for cl in scored_claims for tag in cl.get("risk_tags", [])})
-            },
-            "explanation": (
-                "MVP heuristic verification. This demo flags risk via claim segmentation, "
-                "numeric/stat patterns, citation signals, absolute language, and uncertainty cues. "
-                "Enterprise mode adds evidence-backed checks, source validation, and persistent drift analytics."
-            )
-        }
-
-        return jsonify(response), 200
-
-    except Exception as e:
-        err = {
-            "error": "Backend exception in /verify",
-            "message": str(e),
-            "trace": traceback.format_exc().splitlines()[-12:]
-        }
-        return jsonify(err), 500
-
-
-# -----------------------
-# HELPERS
-# -----------------------
-
-def _cors_preflight_ok():
-    resp = make_response("", 200)
-    resp.headers["Access-Control-Allow-Origin"] = "*"
-    resp.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    return resp
-
-def split_claims(text: str):
-    parts = re.split(r"[.;]\s*|\n+", text)
-    return [p.strip() for p in parts if p.strip()]
-
-def extract_signals(text: str):
-    has_numerics = bool(re.search(r"\d", text))
-    numeric_count = len(re.findall(r"\d+(?:\.\d+)?", text))
-    has_percent = "%" in text
-
-    has_url = bool(re.search(r"https?://", text, re.I))
-    has_year = bool(re.search(r"\b(19|20)\d{2}\b", text))
-    has_doi = bool(re.search(r"\b10\.\d{4,9}/[-._;()/:A-Za-z0-9]+\b", text))
-
-    hedge_count = len(re.findall(r"\b(may|might|could|possibly|likely|probably|suggests|appears)\b", text, re.I))
-    absolute_count = len(re.findall(r"\b(always|never|guaranteed|proves|definitely|certainly|must)\b", text, re.I))
-
-    has_citation_like = bool(re.search(r"\(\s*\d{4}\s*\)|\bPMID\b|\bDOI\b|\bPubMed\b", text, re.I))
+    # Update stored
+    DRIFT_STORE[text_hash] = {"score": score, "verdict": verdict, "ts": utc_now_iso()}
 
     return {
-        "has_numerics": has_numerics,
-        "numeric_count": numeric_count,
-        "has_percent": has_percent,
-        "has_url": has_url,
-        "has_year": has_year,
-        "has_doi": has_doi,
-        "hedge_count": hedge_count,
-        "absolute_count": absolute_count,
-        "has_citation_like": has_citation_like,
-        "has_sources_provided": has_url or has_doi
+        "has_prior": True,
+        "drift_flag": drift_flag,
+        "score_delta": score_delta,
+        "verdict_changed": verdict_changed,
+        "prior_timestamp_utc": prior["ts"],
+        "claim_count_delta": None,
+        "notes": "MVP in-memory drift. Enterprise mode persists histories and compares behavior over time."
     }
 
-def classify_verdict(score: int):
-    if score >= 80:
-        return "Likely reliable"
-    if score >= 60:
-        return "Unclear / needs verification"
-    return "High risk / do not rely"
+
+# -----------------------------
+# Routes
+# -----------------------------
+
+# Serve your landing page from /static/index.html
+@app.get("/")
+def home():
+    return send_from_directory(app.static_folder, "index.html")
+
+
+# Explicit static route (helps avoid Render config surprises)
+@app.get("/static/<path:filename>")
+def static_files(filename):
+    return send_from_directory(app.static_folder, filename)
+
+
+@app.get("/health")
+def health():
+    return jsonify(ok=True)
+
+
+# Allow OPTIONS to prevent Method Not Allowed in some browsers/proxies
+@app.route("/verify", methods=["POST", "OPTIONS"])
+def verify():
+    if request.method == "OPTIONS":
+        return ("", 204)
+
+    payload = request.get_json(silent=True) or {}
+    text = (payload.get("text") or "").strip()
+
+    if not text:
+        return jsonify({
+            "score": 0,
+            "verdict": "No input",
+            "explanation": "Provide text to verify.",
+            "claims": [],
+            "input": {"length_chars": 0, "num_claims": 0},
+            "audit_fingerprint": {"sha256": sha256_hex(""), "timestamp_utc": utc_now_iso()},
+            "event_id": sha256_hex("")[:12],
+            "drift": {
+                "has_prior": False,
+                "drift_flag": False,
+                "notes": "No text provided."
+            }
+        }), 200
+
+    fp = sha256_hex(text)
+    event_id = fp[:12]
+
+    claims_text = segment_claims(text)
+    claims = [analyze_claim(c) for c in claims_text]
+
+    # Overall score: average of claim scores
+    if claims:
+        overall_score = round(sum(c["score"] for c in claims) / len(claims))
+    else:
+        overall_score = 0
+
+    # Overall verdict: worst-case (more conservative)
+    verdicts = [c["verdict"] for c in claims]
+    if "High risk / do not rely" in verdicts:
+        overall_verdict = "High risk / do not rely"
+    elif "Unclear / needs verification" in verdicts:
+        overall_verdict = "Unclear / needs verification"
+    else:
+        overall_verdict = "Low risk / likely reliable"
+
+    drift = drift_check(fp, overall_score, overall_verdict)
+
+    out = {
+        "event_id": event_id,
+        "score": overall_score,
+        "verdict": overall_verdict,
+        "claims": claims,
+        "uncertainty_map": {
+            "risk_tags": list({t for c in claims for t in (c.get("risk_tags") or [])})
+        },
+        "input": {"length_chars": len(text), "num_claims": len(claims)},
+        "drift": drift,
+        "audit_fingerprint": {"sha256": fp, "timestamp_utc": utc_now_iso()},
+        "explanation": "MVP heuristic verification. This demo flags risk via claim segmentation, numeric/stat patterns, citation signals, absolute language, and uncertainty cues. Enterprise mode adds evidence-backed checks, source validation, and persistent drift analytics."
+    }
+
+    return jsonify(out), 200
+
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=PORT)
