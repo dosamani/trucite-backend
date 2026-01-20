@@ -1,102 +1,81 @@
-async function scoreText() {
-  const inputEl = document.getElementById("inputText");
-  const evidenceEl = document.getElementById("evidenceText");
-  const resultEl = document.getElementById("result");
+// /static/script.js
+// TruCite MVP - frontend verify handler (explicit backend URL to avoid 404s from embeds/previews)
 
+const API_BASE = "https://trucite-backend.onrender.com"; // <-- your Render backend service
+
+async function scoreText() {
+  const input = document.getElementById("inputText");
+  const result = document.getElementById("result");
   const scoreDisplay = document.getElementById("scoreDisplay");
   const scoreVerdict = document.getElementById("scoreVerdict");
   const gaugeFill = document.getElementById("gaugeFill");
 
-  const claimsSection = document.getElementById("claimsSection");
-  const claimsBody = document.getElementById("claimsBody");
-  const driftLine = document.getElementById("driftLine");
+  // Hard fail fast if IDs mismatch
+  if (!input || !result || !scoreDisplay || !scoreVerdict || !gaugeFill) {
+    console.error("Missing required elements. Check IDs in index.html.");
+    return;
+  }
 
-  const text = (inputEl.value || "").trim();
-  const evidence = (evidenceEl?.value || "").trim();
+  const text = (input.value || "").trim();
 
   if (!text) {
-    alert("Paste some AI output first.");
+    result.textContent = "Please paste AI- or agent-generated text to verify.";
+    scoreDisplay.textContent = "--";
+    scoreVerdict.textContent = "Score pending…";
+    gaugeFill.style.strokeDashoffset = "260";
     return;
   }
 
   // UI reset
-  resultEl.textContent = "Scoring...";
+  result.textContent = "Analyzing…";
   scoreDisplay.textContent = "--";
-  scoreVerdict.textContent = "Scoring…";
+  scoreVerdict.textContent = "Score pending…";
   gaugeFill.style.strokeDashoffset = "260";
-  claimsSection.style.display = "none";
-  claimsBody.innerHTML = "";
-  driftLine.textContent = "";
 
   try {
-    const resp = await fetch("/api/score", {
+    // IMPORTANT: Call backend explicitly so /verify never 404s due to origin mismatch
+    const resp = await fetch(`${API_BASE}/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, evidence })
+      body: JSON.stringify({ text })
     });
 
+    // If backend returns HTML (common for 404/502), show it clearly
+    const contentType = resp.headers.get("content-type") || "";
     if (!resp.ok) {
-      const t = await resp.text();
-      throw new Error(`HTTP ${resp.status}: ${t}`);
+      const bodyText = await resp.text();
+      throw new Error(`HTTP ${resp.status}: ${bodyText}`);
     }
 
-    const data = await resp.json();
+    const data = contentType.includes("application/json")
+      ? await resp.json()
+      : JSON.parse(await resp.text());
 
-    // Gauge update
-    const score = Number(data.score ?? 0);
+    // Pull top-level score/verdict (fallback to first-claim if needed)
+    const score = Number(
+      data?.score ?? data?.claims?.[0]?.score ?? 0
+    );
+
+    const verdict =
+      data?.verdict ?? data?.claims?.[0]?.verdict ?? "--";
+
+    scoreDisplay.textContent = String(score);
+    scoreVerdict.textContent = verdict;
+
+    // Gauge fill (0..100 maps to 260..0 dashoffset)
     const clamped = Math.max(0, Math.min(100, score));
-    const dash = 260 - (260 * clamped / 100);
-    gaugeFill.style.strokeDashoffset = String(dash);
+    const offset = 260 - (260 * (clamped / 100));
+    gaugeFill.style.strokeDashoffset = String(offset);
 
-    scoreDisplay.textContent = clamped.toFixed(0);
-    scoreVerdict.textContent = data.verdict || "—";
+    // Render full response for now (MVP)
+    result.textContent = JSON.stringify(data, null, 2);
 
-    // Claim-level table
-    if (Array.isArray(data.claims) && data.claims.length > 0) {
-      claimsSection.style.display = "block";
-
-      if (data.drift) {
-        const d = data.drift;
-        if (d.has_prior) {
-          driftLine.textContent =
-            `Drift: prior=${d.prior_timestamp_utc}, score_delta=${d.score_delta}, ` +
-            `verdict_changed=${d.verdict_changed}, flag=${d.drift_flag}`;
-        } else {
-          driftLine.textContent = "Drift: no prior run for this input.";
-        }
-      }
-
-      data.claims.forEach((c, idx) => {
-        const tr = document.createElement("tr");
-
-        const tdIdx = document.createElement("td");
-        tdIdx.textContent = String(idx + 1);
-
-        const tdClaim = document.createElement("td");
-        tdClaim.textContent = c.text || "";
-
-        const tdScore = document.createElement("td");
-        tdScore.textContent = String(c.score ?? "");
-
-        const tdVerdict = document.createElement("td");
-        tdVerdict.textContent = c.verdict || "";
-
-        const tdTags = document.createElement("td");
-        tdTags.textContent = (c.risk_tags && c.risk_tags.length) ? c.risk_tags.join(", ") : "-";
-
-        tr.appendChild(tdIdx);
-        tr.appendChild(tdClaim);
-        tr.appendChild(tdScore);
-        tr.appendChild(tdVerdict);
-        tr.appendChild(tdTags);
-
-        claimsBody.appendChild(tr);
-      });
-    }
-
-    resultEl.textContent = JSON.stringify(data, null, 2);
-  } catch (err) {
-    resultEl.textContent = `Error communicating with TruCite engine:\n${err.message}`;
-    scoreVerdict.textContent = "Engine error";
+  } catch (e) {
+    console.error(e);
+    scoreVerdict.textContent = "Error";
+    scoreDisplay.textContent = "--";
+    gaugeFill.style.strokeDashoffset = "260";
+    result.textContent = `Error communicating with TruCite engine:\n${e.message}`;
   }
 }
+```0
