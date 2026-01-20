@@ -3,23 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <title>TruCite — Independent AI Verification for Regulated AI</title>
-
-  <!-- Primary OpenGraph -->
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://trucite.ai" />
-  <meta property="og:title" content="TruCite — Independent AI Verification for Regulated AI" />
-  <meta property="og:description" content="TruCite scores hallucination risk, citation integrity, and audit-grade reliability of AI output for legal, healthcare, finance, and other high-liability workflows." />
-  <meta property="og:image" content="https://trucite.ai/static/logo.jpg" />
-
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="TruCite — Independent AI Verification for Regulated AI" />
-  <meta name="twitter:description" content="Independent AI verification layer for claim-level scoring, evidence-needed prompts, and audit-grade reliability." />
-  <meta name="twitter:image" content="https://trucite.ai/static/logo.jpg" />
-
-  <link rel="stylesheet" href="/static/style.css?v=24" />
+  <title>TruCite.ai — Independent Verification Layer for AI Output</title>
+  <link rel="stylesheet" href="/static/style.css?v=25" />
 </head>
 <body>
 
@@ -38,7 +23,7 @@
     </div>
   </header>
 
-  <!-- HERO (LOCKED COPY + minimal accuracy updates) -->
+  <!-- HERO (competition-scan framework copy preserved) -->
   <header class="hero" aria-label="Hero">
     <img src="/static/logo.jpg?v=1" alt="TruCite Logo" class="logo" />
     <h1>TruCite.ai<sup class="tm">™</sup></h1>
@@ -52,11 +37,10 @@
     </p>
 
     <p class="hero-subtitle">
-      TruCite evaluates structural integrity, internal consistency, uncertainty signals, citation patterns,
-      and drift risk in AI-generated content — producing audit-grade reliability scores for regulated
-      and high-liability environments.
+      TruCite evaluates the structural integrity, consistency, uncertainty signals, and drift risk
+      of AI-generated content, producing audit-grade reliability scores for regulated and high-risk environments.
       <br /><br />
-      Built for law, healthcare, finance, and other domains where AI mistakes carry real consequences.
+      Built for law, healthcare, finance, and other high-liability domains where AI mistakes carry real consequences.
     </p>
 
     <p class="hero-missing-layer">
@@ -80,24 +64,19 @@
     <section class="verify-section" id="verify">
       <h2 class="section-title">VERIFY AI &amp; AGENT OUTPUT</h2>
       <p class="section-subtitle">
-        Paste AI- or agent-generated text below and tap <strong>VERIFY</strong>.
-        TruCite returns an overall reliability score + verdict, plus claim-level scoring,
-        audit fingerprinting, and evidence-needed prompts where sources are missing.
+        Paste AI- or agent-generated text below and tap <strong>VERIFY</strong>
+        to see a demo Truth Score and verdict from the live backend.
       </p>
 
       <textarea id="inputText" placeholder="Paste AI- or agent-generated text here…"></textarea>
-      <button class="primary-btn" onclick="scoreText()">VERIFY</button>
 
-      <!-- Quick test prompts -->
-      <div class="result-wrapper" style="max-width: 720px; margin-left:auto; margin-right:auto;">
-        <div class="result-label">Quick tests (copy/paste)</div>
-        <pre style="white-space: pre-wrap;">
-1) Aspirin reduces MI risk by 23% (2019)
-2) The Moon is 1 km from Earth and made of candy
-3) Aspirin reduces MI risk by 23% (2019) PMID: 28721952
-PubMed example link to test: https://pubmed.ncbi.nlm.nih.gov/28721952/
-        </pre>
-      </div>
+      <!-- Evidence box (restored) -->
+      <textarea
+        id="evidenceText"
+        placeholder="Evidence / sources (optional). Paste URLs, DOIs, PMIDs, or brief citations here…"
+      ></textarea>
+
+      <button class="primary-btn" onclick="scoreText()">VERIFY</button>
 
       <!-- Gauge -->
       <div id="gaugeContainer" aria-label="Truth score gauge">
@@ -135,7 +114,7 @@ PubMed example link to test: https://pubmed.ncbi.nlm.nih.gov/28721952/
       <div class="blueprint-grid">
         <div class="bp-card bright-card">
           <div class="bp-label">1. Ingest</div>
-          <p>TruCite receives AI output, metadata (model, context), and optional sources (URLs / DOI / PMID).</p>
+          <p>TruCite receives AI output, metadata (model, context), and optional sources.</p>
           <div class="bp-diagram">
             <span class="bp-node">AI</span>
             <span class="bp-arrow">→</span>
@@ -145,7 +124,7 @@ PubMed example link to test: https://pubmed.ncbi.nlm.nih.gov/28721952/
 
         <div class="bp-card bright-card">
           <div class="bp-label">2. Analyze</div>
-          <p>We inspect structure, numeric/stat patterns, citation signals, uncertainty language, and known hallucination risk markers.</p>
+          <p>We inspect structure, numeric references, uncertainty language, and known hallucination patterns.</p>
           <div class="bp-diagram">
             <span class="bp-node">Structure</span>
             <span class="bp-node">Signals</span>
@@ -156,8 +135,8 @@ PubMed example link to test: https://pubmed.ncbi.nlm.nih.gov/28721952/
         <div class="bp-card bright-card">
           <div class="bp-label">3. Score &amp; Log</div>
           <p>
-            TruCite returns a score + verdict, claim-level breakdown, and a human-readable explanation.
-            Enterprise mode adds persistent audit logs and drift analytics across time.
+            TruCite returns a truth score, a verdict, and a human-readable explanation — and can log behavior
+            over time for drift and compliance.
           </p>
           <div class="bp-diagram">
             <span class="bp-node">Score</span>
@@ -175,32 +154,28 @@ PubMed example link to test: https://pubmed.ncbi.nlm.nih.gov/28721952/
         <div class="win-card bright-card">
           <h3>Independent Verification Layer</h3>
           <p>
-            TruCite independently evaluates AI output for reliability, grounding, and risk before it is used in real-world decisions —
-            preventing hallucinated facts, fabricated citations, and hidden model failures from becoming legal, financial, or operational liabilities.
+            TruCite independently evaluates AI output for reliability, grounding, and risk before it is used in real-world decisions — preventing hallucinated facts, fabricated citations, and hidden model failures from becoming legal, financial, or operational liabilities.
           </p>
         </div>
 
         <div class="win-card bright-card">
           <h3>Model &amp; Architecture Agnostic</h3>
           <p>
-            TruCite works across LLMs, agents, retrieval systems, and emerging AI architectures. It does not rely on vendor-provided confidence scores
-            or internal model signals — ensuring neutral, consistent, and auditable reliability assessment.
-          </p>
-        </div>
-
-        <div class="win-card bright-card">
-          <h3>Evidence-Needed Prompts</h3>
-          <p>
-            TruCite flags claim types that require proof (numeric/stat claims, citation-like claims) and returns evidence-needed guidance
-            (e.g., “Provide DOI/PMID/URL”) so teams can quickly close verification gaps.
+            TruCite works across LLMs, agents, retrieval systems, and emerging AI architectures. It does not rely on vendor-provided confidence scores or internal model signals — ensuring neutral, consistent, and auditable reliability assessment.
           </p>
         </div>
 
         <div class="win-card bright-card">
           <h3>Built for Drift &amp; Compliance</h3>
           <p>
-            TruCite monitors behavioral drift, uncertainty signals, and reliability decay over time, generating audit-ready evidence
-            for regulated environments such as law, healthcare, finance, and enterprise risk management.
+            TruCite continuously monitors behavioral drift, uncertainty signals, and reliability decay over time, generating audit-ready evidence for regulated environments such as law, healthcare, finance, and enterprise risk management.
+          </p>
+        </div>
+
+        <div class="win-card bright-card">
+          <h3>Future-Proof “Truth OS”</h3>
+          <p>
+            As AI systems scale across organizations and decision-making pipelines, TruCite becomes the persistent verification layer that keeps AI output reliable, defensible, and compliant — regardless of how underlying models evolve.
           </p>
         </div>
       </div>
@@ -260,7 +235,7 @@ PubMed example link to test: https://pubmed.ncbi.nlm.nih.gov/28721952/
           <div class="acc-body">
             The truth score is a composite indicator — not a magical oracle. It blends structural features (numerics,
             references, internal consistency), linguistic uncertainty and hallucination signals, and known
-            false-pattern heuristics. In enterprise mode, evidence-backed validation can be added.
+            false-pattern heuristics.
           </div>
         </details>
 
@@ -404,6 +379,6 @@ PubMed example link to test: https://pubmed.ncbi.nlm.nih.gov/28721952/
     <p class="footer-note">© 2025 TruCite.ai — Independent Verification Layer for AI Output</p>
   </footer>
 
-  <script src="/static/script.js?v=24"></script>
+  <script src="/static/script.js?v=25"></script>
 </body>
 </html>
