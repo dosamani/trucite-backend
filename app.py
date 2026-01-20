@@ -1,201 +1,325 @@
 import os
 import re
 import json
-import uuid
+import time
 import hashlib
 from datetime import datetime, timezone
+from typing import List, Dict, Any, Tuple
 
-from flask import Flask, request, jsonify, send_from_directory
-import psycopg2
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
+CORS(app)
 
-# ---------------------------------------------------------
-# Config
-# ---------------------------------------------------------
+# -----------------------------
+# In-memory lightweight drift store (MVP)
+# Keyed by a stable fingerprint of normalized input.
+# NOTE: Render dynos can restart, so this is best-effort.
+# -----------------------------
+DRIFT_STORE: Dict[str, Dict[str, Any]] = {}
 
-ENGINE_VERSION = "TruCite Claim Engine v2.5 (MVP)"
-
-# Allowlist: keep this conservative for MVP.
-# You can expand later (nih.gov, sec.gov, etc.).
-TRUSTED_DOMAINS = {
-    "cdc.gov",
-    "www.cdc.gov",
-    "nih.gov",
-    "www.nih.gov",
-    "who.int",
-    "www.who.int",
-    "fda.gov",
-    "www.fda.gov",
-}
-
-WIKIPEDIA_BLOCKLIST = {
-    "wikipedia.org",
-    "www.wikipedia.org",
-    "en.wikipedia.org",
-}
-
-URL_REGEX = re.compile(r"(https?://[^\s]+)", re.IGNORECASE)
-
-
-# ---------------------------------------------------------
-# Static serving (landing page)
-# ---------------------------------------------------------
-
-@app.route("/", methods=["GET"])
-def serve_index():
-    # index.html MUST be inside ./static/
-    return send_from_directory(app.static_folder, "index.html")
-
-
-@app.route("/health", methods=["GET"])
+# -----------------------------
+# Health
+# -----------------------------
+@app.get("/health")
 def health():
-    return jsonify({"status": "ok"}), 200
+    return jsonify({"ok": True, "service": "trucite-backend", "time_utc": utc_now_iso()}), 200
 
 
-# ---------------------------------------------------------
-# Utilities
-# ---------------------------------------------------------
-
-def utc_iso():
-    return datetime.now(timezone.utc).isoformat()
-
-def sha256_text(s: str) -> str:
-    return hashlib.sha256((s or "").encode("utf-8")).hexdigest()
-
-def short_event_id(sha: str) -> str:
-    # Keeps your current style: short ID derived from hash
-    return (sha or "")[:12]
-
-def extract_claims(text: str):
-    # MVP: one claim = full text (claim splitting is Step 2)
-    cleaned = (text or "").strip()
-    return [{"text": cleaned}]
-
-def score_heuristic(text: str):
-    """
-    Keep this intentionally simple/stable for MVP.
-    We are NOT changing scoring behavior here beyond minor determinism.
-    """
-    t = (text or "").strip().lower()
-
-    if not t:
-        return 54, "Unclear / needs verification"
-
-    # Obvious absurdity cues (very lightweight)
-    absurd_markers = ["made of candy", "1km from earth", "flat earth", "lizard people"]
-    if any(m in t for m in absurd_markers):
-        return 55, "Unclear / needs verification"
-
-    # If user adds a “Source:” line, we don’t automatically trust it (handled via refs stub)
-    return 72, "Plausible / Needs Verification"
-
-def extract_references_allowlist(text: str):
-    """
-    Step 1: References stub.
-    - If trusted URLs appear, include them.
-    - If Wikipedia appears, explicitly note it is blocked.
-    - Otherwise references=[] and note says allowlist mode.
-    """
-    refs = []
-    urls = URL_REGEX.findall(text or "")
-
-    wikipedia_found = False
-
-    for u in urls:
-        # Normalize: strip trailing punctuation
-        url = u.rstrip(").,;!]")
-        # crude domain extraction
-        domain = url.split("//", 1)[-1].split("/", 1)[0].lower()
-
-        if any(bad in domain for bad in WIKIPEDIA_BLOCKLIST):
-            wikipedia_found = True
-            continue
-
-        # allow exact or suffix match (cdc.gov matches subdomains)
-        if domain in TRUSTED_DOMAINS or any(domain.endswith("." + d) for d in TRUSTED_DOMAINS):
-            refs.append({"domain": domain, "url": url})
-
-    if wikipedia_found:
-        note = "Reference grounding in allowlist mode: only trusted domains are permitted. Wikipedia blocked."
-    else:
-        note = "Reference grounding in allowlist mode: only trusted domains are permitted."
-
-    return note, refs
-
-
-def db_insert_event(event_id: str, sha: str, text: str, score: int, verdict: str):
-    """
-    Optional: only runs if DATABASE_URL exists.
-    Does not break the app if DB is unavailable.
-    """
-    db_url = os.getenv("DATABASE_URL", "").strip()
-    if not db_url:
-        return
-
-    try:
-        conn = psycopg2.connect(db_url)
-        cur = conn.cursor()
-
-        # Table expected:
-        # public.trucite_events(event_id text, sha256 text, claim_text text, score int, verdict text, created_utc timestamptz)
-        cur.execute("""
-            insert into public.trucite_events
-            (event_id, sha256, claim_text, score, verdict, created_utc)
-            values (%s, %s, %s, %s, %s, now())
-        """, (event_id, sha, text, score, verdict))
-
-        conn.commit()
-        cur.close()
-        conn.close()
-    except Exception as e:
-        print(f"[DB] Insert failed: {repr(e)}")
-
-
-# ---------------------------------------------------------
-# API
-# ---------------------------------------------------------
-
-@app.route("/verify", methods=["POST"])
+# -----------------------------
+# Verify (POST only)
+# -----------------------------
+@app.post("/verify")
 def verify():
-    data = request.get_json(silent=True) or {}
-    text = (data.get("text") or "").strip()
+    payload = request.get_json(silent=True) or {}
+    text = (payload.get("text") or "").strip()
 
-    sha = sha256_text(text)
-    event_id = short_event_id(sha)
+    if not text:
+        return jsonify({"error": "Missing 'text' in request body."}), 400
 
-    score, verdict = score_heuristic(text)
+    # Normalize + fingerprint
+    normalized = normalize_text(text)
+    sha = sha256_hex(normalized)
+    event_id = sha[:12]
+    ts = utc_now_iso()
 
-    # Step 1: reference stub
-    reference_note, references = extract_references_allowlist(text)
+    # Claim extraction
+    claims = extract_claims(text)
+    claim_objs = []
+
+    # Per-claim scoring
+    per_scores = []
+    risk_tags_union = set()
+
+    for c in claims:
+        c_score, c_verdict, c_tags = score_claim(c)
+        per_scores.append(c_score)
+        for t in c_tags:
+            risk_tags_union.add(t)
+
+        claim_objs.append({
+            "text": c,
+            "score": c_score,
+            "verdict": c_verdict,
+            "risk_tags": c_tags,
+            "signals": derive_signals(c)
+        })
+
+    # Aggregate
+    overall_score, overall_verdict = aggregate_score(per_scores, risk_tags_union)
+
+    # Drift (best-effort)
+    drift = compute_drift(sha, overall_score, overall_verdict, claim_objs, ts)
 
     response = {
+        "event_id": event_id,
         "audit_fingerprint": {
             "sha256": sha,
-            "timestamp_utc": utc_iso(),
+            "timestamp_utc": ts
         },
-        "claims": extract_claims(text),
-        "event_id": event_id,
+        "input": {
+            "length_chars": len(text),
+            "num_claims": len(claim_objs)
+        },
+        "verdict": overall_verdict,
+        "score": overall_score,
         "explanation": (
-            "MVP heuristic score. This demo evaluates linguistic certainty/uncertainty cues and basic risk signals. "
-            "Replace with evidence-backed verification in production."
+            "MVP heuristic verification. TruCite does not 'prove truth' here; it flags risk using "
+            "claim segmentation, uncertainty cues, citation/number patterns, and consistency signals. "
+            "Enterprise mode adds evidence-backed checks and persistence."
         ),
-        "reference_note": reference_note,
-        "references": references,
-        "score": score,
-        "verdict": verdict,
+        "claims": claim_objs,
+        "uncertainty_map": {
+            "risk_tags": sorted(list(risk_tags_union))
+        },
+        "drift": drift
     }
-
-    # Optional persistence
-    db_insert_event(event_id, sha, text, score, verdict)
 
     return jsonify(response), 200
 
 
-# ---------------------------------------------------------
-# Run
-# ---------------------------------------------------------
+# -----------------------------
+# Helpers
+# -----------------------------
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def sha256_hex(s: str) -> str:
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+
+
+def normalize_text(s: str) -> str:
+    # Lowercase, collapse whitespace, strip punctuation noise (light normalization)
+    s2 = s.lower()
+    s2 = re.sub(r"\s+", " ", s2).strip()
+    return s2
+
+
+def extract_claims(text: str) -> List[str]:
+    """
+    MVP claim segmentation:
+    - Splits on sentence boundaries and bullets
+    - Keeps short meaningful clauses
+    - De-duplicates
+    """
+    # Normalize newlines/bullets into separators
+    t = text.replace("\r\n", "\n").replace("\r", "\n")
+    t = re.sub(r"\n{2,}", "\n", t)
+    t = re.sub(r"[\u2022•\-]\s+", "\n", t)  # bullets -> new line
+
+    # Sentence split (simple heuristic)
+    parts = re.split(r"(?<=[\.\?\!])\s+|\n+", t)
+    cleaned = []
+    seen = set()
+
+    for p in parts:
+        p = p.strip()
+        if not p:
+            continue
+        # Filter out tiny fragments
+        if len(p) < 12:
+            continue
+        # Remove trailing punctuation clutter
+        p = p.strip(" \t\n-–—•")
+        # De-dupe by normalized form
+        k = normalize_text(p)
+        if k in seen:
+            continue
+        seen.add(k)
+        cleaned.append(p)
+
+    # If everything got filtered, fallback to original as single "claim"
+    if not cleaned:
+        cleaned = [text.strip()]
+
+    return cleaned[:30]  # cap for MVP safety
+
+
+def derive_signals(claim: str) -> Dict[str, Any]:
+    """
+    Surface simple, explainable signals: numerics, citations-like patterns, hedges, absolutes.
+    """
+    c = claim
+    numerics = re.findall(r"\b\d+(\.\d+)?\b", c)
+    has_percent = bool(re.search(r"\b\d+(\.\d+)?\s*%\b", c))
+    has_citation_like = bool(re.search(r"\b(v\.|vs\.|§|U\.S\.|F\.\d+d|WL\s*\d+|No\.\s*\d+)\b", c))
+    has_url = "http://" in c or "https://" in c or "www." in c
+
+    hedges = count_matches(c, [
+        r"\bmay\b", r"\bmight\b", r"\bcould\b", r"\bpossible\b", r"\bpossibly\b",
+        r"\bunclear\b", r"\bunknown\b", r"\bestimate\b", r"\bapprox\b", r"\bapproximately\b",
+        r"\blikely\b", r"\bunlikely\b"
+    ])
+    absolutes = count_matches(c, [
+        r"\balways\b", r"\bnever\b", r"\bguarantee\b", r"\bproves?\b", r"\bdefinitely\b",
+        r"\b100%\b", r"\bmust\b"
+    ])
+
+    return {
+        "has_numerics": len(numerics) > 0,
+        "numeric_count": len(numerics),
+        "has_percent": has_percent,
+        "has_citation_like": has_citation_like,
+        "has_url": has_url,
+        "hedge_count": hedges,
+        "absolute_count": absolutes
+    }
+
+
+def count_matches(text: str, patterns: List[str]) -> int:
+    n = 0
+    for p in patterns:
+        if re.search(p, text, re.IGNORECASE):
+            n += 1
+    return n
+
+
+def score_claim(claim: str) -> Tuple[int, str, List[str]]:
+    """
+    Returns: (0..100 score, verdict string, risk tags)
+    Heuristics:
+      - Overconfident absolute claims without citations => risk up
+      - Legal/medical numeric/citation patterns => demand higher rigor
+      - Hedges => reduce certainty (but not necessarily "false")
+    """
+    c = claim.strip()
+    signals = derive_signals(c)
+
+    base = 70  # start with "moderate"
+    tags = []
+
+    # Overconfidence penalty
+    if signals["absolute_count"] >= 1:
+        base -= 10
+        tags.append("overconfident_language")
+
+    # Hedging penalty (uncertainty)
+    if signals["hedge_count"] >= 1:
+        base -= 8
+        tags.append("uncertainty_language")
+
+    # Numeric claims need rigor
+    if signals["has_numerics"]:
+        base -= 8
+        tags.append("numeric_claim")
+
+    # Citation-like patterns: if present, we still can’t validate in MVP, but mark as citation-sensitive
+    if signals["has_citation_like"]:
+        base -= 6
+        tags.append("citation_sensitive")
+
+    # URLs imply "source present" but still unverified
+    if signals["has_url"]:
+        base += 3
+        tags.append("source_link_present")
+
+    # Extremely short/long claims are riskier for reliable interpretation
+    if len(c) < 25:
+        base -= 6
+        tags.append("too_short")
+    if len(c) > 240:
+        base -= 6
+        tags.append("too_long")
+
+    # Clamp
+    score = int(max(0, min(100, base)))
+
+    # Verdict mapping (MVP)
+    if score >= 80:
+        verdict = "Likely OK (still verify sources)"
+    elif score >= 55:
+        verdict = "Unclear / needs verification"
+    else:
+        verdict = "High risk / likely unreliable"
+
+    return score, verdict, tags
+
+
+def aggregate_score(scores: List[int], tags: set) -> Tuple[int, str]:
+    if not scores:
+        return 50, "Unclear / needs verification"
+
+    avg = sum(scores) / len(scores)
+
+    # If certain risk tags exist, reduce overall confidence
+    if "citation_sensitive" in tags and "overconfident_language" in tags:
+        avg -= 6
+    if "numeric_claim" in tags and "overconfident_language" in tags:
+        avg -= 6
+
+    overall = int(max(0, min(100, round(avg))))
+
+    if overall >= 80:
+        verdict = "Likely OK (still verify sources)"
+    elif overall >= 55:
+        verdict = "Unclear / needs verification"
+    else:
+        verdict = "High risk / likely unreliable"
+
+    return overall, verdict
+
+
+def compute_drift(key_sha: str, score: int, verdict: str, claims: List[Dict[str, Any]], ts: str) -> Dict[str, Any]:
+    """
+    Best-effort drift signal:
+    - Compare this run to last run for same normalized input hash
+    - Also track a rolling history length
+    """
+    prev = DRIFT_STORE.get(key_sha)
+    drift = {
+        "has_prior": False,
+        "prior_timestamp_utc": None,
+        "score_delta": None,
+        "verdict_changed": False,
+        "claim_count_delta": None,
+        "drift_flag": False,
+        "notes": "MVP in-memory drift. Enterprise mode persists histories and compares workflow-level behavior over time."
+    }
+
+    if prev:
+        drift["has_prior"] = True
+        drift["prior_timestamp_utc"] = prev.get("timestamp_utc")
+        drift["score_delta"] = score - int(prev.get("score", 0))
+        drift["verdict_changed"] = (verdict != prev.get("verdict"))
+        drift["claim_count_delta"] = len(claims) - int(prev.get("num_claims", 0))
+
+        # Simple drift rule: >10 score change or verdict flip
+        if abs(drift["score_delta"]) >= 10 or drift["verdict_changed"]:
+            drift["drift_flag"] = True
+
+    # Store latest
+    DRIFT_STORE[key_sha] = {
+        "timestamp_utc": ts,
+        "score": score,
+        "verdict": verdict,
+        "num_claims": len(claims)
+    }
+
+    return drift
+
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "10000"))
+    port = int(os.environ.get("PORT", "10000"))
     app.run(host="0.0.0.0", port=port)
