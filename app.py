@@ -1,340 +1,303 @@
 import os
 import re
+import json
 import hashlib
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 
 from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
-CORS(app)
 
-# In-memory drift store (MVP)
-DRIFT_STORE: Dict[str, Dict[str, Any]] = {}
+# =========================
+# Helpers
+# =========================
 
+def now_utc_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
-# ------------------------------------------------------------------
-# ROOT ROUTE — will always return something (never 404)
-# ------------------------------------------------------------------
-@app.get("/")
-def home():
+def sha256_hex(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+def count_matches(text: str, patterns: List[str]) -> int:
+    t = text.lower()
+    c = 0
+    for p in patterns:
+        if re.search(p, t, flags=re.IGNORECASE):
+            c += 1
+    return c
+
+def split_into_claims(text: str) -> List[str]:
     """
-    Serve landing page if present:
-      - static/index.html (preferred)
-      - index.html in repo root (fallback)
-    Otherwise return a simple alive banner so / never 404s.
+    MVP claim segmentation:
+    - Split on sentence boundaries, newlines, semicolons
+    - Keep short claims, but remove empties
     """
+    raw = re.split(r"[\n\r;]+", text.strip())
+    claims: List[str] = []
+    for block in raw:
+        block = block.strip()
+        if not block:
+            continue
+        # further split sentences
+        parts = re.split(r"(?<=[.!?])\s+", block)
+        for p in parts:
+            p = p.strip()
+            if p:
+                claims.append(p)
+    # cap for safety
+    return claims[:12]
 
-    # Preferred: /static/index.html
-    static_dir = app.static_folder  # "static"
-    static_index = os.path.join(static_dir, "index.html")
-    if os.path.exists(static_index):
-        return send_from_directory(static_dir, "index.html")
+def derive_signals(claim: str) -> Dict[str, Any]:
+    """
+    Signals derived from claim text.
+    Key fixes:
+    - Detect numerics even when attached to units (e.g., 1km, 10mg)
+    """
+    c = claim.strip()
 
-    # Fallback: /index.html at repo root
-    root_dir = os.getcwd()
-    root_index = os.path.join(root_dir, "index.html")
-    if os.path.exists(root_index):
-        return send_from_directory(root_dir, "index.html")
+    # Standalone numbers like "10" or "3.14"
+    numerics = re.findall(r"\b\d+(?:\.\d+)?\b", c)
 
-    # Final fallback: never 404 at root
-    return (
-        "TruCite backend is running. "
-        "Add static/index.html (preferred) or index.html in repo root.",
-        200,
+    # Numbers with unit suffix/prefix: "1km", "10 mg", "5lbs", "2x"
+    unit_numerics = re.findall(r"\b\d+(?:\.\d+)?\s*[a-zA-Z]{1,6}\b", c)
+
+    any_numeric = (len(numerics) > 0) or (len(unit_numerics) > 0)
+
+    has_percent = bool(re.search(r"\b\d+(\.\d+)?\s*%\b", c))
+    has_url = ("http://" in c.lower()) or ("https://" in c.lower()) or ("www." in c.lower())
+
+    # Citation-ish markers (very lightweight MVP)
+    has_citation_like = bool(
+        re.search(r"\b(v\.|vs\.|§|u\.s\.|f\.\d+d|wl\s*\d+|no\.\s*\d+)\b", c, flags=re.IGNORECASE)
+        or re.search(r"\[(\d+)\]", c)
+        or re.search(r"\((19|20)\d{2}\)", c)  # year in parentheses
     )
 
+    hedge_count = len(re.findall(
+        r"\b(may|might|could|possible|possibly|unclear|unknown|estimate|approx|approximately|likely|unlikely)\b",
+        c,
+        flags=re.IGNORECASE
+    ))
 
-# ------------------------------------------------------------------
-# HEALTH CHECK
-# ------------------------------------------------------------------
+    absolute_count = len(re.findall(
+        r"\b(always|never|guarantee|guarantees|guaranteed|prove|proves|definitely|must)\b",
+        c,
+        flags=re.IGNORECASE
+    ))
+
+    # Simple absurdity patterns (MVP); you can expand later
+    absurd_term_hits = 0
+    absurd_patterns = [
+        r"\bmade up of\b.*\bcandy\b",
+        r"\bmoon\b.*\bcandy\b",
+        r"\bteleport\b",
+        r"\bmagic\b",
+        r"\bflat earth\b",
+        r"\bunicorn\b",
+    ]
+    for ap in absurd_patterns:
+        if re.search(ap, c, flags=re.IGNORECASE):
+            absurd_term_hits += 1
+
+    return {
+        "has_numerics": any_numeric,
+        "numeric_count": len(numerics) + len(unit_numerics),
+        "has_percent": has_percent,
+        "has_url": has_url,
+        "has_citation_like": has_citation_like,
+        "hedge_count": hedge_count,
+        "absolute_count": absolute_count,
+        "absurd_term_hits": absurd_term_hits
+    }
+
+def verdict_from_score(score: int) -> str:
+    if score >= 85:
+        return "Likely reliable"
+    if score >= 65:
+        return "Unclear / needs verification"
+    if score >= 45:
+        return "Risky / verify before use"
+    return "High risk / likely unreliable"
+
+def score_claim(claim: str) -> Tuple[int, str, List[str], Dict[str, Any]]:
+    """
+    MVP heuristic scoring:
+    Start at 85 and subtract risk penalties.
+    """
+    base = 85
+    tags: List[str] = []
+
+    signals = derive_signals(claim)
+    text_lower = claim.lower()
+
+    # Numeric claims are riskier, especially without any citation-like hint or URL
+    if signals["has_numerics"]:
+        base -= 12
+        tags.append("numeric_claim")
+
+    if signals["has_numerics"] and (not signals["has_url"]) and (not signals["has_citation_like"]):
+        base -= 10
+        tags.append("numeric_without_support")
+
+    # Citation/URL patterns: in MVP, we don't confirm truth, but presence affects confidence
+    if signals["has_url"]:
+        base += 2
+        tags.append("has_url")
+
+    if signals["has_citation_like"]:
+        base += 2
+        tags.append("citation_like")
+
+    # Absolutes without evidence can be risky
+    if signals["absolute_count"] >= 1 and (not signals["has_url"]) and (not signals["has_citation_like"]):
+        base -= 10
+        tags.append("absolute_language")
+
+    # Hedge language reduces confidence (not always bad; but shows uncertainty)
+    if signals["hedge_count"] >= 2:
+        base -= 6
+        tags.append("high_uncertainty_language")
+
+    # Absurdity / nonsense patterns should tank score
+    if signals.get("absurd_term_hits", 0) >= 1:
+        base -= 35
+        tags.append("nonsense_pattern")
+
+    # "Fabricated citations" cues (very lightweight)
+    if re.search(r"\b(as cited in|according to a study but no details)\b", text_lower):
+        base -= 10
+        tags.append("vague_citation")
+
+    # Clamp to [0, 100]
+    base = max(0, min(100, int(round(base))))
+
+    verdict = verdict_from_score(base)
+    return base, verdict, tags, signals
+
+# =========================
+# Drift (MVP stub, in-memory)
+# =========================
+LAST_RUNS: Dict[str, Dict[str, Any]] = {}
+
+def drift_check(fingerprint: str, score: int, num_claims: int) -> Dict[str, Any]:
+    """
+    MVP in-memory drift:
+    - If we've seen this fingerprint before, compare score and claim count
+    Enterprise mode would persist by workflow / model / tenant.
+    """
+    prior = LAST_RUNS.get(fingerprint)
+    if not prior:
+        LAST_RUNS[fingerprint] = {"score": score, "num_claims": num_claims, "ts": now_utc_iso()}
+        return {
+            "has_prior": False,
+            "drift_flag": False,
+            "score_delta": None,
+            "claim_count_delta": None,
+            "verdict_changed": False,
+            "prior_timestamp_utc": None,
+            "notes": "MVP in-memory drift. Enterprise mode persists histories and compares behavior over time."
+        }
+
+    score_delta = score - prior["score"]
+    claim_delta = num_claims - prior["num_claims"]
+
+    # Drift heuristic: large score swing
+    drift_flag = abs(score_delta) >= 20
+
+    # Update memory
+    LAST_RUNS[fingerprint] = {"score": score, "num_claims": num_claims, "ts": now_utc_iso()}
+
+    return {
+        "has_prior": True,
+        "drift_flag": drift_flag,
+        "score_delta": score_delta,
+        "claim_count_delta": claim_delta,
+        "verdict_changed": False,  # You can compute based on verdict buckets later
+        "prior_timestamp_utc": prior["ts"],
+        "notes": "MVP in-memory drift. Enterprise mode persists histories and compares behavior over time."
+    }
+
+# =========================
+# Routes
+# =========================
+
+@app.get("/")
+def root():
+    """
+    Serve landing page if you keep index.html inside /static.
+    """
+    index_path = os.path.join(app.static_folder, "index.html")
+    if os.path.exists(index_path):
+        return send_from_directory(app.static_folder, "index.html")
+    return "TruCite backend is running.", 200
+
 @app.get("/health")
 def health():
-    return jsonify({
-        "ok": True,
-        "service": "trucite-backend",
-        "time_utc": utc_now_iso()
-    }), 200
+    return jsonify({"ok": True, "service": "trucite-backend", "timestamp_utc": now_utc_iso()}), 200
 
-
-# ------------------------------------------------------------------
-# VERIFY ENDPOINT
-# ------------------------------------------------------------------
-@app.post("/verify")
-def verify():
+@app.post("/score")
+def score():
     payload = request.get_json(silent=True) or {}
     text = (payload.get("text") or "").strip()
 
     if not text:
-        return jsonify({"error": "Missing 'text' in request body."}), 400
+        return jsonify({"error": "No text provided"}), 400
 
-    normalized = normalize_text(text)
-    sha = sha256_hex(normalized)
-    event_id = sha[:12]
-    ts = utc_now_iso()
+    # Claim segmentation
+    claims = split_into_claims(text)
 
-    claims = extract_claims(text)
-    claim_objs = []
-    per_scores = []
-    risk_tags_union = set()
+    claim_results: List[Dict[str, Any]] = []
+    scores: List[int] = []
 
     for c in claims:
-        c_score, c_verdict, c_tags = score_claim(c)
-        per_scores.append(c_score)
-        for t in c_tags:
-            risk_tags_union.add(t)
-
-        claim_objs.append({
+        s, v, tags, sigs = score_claim(c)
+        scores.append(s)
+        claim_results.append({
             "text": c,
-            "score": c_score,
-            "verdict": c_verdict,
-            "risk_tags": c_tags,
-            "signals": derive_signals(c)
+            "score": s,
+            "verdict": v,
+            "risk_tags": tags,
+            "signals": sigs
         })
 
-    overall_score, overall_verdict = aggregate_score(
-        per_scores, risk_tags_union
-    )
+    # Composite score: average (MVP)
+    overall = int(round(sum(scores) / max(1, len(scores))))
+    overall_verdict = verdict_from_score(overall)
 
-    drift = compute_drift(
-        sha, overall_score, overall_verdict, claim_objs, ts
-    )
+    # Audit fingerprint (stable for same input)
+    fp = sha256_hex(text)
+    event_id = fp[:12]
 
-    return jsonify({
-        "event_id": event_id,
+    drift = drift_check(fp, overall, len(claims))
+
+    response = {
         "audit_fingerprint": {
-            "sha256": sha,
-            "timestamp_utc": ts
+            "sha256": fp,
+            "timestamp_utc": now_utc_iso()
         },
+        "event_id": event_id,
         "input": {
             "length_chars": len(text),
-            "num_claims": len(claim_objs)
+            "num_claims": len(claims)
         },
+        "score": overall,
         "verdict": overall_verdict,
-        "score": overall_score,
+        "claims": claim_results,
+        "drift": drift,
+        "uncertainty_map": {},  # placeholder for future
         "explanation": (
-            "MVP heuristic verification. This demo flags risk via "
-            "claim segmentation, uncertainty cues, citation/number "
-            "patterns, and basic consistency signals. "
-            "Enterprise mode adds evidence-backed checks and persistence."
-        ),
-        "claims": claim_objs,
-        "uncertainty_map": {
-            "risk_tags": sorted(list(risk_tags_union))
-        },
-        "drift": drift
-    }), 200
-
-
-# ------------------------------------------------------------------
-# UTILITIES
-# ------------------------------------------------------------------
-def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def sha256_hex(s: str) -> str:
-    return hashlib.sha256(s.encode("utf-8")).hexdigest()
-
-
-def normalize_text(s: str) -> str:
-    s2 = s.lower()
-    s2 = re.sub(r"\s+", " ", s2).strip()
-    return s2
-
-
-def extract_claims(text: str) -> List[str]:
-    t = text.replace("\r\n", "\n").replace("\r", "\n")
-    t = re.sub(r"\n{2,}", "\n", t)
-    t = re.sub(r"[\u2022•\-]\s+", "\n", t)
-
-    parts = re.split(r"(?<=[\.\?\!])\s+|\n+", t)
-    cleaned = []
-    seen = set()
-
-    for p in parts:
-        p = p.strip()
-        if not p or len(p) < 12:
-            continue
-
-        p = p.strip(" \t\n-–—•")
-        k = normalize_text(p)
-        if k in seen:
-            continue
-        seen.add(k)
-        cleaned.append(p)
-
-    if not cleaned:
-        cleaned = [text.strip()]
-
-    return cleaned[:30]
-
-
-def derive_signals(claim: str) -> Dict[str, Any]:
-    numerics = re.findall(r"\b\d+(\.\d+)?\b", claim)
-    has_percent = bool(
-        re.search(r"\b\d+(\.\d+)?\s*%\b", claim)
-    )
-    has_citation_like = bool(
-        re.search(
-            r"\b(v\.|vs\.|§|U\.S\.|F\.\d+d|WL\s*\d+|No\.\s*\d+)\b",
-            claim,
-        )
-    )
-    has_url = "http://" in claim or "https://" in claim or "www." in claim
-
-    hedges = count_matches(claim, [
-        r"\bmay\b", r"\bmight\b", r"\bcould\b",
-        r"\bpossible\b", r"\bpossibly\b",
-        r"\bunclear\b", r"\bunknown\b",
-        r"\bestimate\b", r"\bapprox\b",
-        r"\bapproximately\b", r"\blikely\b",
-        r"\bunlikely\b"
-    ])
-
-    absolutes = count_matches(claim, [
-        r"\balways\b", r"\bnever\b",
-        r"\bguarantee\b", r"\bproves?\b",
-        r"\bdefinitely\b", r"\b100%\b",
-        r"\bmust\b"
-    ])
-
-    return {
-        "has_numerics": len(numerics) > 0,
-        "numeric_count": len(numerics),
-        "has_percent": has_percent,
-        "has_citation_like": has_citation_like,
-        "has_url": has_url,
-        "hedge_count": hedges,
-        "absolute_count": absolutes
-    }
-
-
-def count_matches(text: str, patterns: List[str]) -> int:
-    n = 0
-    for p in patterns:
-        if re.search(p, text, re.IGNORECASE):
-            n += 1
-    return n
-
-
-def score_claim(claim: str) -> Tuple[int, str, List[str]]:
-    signals = derive_signals(claim)
-    base = 70
-    tags = []
-
-    if signals["absolute_count"] >= 1:
-        base -= 10
-        tags.append("overconfident_language")
-
-    if signals["hedge_count"] >= 1:
-        base -= 8
-        tags.append("uncertainty_language")
-
-    if signals["has_numerics"]:
-        base -= 8
-        tags.append("numeric_claim")
-
-    if signals["has_citation_like"]:
-        base -= 6
-        tags.append("citation_sensitive")
-
-    if signals["has_url"]:
-        base += 3
-        tags.append("source_link_present")
-
-    if len(claim) < 25:
-        base -= 6
-        tags.append("too_short")
-    if len(claim) > 240:
-        base -= 6
-        tags.append("too_long")
-
-    score = int(max(0, min(100, base)))
-
-    if score >= 80:
-        verdict = "Likely OK (still verify sources)"
-    elif score >= 55:
-        verdict = "Unclear / needs verification"
-    else:
-        verdict = "High risk / likely unreliable"
-
-    return score, verdict, tags
-
-
-def aggregate_score(scores: List[int], tags: set) -> Tuple[int, str]:
-    if not scores:
-        return 50, "Unclear / needs verification"
-
-    avg = sum(scores) / len(scores)
-
-    if "citation_sensitive" in tags and "overconfident_language" in tags:
-        avg -= 6
-    if "numeric_claim" in tags and "overconfident_language" in tags:
-        avg -= 6
-
-    overall = int(max(0, min(100, round(avg))))
-
-    if overall >= 80:
-        verdict = "Likely OK (still verify sources)"
-    elif overall >= 55:
-        verdict = "Unclear / needs verification"
-    else:
-        verdict = "High risk / likely unreliable"
-
-    return overall, verdict
-
-
-def compute_drift(
-    key_sha: str,
-    score: int,
-    verdict: str,
-    claims: List[Dict[str, Any]],
-    ts: str
-) -> Dict[str, Any]:
-
-    prev = DRIFT_STORE.get(key_sha)
-    drift = {
-        "has_prior": False,
-        "prior_timestamp_utc": None,
-        "score_delta": None,
-        "verdict_changed": False,
-        "claim_count_delta": None,
-        "drift_flag": False,
-        "notes": (
-            "MVP in-memory drift. Enterprise mode persists "
-            "histories and compares behavior over time."
+            "MVP heuristic verification. This demo flags risk via claim segmentation, uncertainty cues, "
+            "citation/number patterns, and basic consistency signals. Enterprise mode adds evidence-backed "
+            "checks and persistence."
         )
     }
 
-    if prev:
-        drift["has_prior"] = True
-        drift["prior_timestamp_utc"] = prev.get("timestamp_utc")
-        drift["score_delta"] = score - int(prev.get("score", 0))
-        drift["verdict_changed"] = (
-            verdict != prev.get("verdict")
-        )
-        drift["claim_count_delta"] = (
-            len(claims) - int(prev.get("num_claims", 0))
-        )
+    return jsonify(response), 200
 
-        if abs(drift["score_delta"]) >= 10 or drift["verdict_changed"]:
-            drift["drift_flag"] = True
-
-    DRIFT_STORE[key_sha] = {
-        "timestamp_utc": ts,
-        "score": score,
-        "verdict": verdict,
-        "num_claims": len(claims)
-    }
-
-    return drift
-
-
-# ------------------------------------------------------------------
-# RUN
-# ------------------------------------------------------------------
+# =========================
+# Local dev entrypoint
+# =========================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "10000"))
     app.run(host="0.0.0.0", port=port)
