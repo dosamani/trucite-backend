@@ -1,170 +1,248 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, make_response
 from flask_cors import CORS
 import hashlib
 import datetime
 import re
-import uuid
+import traceback
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
-CORS(app)
 
-# In-memory drift store (MVP)
+# CORS: allow same-origin + safe cross-origin testing
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=False)
+
+# MVP drift store (in-memory)
 prior_events = {}
 
-# ---------- ROUTES ----------
+# -----------------------
+# ROUTES
+# -----------------------
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 def serve_index():
+    # Your index.html is inside /static (as you stated)
     return send_from_directory("static", "index.html")
 
 
-@app.route("/health")
+@app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"}), 200
 
 
-@app.route("/verify", methods=["POST"])
+@app.route("/verify", methods=["POST", "OPTIONS"])
 def verify():
-    data = request.get_json(silent=True) or {}
-    text = (data.get("text") or "").strip()
+    # Handle preflight cleanly (prevents "engine error" in many deployments)
+    if request.method == "OPTIONS":
+        return _cors_preflight_ok()
 
-    if not text:
-        return jsonify({"error": "No text provided"}), 400
+    try:
+        data = request.get_json(silent=True) or {}
 
-    # --- Fingerprint ---
-    sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
-    event_id = sha[:12]
-    timestamp = datetime.datetime.utcnow().isoformat() + "Z"
+        # Accept multiple keys so frontend changes don't break backend
+        text = (
+            (data.get("text") or "")
+            or (data.get("claim") or "")
+            or (data.get("input") or "")
+            or (data.get("content") or "")
+        ).strip()
 
-    # --- Basic claim split (MVP) ---
-    claims = split_claims(text)
+        if not text:
+            return jsonify({"error": "No text provided", "expected_keys": ["text", "claim", "input", "content"]}), 400
 
-    scored_claims = []
-    overall_score = 100
+        # Fingerprint
+        sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        event_id = sha[:12]
+        timestamp_utc = datetime.datetime.utcnow().isoformat() + "Z"
 
-    for c in claims:
-        signals = extract_signals(c)
-        risk_tags = []
+        # Claim segmentation (MVP)
+        claims = split_claims(text)
 
-        # Risk rules
-        if signals["has_numerics"] and not signals["has_url"]:
-            risk_tags.append("numeric_claim")
+        scored_claims = []
+        overall_score = 100
 
-        if signals["has_citation_like"] and not signals["has_url"]:
-            risk_tags.append("citation_unverified")
+        for c in claims:
+            signals = extract_signals(c)
+            risk_tags = []
 
-        # Score logic
-        score = 100
-        if signals["has_numerics"]:
-            score -= 20
-        if signals["has_citation_like"] and not signals["has_url"]:
-            score -= 20
-        if signals["hedge_count"] == 0:
-            score -= 5
+            # --- Risk rules (MVP) ---
+            if signals["has_numerics"]:
+                risk_tags.append("numeric_claim")
 
-        score = max(20, min(100, score))
+            # citation-like but no URL/DOI provided
+            if signals["has_citation_like"] and not (signals["has_url"] or signals["has_doi"]):
+                risk_tags.append("citation_unverified")
 
-        verdict = classify_verdict(score)
+            # --- Score logic (MVP heuristic) ---
+            score = 100
 
-        scored_claims.append({
-            "text": c,
-            "score": score,
-            "verdict": verdict,
-            "risk_tags": risk_tags,
-            "signals": signals
-        })
+            # numerics/stat claims raise risk
+            if signals["has_numerics"]:
+                score -= 18
 
-        overall_score = min(overall_score, score)
+            # citation-like patterns without actual resolvable source raise risk
+            if "citation_unverified" in risk_tags:
+                score -= 25
 
-    # --- Drift (MVP in-memory) ---
-    drift = {
-        "has_prior": text in prior_events,
-        "drift_flag": False,
-        "score_delta": None,
-        "verdict_changed": False,
-        "prior_timestamp_utc": None,
-        "notes": "MVP in-memory drift. Enterprise mode persists histories and compares behavior over time.",
-        "claim_count_delta": None
-    }
+            # absolute language raises risk (overconfidence)
+            if signals["absolute_count"] > 0:
+                score -= min(12, 3 * signals["absolute_count"])
 
-    if text in prior_events:
-        prior = prior_events[text]
-        drift["prior_timestamp_utc"] = prior["timestamp"]
-        drift["score_delta"] = overall_score - prior["score"]
-        drift["verdict_changed"] = classify_verdict(overall_score) != prior["verdict"]
-        drift["claim_count_delta"] = len(claims) - prior["claim_count"]
+            # lack of hedge language can indicate overconfidence (light penalty)
+            if signals["hedge_count"] == 0:
+                score -= 5
 
-        if abs(drift["score_delta"]) > 15:
-            drift["drift_flag"] = True
+            # clamp
+            score = max(20, min(100, score))
 
-    # Save this run
-    prior_events[text] = {
-        "timestamp": timestamp,
-        "score": overall_score,
-        "verdict": classify_verdict(overall_score),
-        "claim_count": len(claims)
-    }
+            verdict = classify_verdict(score)
 
-    response = {
-        "event_id": event_id,
-        "input": {
-            "length_chars": len(text),
-            "num_claims": len(claims)
-        },
-        "score": overall_score,
-        "verdict": classify_verdict(overall_score),
-        "audit_fingerprint": {
-            "sha256": sha,
-            "timestamp_utc": timestamp
-        },
-        "claims": scored_claims,
-        "drift": drift,
-        "explanation": (
-            "MVP heuristic verification. This demo flags risk via claim segmentation, "
-            "numeric/stat patterns, citation signals, absolute language, and uncertainty cues. "
-            "Enterprise mode adds evidence-backed checks, source validation, and persistent drift analytics."
-        )
-    }
+            claim_type = "general_claim"
+            evidence_needed = {"required": False}
 
-    return jsonify(response), 200
+            # If numeric/stat claim OR citation-like but not sourced, require evidence
+            if signals["has_numerics"] or "citation_unverified" in risk_tags:
+                claim_type = "numeric_or_stat_claim"
+                evidence_needed = {
+                    "required": True,
+                    "reason": "Claim includes numeric/statistical or citation-like content without an attached source (URL/DOI) or provided evidence.",
+                    "acceptable_evidence_examples": [
+                        "Peer-reviewed paper link (DOI/PMID/URL)",
+                        "Clinical guideline link (e.g., society guideline URL)",
+                        "Regulatory label / official statement URL",
+                        "Internal policy document reference (enterprise mode)"
+                    ],
+                    "suggested_query": f"{c} clinical trial meta-analysis PMID"
+                }
+
+            scored_claims.append({
+                "text": c,
+                "score": score,
+                "verdict": verdict,
+                "risk_tags": risk_tags,
+                "signals": signals,
+                "claim_type": claim_type,
+                "evidence_needed": evidence_needed
+            })
+
+            overall_score = min(overall_score, score)
+
+        # Drift (MVP in-memory)
+        drift = {
+            "has_prior": text in prior_events,
+            "drift_flag": False,
+            "score_delta": None,
+            "verdict_changed": False,
+            "prior_timestamp_utc": None,
+            "notes": "MVP in-memory drift. Enterprise mode persists histories and compares behavior over time.",
+            "claim_count_delta": None
+        }
+
+        if text in prior_events:
+            prior = prior_events[text]
+            drift["prior_timestamp_utc"] = prior["timestamp_utc"]
+            drift["score_delta"] = overall_score - prior["score"]
+            drift["verdict_changed"] = classify_verdict(overall_score) != prior["verdict"]
+            drift["claim_count_delta"] = len(claims) - prior["claim_count"]
+
+            if drift["score_delta"] is not None and abs(drift["score_delta"]) >= 15:
+                drift["drift_flag"] = True
+
+        # Save current run
+        prior_events[text] = {
+            "timestamp_utc": timestamp_utc,
+            "score": overall_score,
+            "verdict": classify_verdict(overall_score),
+            "claim_count": len(claims)
+        }
+
+        response = {
+            "event_id": event_id,
+            "input": {"length_chars": len(text), "num_claims": len(claims)},
+            "score": overall_score,
+            "verdict": classify_verdict(overall_score),
+            "audit_fingerprint": {"sha256": sha, "timestamp_utc": timestamp_utc},
+            "claims": scored_claims,
+            "drift": drift,
+            "uncertainty_map": {
+                "risk_tags": list({tag for cl in scored_claims for tag in cl.get("risk_tags", [])})
+            },
+            "explanation": (
+                "MVP heuristic verification. This demo flags risk via claim segmentation, "
+                "numeric/stat patterns, citation signals, absolute language, and uncertainty cues. "
+                "Enterprise mode adds evidence-backed checks, source validation, and persistent drift analytics."
+            )
+        }
+
+        return jsonify(response), 200
+
+    except Exception as e:
+        # Return error payload (so frontend shows something useful)
+        err = {
+            "error": "Backend exception in /verify",
+            "message": str(e),
+            "trace": traceback.format_exc().splitlines()[-8:]  # last lines only
+        }
+        return jsonify(err), 500
 
 
-# ---------- HELPERS ----------
+# -----------------------
+# HELPERS
+# -----------------------
+
+def _cors_preflight_ok():
+    resp = make_response("", 200)
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return resp
+
 
 def split_claims(text: str):
-    parts = re.split(r"[.;]\s*", text)
+    # Split on sentence-ish separators, keep it simple for MVP
+    parts = re.split(r"[.;]\s*|\n+", text)
     return [p.strip() for p in parts if p.strip()]
 
 
 def extract_signals(text: str):
+    # numeric patterns
     has_numerics = bool(re.search(r"\d", text))
+    numeric_count = len(re.findall(r"\d+(?:\.\d+)?", text))
     has_percent = "%" in text
-    has_url = bool(re.search(r"https?://", text))
+
+    # sources
+    has_url = bool(re.search(r"https?://", text, re.I))
     has_year = bool(re.search(r"\b(19|20)\d{2}\b", text))
-    has_doi = bool(re.search(r"10\.\d{4,9}/[-._;()/:A-Za-z0-9]+", text))
-    hedge_count = len(re.findall(r"\b(may|might|could|possibly|likely|probably)\b", text, re.I))
-    has_citation_like = bool(re.search(r"\(\d{4}\)|PMID|DOI", text))
+    has_doi = bool(re.search(r"\b10\.\d{4,9}/[-._;()/:A-Za-z0-9]+\b", text))
+
+    # language cues
+    hedge_count = len(re.findall(r"\b(may|might|could|possibly|likely|probably|suggests|appears)\b", text, re.I))
+    absolute_count = len(re.findall(r"\b(always|never|guaranteed|proves|definitely|certainly|must)\b", text, re.I))
+
+    # citation-like cues
+    has_citation_like = bool(re.search(r"\(\s*\d{4}\s*\)|\bPMID\b|\bDOI\b|\bPubMed\b", text, re.I))
 
     return {
         "has_numerics": has_numerics,
-        "numeric_count": len(re.findall(r"\d+", text)),
+        "numeric_count": numeric_count,
         "has_percent": has_percent,
         "has_url": has_url,
         "has_year": has_year,
         "has_doi": has_doi,
         "hedge_count": hedge_count,
-        "has_citation_like": has_citation_like
+        "absolute_count": absolute_count,
+        "has_citation_like": has_citation_like,
+        "has_sources_provided": has_url or has_doi
     }
 
 
-def classify_verdict(score):
+def classify_verdict(score: int):
+    # Keep consistent with your UI expectations
     if score >= 80:
         return "Likely reliable"
-    elif score >= 60:
+    if score >= 60:
         return "Unclear / needs verification"
-    else:
-        return "High risk / do not rely"
+    return "High risk / do not rely"
 
 
 if __name__ == "__main__":
+    # Render uses gunicorn typically; this is fine for local/dev
     app.run(host="0.0.0.0", port=10000)
