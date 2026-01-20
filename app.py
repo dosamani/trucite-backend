@@ -231,9 +231,16 @@ def verify(req: VerifyRequest):
         if imp["cap"] is not None:
             score = min(score, imp["cap"])
 
-        # Evidence boost (only if evidence actually provided)
-        if has_any_evidence:
-            score += 8
+        # Evidence boost + cap release (only if evidence actually provided)
+if has_any_evidence:
+    # boost
+    score += 20
+
+    # if the only thing holding us down was "no evidence", allow score to rise
+    # but keep conservative ceiling unless additional trust signals exist
+    if claim_type in ("numeric_or_stat_claim", "medical_claim", "legal_claim", "finance_claim"):
+        score = max(score, 70)          # at least "Unclear" once evidence exists
+        score = min(score, 90)          # don't give perfect score in MVP
 
         score = max(0, min(100, int(score)))
 
