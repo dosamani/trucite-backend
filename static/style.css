@@ -457,3 +457,9 @@ details[open] summary::after { content: "▲"; }
   margin: 10px 0 0;
   font-size: 0.95rem;
 }
+/* Evidence box styling */
+.evidence-box{
+  margin-top: 12px;
+  height: 92px;
+  max-width: 720px;
+}
