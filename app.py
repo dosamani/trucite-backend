@@ -1,161 +1,320 @@
-from fastapi import FastAPI, Body
+# app.py — TruCite backend (MVP)
+# FastAPI + static landing page + /verify scoring endpoint
+# Render will serve:
+#   GET  /         -> static/index.html (landing page)
+#   GET  /static/* -> static assets
+#   POST /verify   -> scoring JSON
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-import re
-import time
+from typing import Optional, List, Dict, Any
+from pathlib import Path
+from datetime import datetime, timezone
 import hashlib
-from typing import Optional, Dict, Any
+import re
 
-app = FastAPI(title="TruCite Backend")
+# Optional claim parser (do NOT fail deploy if missing or signature differs)
+extract_claims = None
+try:
+    # supports your repo file name claim_parser.py
+    from claim_parser import extract_claims as _extract_claims  # type: ignore
+    extract_claims = _extract_claims
+except Exception:
+    extract_claims = None
 
-# Allow your frontend (Neocities / Render / local) to talk to this API
+
+app = FastAPI(title="TruCite Engine", version="0.3.2")
+
+# CORS (permissive for MVP demo)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ------------------------------
-# Models
-# ------------------------------
+# ----------------------------
+# Static site hosting
+# ----------------------------
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
 
+# Mount /static if folder exists
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+def home():
+    """
+    Serve static/index.html as the landing page.
+    This is why Render URL can show your landing page directly.
+    """
+    index_path = STATIC_DIR / "index.html"
+    if not index_path.exists():
+        # Don’t 404 silently—make it obvious in Render logs/UI
+        return HTMLResponse(
+            content=(
+                "<h2>TruCite backend is running</h2>"
+                "<p><strong>Missing static/index.html</strong> in repo.</p>"
+                "<p>Expected path: <code>trucite-backend/static/index.html</code></p>"
+            ),
+            status_code=200,
+        )
+    return HTMLResponse(content=index_path.read_text(encoding="utf-8"), status_code=200)
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "service": "TruCite Backend", "ts_utc": datetime.now(timezone.utc).isoformat()}
+
+
+# ----------------------------
+# Models
+# ----------------------------
 class VerifyRequest(BaseModel):
     text: str
-    evidence: Optional[str] = None
+    evidence: Optional[str] = None  # URLs/DOIs/PMIDs pasted from the evidence box
 
-# ------------------------------
-# Utility functions
-# ------------------------------
 
-def has_numeric(text: str) -> bool:
-    return bool(re.search(r"\d", text))
+# ----------------------------
+# Helpers: signals + scoring
+# ----------------------------
+URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
+DOI_RE = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", re.IGNORECASE)
+PMID_RE = re.compile(r"\bPMID\s*:\s*\d+\b|\bPMID\s+\d+\b|\b\d{6,9}\b", re.IGNORECASE)
 
-def has_percent(text: str) -> bool:
-    return "%" in text
+ABSOLUTE_WORDS = [
+    "always", "never", "guaranteed", "proven", "definitely", "certainly", "no doubt",
+    "cannot", "will", "must", "only", "everyone", "nobody"
+]
 
-def has_medical_terms(text: str) -> bool:
-    keywords = [
-        "aspirin", "mi", "myocardial", "infarction", "stroke",
-        "cancer", "mortality", "risk", "treatment", "trial"
-    ]
-    return any(k in text.lower() for k in keywords)
+def compute_signals(text: str) -> Dict[str, Any]:
+    t = text.strip()
+    has_url = bool(URL_RE.search(t))
+    has_doi = bool(DOI_RE.search(t))
+    has_pmid = bool(PMID_RE.search(t))
+    has_year = bool(re.search(r"\b(19|20)\d{2}\b", t))
+    has_percent = "%" in t
+    numerics = re.findall(r"\d+(\.\d+)?", t)
+    numeric_count = len(numerics)
+    has_numerics = numeric_count > 0
 
-def has_unreliable_claim(text: str) -> bool:
-    """Detect obviously false claims like 'moon is 1km from earth'."""
-    low_quality_patterns = [
-        r"moon.*1\s*km",
-        r"earth.*flat",
-        r"vaccines.*microchips",
-        r"5g.*causes"
-    ]
-    return any(re.search(p, text.lower()) for p in low_quality_patterns)
+    absolute_count = 0
+    lower = t.lower()
+    for w in ABSOLUTE_WORDS:
+        absolute_count += lower.count(w)
 
-def has_evidence_signals(evidence: Optional[str]) -> bool:
-    if not evidence:
-        return False
-    evidence = evidence.lower()
-    return any([
-        "pubmed" in evidence,
-        "pmid" in evidence,
-        "doi" in evidence,
-        "nih.gov" in evidence,
-        "ncbi.nlm.nih.gov" in evidence,
-        "clinicaltrials.gov" in evidence
-    ])
+    # crude “citation-like” marker: year+% or bracketed refs etc.
+    has_citation_like = bool(re.search(r"\[\d+\]|\(\s*(19|20)\d{2}\s*\)", t)) or (has_year and has_percent)
 
-def compute_audit_fingerprint(text: str) -> Dict[str, Any]:
-    ts = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())
-    sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
     return {
-        "sha256": sha,
-        "timestamp_utc": ts
+        "has_url": has_url,
+        "has_doi": has_doi,
+        "has_pmid": has_pmid,
+        "has_year": has_year,
+        "has_percent": has_percent,
+        "has_numerics": has_numerics,
+        "numeric_count": numeric_count,
+        "absolute_count": absolute_count,
+        "has_citation_like": has_citation_like,
     }
 
-# ------------------------------
-# Routes
-# ------------------------------
+def infer_claim_type(text: str, sig: Dict[str, Any]) -> str:
+    lower = text.lower()
 
-@app.get("/")
-def root():
+    # explicit numeric/statistical claim
+    if sig.get("has_percent") or sig.get("numeric_count", 0) >= 2:
+        return "numeric_or_stat_claim"
+
+    # healthcare / medical cue words
+    med_words = ["aspirin", "mi", "myocardial", "stroke", "mortality", "risk", "trial", "meta-analysis", "guideline"]
+    if any(w in lower for w in med_words):
+        return "medical_claim"
+
+    # finance / legal examples (very light MVP)
+    fin_words = ["roi", "yield", "interest rate", "stock", "bond", "inflation"]
+    if any(w in lower for w in fin_words):
+        return "finance_claim"
+
+    legal_words = ["illegal", "compliance", "statute", "regulation", "liable", "lawsuit"]
+    if any(w in lower for w in legal_words):
+        return "legal_claim"
+
+    return "general_claim"
+
+def has_any_evidence(evidence_text: Optional[str]) -> Dict[str, Any]:
+    if not evidence_text:
+        return {"provided": False, "has_url": False, "has_doi": False, "has_pmid": False}
+    e = evidence_text.strip()
     return {
-        "status": "ok",
-        "service": "TruCite Backend",
-        "message": "Root endpoint is live. Use POST /verify to score text."
+        "provided": bool(e),
+        "has_url": bool(URL_RE.search(e)),
+        "has_doi": bool(DOI_RE.search(e)),
+        "has_pmid": bool(PMID_RE.search(e)),
     }
 
-@app.post("/verify")
-def verify(req: VerifyRequest = Body(...)):
-    text = req.text.strip()
-    evidence = req.evidence
+def implausibility_caps(text: str) -> Dict[str, Any]:
+    """
+    World-knowledge red flags (MVP heuristics).
+    If claim hits these, cap score aggressively and tag it.
+    """
+    lower = text.lower()
 
-    # Base score
-    score = 75  # neutral starting point
-    verdict = "Unclear / needs verification"
-    risk_tags = []
+    tags = []
+    cap = None
 
-    # Fingerprint
-    fingerprint = compute_audit_fingerprint(text)
+    # moon distance type absurdities
+    if "moon" in lower and ("1km" in lower or "1 km" in lower or "made up of candy" in lower):
+        tags.append("world_knowledge_red_flag")
+        cap = 25
 
-    # ---- Heuristics ----
+    # "made of candy" / obvious absurdity patterns
+    if "made up of candy" in lower or "made of candy" in lower:
+        tags.append("absurdity_red_flag")
+        cap = 20 if cap is None else min(cap, 20)
 
-    # Obviously false claims → hard penalty
-    if has_unreliable_claim(text):
-        score = 20
-        verdict = "High risk / do not rely"
-        risk_tags.append("implausible_claim")
+    return {"cap": cap, "tags": tags}
 
-    # Numeric medical claims without evidence → penalty
-    elif has_medical_terms(text) and has_numeric(text) and not has_evidence_signals(evidence):
-        score = 55
-        verdict = "High risk / do not rely"
-        risk_tags.append("medical_numeric_no_evidence")
+def verdict_from_score(score: int) -> str:
+    if score <= 55:
+        return "High risk / do not rely"
+    if score <= 75:
+        return "Unclear / needs verification"
+    return "Likely reliable (still verify for high-stakes use)"
 
-    # Numeric claim with evidence → boost
-    elif has_medical_terms(text) and has_numeric(text) and has_evidence_signals(evidence):
-        score = 80
-        verdict = "Unclear / needs verification"
-        risk_tags.append("evidence_provided")
+def build_audit_fingerprint(payload: str) -> Dict[str, str]:
+    sha = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    return {"sha256": sha, "timestamp_utc": datetime.now(timezone.utc).isoformat()}
 
-    # Simple non-numeric general claim → mild uncertainty
-    elif not has_numeric(text):
-        score = 70
-        verdict = "Unclear / needs verification"
+def score_one_claim(claim_text: str, evidence_info: Dict[str, Any]) -> Dict[str, Any]:
+    sig = compute_signals(claim_text)
+    claim_type = infer_claim_type(claim_text, sig)
 
-    # Cap boundaries
-    score = max(10, min(95, score))
+    # Start conservative
+    score = 78
 
-    # ---- Response ----
-    response = {
-        "audit_fingerprint": fingerprint,
-        "event_id": fingerprint["sha256"][:12],
-        "input": {
-            "length_chars": len(text),
-            "num_claims": 1
-        },
+    # Penalize absolutist language
+    score -= min(sig.get("absolute_count", 0) * 3, 12)
+
+    # Evidence requirement for numeric/high-liability claims
+    needs_evidence = claim_type in ("numeric_or_stat_claim", "medical_claim", "legal_claim", "finance_claim")
+    evidence_present = evidence_info.get("provided") and (evidence_info.get("has_url") or evidence_info.get("has_doi") or evidence_info.get("has_pmid"))
+
+    risk_tags: List[str] = []
+
+    if needs_evidence and not evidence_present:
+        risk_tags.append("citation_unverified")
+        if claim_type == "numeric_or_stat_claim":
+            risk_tags.append("numeric_claim")
+        # cap: without evidence, do not allow high score
+        score = min(score, 55)
+
+    # Implausibility caps override
+    imp = implausibility_caps(claim_text)
+    if imp["cap"] is not None:
+        score = min(score, int(imp["cap"]))
+        risk_tags.extend(imp["tags"])
+
+    # If evidence exists, modest boost (but don’t allow “perfect” in MVP)
+    if evidence_present and imp["cap"] is None:
+        score = min(90, score + 12)
+
+    score = max(0, min(100, int(score)))
+    verdict = verdict_from_score(score)
+
+    evidence_needed = None
+    if "citation_unverified" in risk_tags:
+        evidence_needed = {
+            "required": True,
+            "reason": "Claim includes numeric/statistical or high-liability content without attached evidence (URL/DOI/PMID).",
+            "acceptable_evidence_examples": [
+                "Peer-reviewed paper link (DOI/PMID/URL)",
+                "Clinical guideline link (society guideline URL)",
+                "Regulatory label / official statement URL",
+            ],
+            "suggested_query": f"{claim_text} PMID",
+        }
+
+    return {
+        "text": claim_text,
+        "claim_type": claim_type,
+        "signals": sig,
+        "risk_tags": list(dict.fromkeys(risk_tags)),
         "score": score,
         "verdict": verdict,
-        "claims": [
-            {
-                "text": text,
-                "score": score,
-                "verdict": verdict,
-                "risk_tags": risk_tags
-            }
-        ],
+        "evidence_needed": evidence_needed,
+    }
+
+
+# ----------------------------
+# API
+# ----------------------------
+@app.post("/verify")
+def verify(req: VerifyRequest):
+    text = (req.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Missing 'text'")
+
+    evidence_info = has_any_evidence(req.evidence)
+
+    # extract claims if claim_parser exists; otherwise treat whole text as one claim
+    claims: List[Dict[str, Any]] = []
+    if extract_claims:
+        try:
+            parsed = extract_claims(text)
+            if isinstance(parsed, list) and parsed:
+                # normalize expected shape to {"text": "..."}
+                for c in parsed:
+                    if isinstance(c, dict) and "text" in c:
+                        claims.append({"text": str(c.get("text", "")).strip()})
+                    elif isinstance(c, str):
+                        claims.append({"text": c.strip()})
+        except Exception:
+            claims = []
+
+    if not claims:
+        claims = [{"text": text}]
+
+    scored_claims: List[Dict[str, Any]] = []
+    claim_scores: List[int] = []
+
+    for c in claims:
+        claim_text = str(c.get("text", "")).strip() or text
+        scored = score_one_claim(claim_text, evidence_info)
+        scored_claims.append(scored)
+        claim_scores.append(int(scored["score"]))
+
+    # overall score = min of claims (conservative)
+    overall_score = min(claim_scores) if claim_scores else 55
+    overall_verdict = verdict_from_score(overall_score)
+
+    payload_for_fingerprint = f"{text}|{req.evidence or ''}|{overall_score}|{overall_verdict}"
+    audit_fp = build_audit_fingerprint(payload_for_fingerprint)
+
+    return {
+        "audit_fingerprint": audit_fp,
+        "event_id": audit_fp["sha256"][:12],
+        "input": {
+            "length_chars": len(text),
+            "num_claims": len(scored_claims),
+        },
+        "score": overall_score,
+        "verdict": overall_verdict,
+        "claims": scored_claims,
         "explanation": (
-            "MVP heuristic verification. TruCite flags risk via numeric patterns, "
-            "implausibility checks, citation signals, and medical domain sensitivity. "
-            "Enterprise mode adds source validation and drift tracking."
+            "MVP heuristic verification. Flags risk using claim segmentation, numeric/stat patterns, "
+            "citation/evidence signals, absolutist language, and world-knowledge red flags. "
+            "Enterprise mode adds evidence validation, persistent drift analytics, and policy controls."
         ),
         "evidence": {
-            "provided": bool(evidence),
+            "provided": bool(evidence_info.get("provided")),
             "signals": {
-                "has_url": bool(evidence and "http" in evidence),
-                "has_pmid": bool(evidence and "pmid" in evidence.lower())
+                "has_url": bool(evidence_info.get("has_url")),
+                "has_doi": bool(evidence_info.get("has_doi")),
+                "has_pmid": bool(evidence_info.get("has_pmid")),
             }
         }
     }
-
-    return response
