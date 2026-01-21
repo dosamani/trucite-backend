@@ -296,9 +296,10 @@ def verify(req: VerifyRequest):
         "verdict": overall_verdict,
         "claims": scored_claims,
         "explanation": (
-            "MVP heuristic verification. Evidence is detected but not validated. "
-            "High-liability claims cannot reach 'Likely reliable' without true validation."
-        ),
+    "MVP heuristic verification. Flags risk using claim segmentation, numeric/stat patterns, "
+    "citation/evidence signals, absolutist language, and world-knowledge red flags. "
+    "Enterprise mode adds evidence validation, persistent drift analytics, and policy controls."
+),
         "evidence": {
             "provided": bool(evidence_info.get("provided")),
             "signals": {
