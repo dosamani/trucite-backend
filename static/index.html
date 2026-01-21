@@ -23,13 +23,13 @@
     </div>
   </header>
 
-  <!-- HERO (LOCKED COPY) -->
+  <!-- HERO (LOCKED COPY + updated scan language) -->
   <header class="hero" aria-label="Hero">
     <img src="/static/logo.jpg?v=1" alt="TruCite Logo" class="logo" />
     <h1>TruCite.ai<sup class="tm">™</sup></h1>
 
     <p class="hero-tagline">
-      Independent AI Verification & Trust Layer
+      Independent AI Verification &amp; Trust Layer
     </p>
 
     <p class="hero-subtitle">
@@ -37,8 +37,8 @@
     </p>
 
     <p class="hero-subtitle">
-      TruCite evaluates the structural integrity, consistency, uncertainty signals, and drift risk
-      of AI-generated content, producing audit-grade reliability scores for regulated and high-risk environments.
+      TruCite evaluates the <strong>structural integrity</strong>, <strong>consistency</strong>, <strong>uncertainty signals</strong>,
+      and <strong>drift risk</strong> of AI-generated content — producing audit-grade reliability scores for regulated and high-risk environments.
       Built for law, healthcare, finance, and other high-liability domains where AI mistakes carry real consequences.
     </p>
 
@@ -59,7 +59,6 @@
   </header>
 
   <main>
-
     <!-- VERIFY SECTION -->
     <section class="verify-section" id="verify">
       <h2 class="section-title">VERIFY AI &amp; AGENT OUTPUT</h2>
@@ -70,18 +69,19 @@
 
       <textarea id="inputText" placeholder="Paste AI- or agent-generated text here…"></textarea>
 
-      <!-- Evidence box (NEW + REQUIRED FOR EVIDENCE SCORING) -->
+      <!-- Evidence box (NEW) -->
       <textarea
         id="evidenceText"
-        placeholder="Evidence / sources (optional). Paste URLs, DOIs, PMIDs, or brief citations here…"
+        class="evidence-box"
+        placeholder="Optional: Paste supporting evidence (URLs / DOI / PMID). Example: https://pubmed.ncbi.nlm.nih.gov/00000000/ or DOI: 10.xxxx/xxxxx"
       ></textarea>
 
-      <!-- Optional tiny helper line under button -->
-      <div class="verify-helper">
-        Tip: Add a PubMed URL/PMID/DOI above to see evidence signals affect the score.
-      </div>
-
       <button class="primary-btn" onclick="scoreText()">VERIFY</button>
+
+      <!-- Small status line under button (NEW) -->
+      <p id="verifyStatus" class="section-subtitle" style="margin-top:10px;">
+        Tip: High-liability numeric claims will be capped unless evidence is provided.
+      </p>
 
       <!-- Gauge -->
       <div id="gaugeContainer" aria-label="Truth score gauge">
@@ -129,7 +129,7 @@
 
         <div class="bp-card bright-card">
           <div class="bp-label">2. Analyze</div>
-          <p>We inspect structure, numeric references, uncertainty language, and known hallucination patterns.</p>
+          <p>We inspect structure, numeric references, uncertainty language, citation signals, and known hallucination patterns.</p>
           <div class="bp-diagram">
             <span class="bp-node">Structure</span>
             <span class="bp-node">Signals</span>
@@ -159,32 +159,28 @@
         <div class="win-card bright-card">
           <h3>Independent Verification Layer</h3>
           <p>
-            TruCite independently evaluates AI output for reliability, grounding, and risk before it is used in real-world decisions —
-            preventing hallucinated facts, fabricated citations, and hidden model failures from becoming legal, financial, or operational liabilities.
+            TruCite independently evaluates AI output for reliability, grounding, and risk before it is used in real-world decisions — preventing hallucinated facts, fabricated citations, and hidden model failures from becoming legal, financial, or operational liabilities.
           </p>
         </div>
 
         <div class="win-card bright-card">
           <h3>Model &amp; Architecture Agnostic</h3>
           <p>
-            TruCite works across LLMs, agents, retrieval systems, and emerging AI architectures. It does not rely on vendor-provided confidence scores
-            or internal model signals — ensuring neutral, consistent, and auditable reliability assessment.
+            TruCite works across LLMs, agents, retrieval systems, and emerging AI architectures. It does not rely on vendor-provided confidence scores or internal model signals — ensuring neutral, consistent, and auditable reliability assessment.
+          </p>
+        </div>
+
+        <div class="win-card bright-card">
+          <h3>Beyond “Citations” — Claim-Level Risk Scoring</h3>
+          <p>
+            Many tools stop at source links. TruCite scores the output itself at the claim level, flags evidence gaps, and surfaces audit-grade risk tags that can be enforced in workflows.
           </p>
         </div>
 
         <div class="win-card bright-card">
           <h3>Built for Drift &amp; Compliance</h3>
           <p>
-            TruCite continuously monitors behavioral drift, uncertainty signals, and reliability decay over time, generating audit-ready evidence
-            for regulated environments such as law, healthcare, finance, and enterprise risk management.
-          </p>
-        </div>
-
-        <div class="win-card bright-card">
-          <h3>Future-Proof “Truth OS”</h3>
-          <p>
-            As AI systems scale across organizations and decision-making pipelines, TruCite becomes the persistent verification layer that keeps AI output
-            reliable, defensible, and compliant — regardless of how underlying models evolve.
+            TruCite monitors reliability decay over time and supports drift analytics for regulated environments such as law, healthcare, finance, and enterprise risk management.
           </p>
         </div>
       </div>
@@ -245,30 +241,6 @@
             The truth score is a composite indicator — not a magical oracle. It blends structural features (numerics,
             references, internal consistency), linguistic uncertainty and hallucination signals, and known
             false-pattern heuristics.
-          </div>
-        </details>
-
-        <details>
-          <summary>Why now? Haven’t we had fact-checking for years?</summary>
-          <div class="acc-body">
-            Traditional fact-checking was built for human-written news in a slow cycle. AI changes the tempo: millions of
-            outputs across multiple models, updated weekly, embedded in agents and workflows.
-          </div>
-        </details>
-
-        <details>
-          <summary>Why didn’t the big players build this themselves?</summary>
-          <div class="acc-body">
-            Big tech optimized for speed, scale, and engagement — not auditability. TruCite starts from the opposite direction:
-            verification-first.
-          </div>
-        </details>
-
-        <details>
-          <summary>Who is TruCite for?</summary>
-          <div class="acc-body">
-            Teams deploying AI copilots or agents into production; institutions in legal, healthcare, finance, and
-            compliance who need auditability; and AI vendors who want an independent verification layer.
           </div>
         </details>
 
@@ -362,7 +334,6 @@
         </p>
       </div>
     </section>
-
   </main>
 
   <!-- FOOTER -->
