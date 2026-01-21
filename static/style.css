@@ -92,7 +92,6 @@ details, summary { -webkit-tap-highlight-color: transparent; }
   text-shadow: 0 0 14px rgba(255,215,0,0.25);
 }
 
-/* Missing in baseline but used in current HTML */
 .hero-subtitle-tight{
   margin-top: 8px;
   margin-bottom: 8px;
@@ -127,7 +126,6 @@ main {
   color: #FFD700;
 }
 
-/* Missing but used in current HTML */
 .section-subtitle{
   max-width: 760px;
   margin: 0 auto 14px;
@@ -168,6 +166,23 @@ textarea:not(:placeholder-shown) {
 }
 
 /* =======================
+   EVIDENCE BOX (NEW)
+======================= */
+#evidenceText{
+  margin-top: 12px;
+  height: 92px;
+  max-width: 720px;
+}
+
+/* Helper line under subtitle */
+.verify-helper{
+  max-width: 720px;
+  margin: 10px auto 0;
+  font-size: 0.86rem;
+  color: #888;
+}
+
+/* =======================
    BUTTON
 ======================= */
 @keyframes goldPulse {
@@ -177,7 +192,7 @@ textarea:not(:placeholder-shown) {
 }
 
 .primary-btn {
-  margin-top: 14px;
+  margin-top: 12px;
   background: #FFD700;
   color: #000;
   border: 1px solid rgba(255,215,0,0.65);
@@ -267,38 +282,8 @@ pre#result {
 }
 .bp-arrow { color: #aaa; font-weight: 900; }
 
-/* Missing wrappers used by current HTML */
-.blueprint-section,
-.wins-section,
-.faq-section,
-.founder-section,
-.legal-section{
-  margin-top: 36px;
-}
-
-.blueprint-grid,
-.wins-grid{
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-}
-
-@media (min-width: 820px){
-  .wins-grid{ grid-template-columns: 1fr 1fr; }
-}
-
-/* win-card class used in HTML */
-.win-card{
-  border: 1px solid rgba(255,215,0,0.45);
-  border-radius: 18px;
-  background: rgba(0,0,0,0.65);
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
-  padding: 18px;
-  margin: 0;
-}
-
 /* =======================
-   ACCORDION (details/summary)
+   ACCORDION
 ======================= */
 .accordion { max-width: 820px; margin: 0 auto; }
 
@@ -327,110 +312,9 @@ summary::after {
   color: #FFD700;
   font-weight: 900;
   flex: 0 0 auto;
-  transform: translateY(-1px);
 }
 
 details[open] summary::after { content: "▲"; }
-
-.acc-body {
-  padding: 16px 18px 18px;
-  border-top: 1px solid rgba(255,215,0,0.18);
-  color: #d9d9d9;
-  font-size: 1.0rem;
-  line-height: 1.55;
-}
-
-/* =======================
-   PATCH: Accordion for your current HTML
-   Uses .accordion-btn + .accordion-panel
-   (kept; harmless if unused)
-======================= */
-.accordion-item { overflow: hidden; }
-
-/* Button (question line) */
-.accordion-btn{
-  width: 100%;
-  background: transparent;
-  border: 0;
-  text-align: left;
-  cursor: pointer;
-  padding: 16px 18px;
-  font-weight: 900;
-  font-size: 1.02rem;
-  color: #FFD700;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-/* Remove default button focus ring + add nice one */
-.accordion-btn:focus{
-  outline: none;
-}
-.accordion-btn:focus-visible{
-  outline: 2px solid rgba(255,215,0,0.35);
-  outline-offset: 2px;
-  border-radius: 12px;
-}
-
-/* Chevrons */
-.accordion-btn::after{
-  content: "▼";
-  color: #FFD700;
-  font-weight: 900;
-  flex: 0 0 auto;
-  transform: translateY(-1px);
-  transition: transform 0.15s ease, opacity 0.15s ease;
-  opacity: 0.95;
-}
-
-/* When opened (your JS toggles .active) */
-.accordion-btn.active::after{
-  content: "▲";
-}
-
-/* Panel */
-.accordion-panel{
-  display: none;
-  padding: 0 18px 18px;
-  border-top: 1px solid rgba(255,215,0,0.18);
-  color: #d9d9d9;
-  font-size: 1.0rem;
-  line-height: 1.55;
-}
-
-/* Ensure paragraphs inside panel don't squash weirdly */
-.accordion-panel p{ margin: 12px 0 0; }
-
-/* =======================
-   FAQ "See full..." centered
-======================= */
-.faq-footer,
-.faq-more {
-  text-align: center !important;
-  width: 100% !important;
-  display: block !important;
-  margin: 14px 0 0 !important;
-}
-
-.faq-footer a,
-.faq-more a {
-  display: inline-block !important;
-  font-weight: 900 !important;
-  color: #FFD700 !important;
-}
-
-/* =======================
-   Legal links line
-======================= */
-.legal-links {
-  margin: 12px auto 0;
-  text-align: center;
-  color: #bbb;
-  font-size: 0.98rem;
-}
-.legal-links a { color: #FFD700; font-weight: 900; }
 
 /* =======================
    FOOTER
@@ -444,22 +328,8 @@ details[open] summary::after { content: "▲"; }
 .footer-links { margin-bottom: 12px; }
 .footer-links a { color: #FFD700; font-weight: 900; }
 
-.footer-suggest a {
-  display: inline-block;
-  margin-top: 10px;
-  color: #FFD700;
-  font-weight: 900;
-}
-
-/* footer-note appears in HTML */
 .footer-note{
   color: #bbb;
   margin: 10px 0 0;
   font-size: 0.95rem;
-}
-/* Evidence box styling */
-.evidence-box{
-  margin-top: 12px;
-  height: 92px;
-  max-width: 720px;
 }
