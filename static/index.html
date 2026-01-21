@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TruCite.ai — Independent Verification Layer for AI Output</title>
-  <link rel="stylesheet" href="/static/style.css?v=25" />
+  <link rel="stylesheet" href="/static/style.css?v=24" />
 </head>
 <body>
 
@@ -23,7 +23,7 @@
     </div>
   </header>
 
-  <!-- HERO (competition-scan framework copy preserved) -->
+  <!-- HERO (LOCKED COPY) -->
   <header class="hero" aria-label="Hero">
     <img src="/static/logo.jpg?v=1" alt="TruCite Logo" class="logo" />
     <h1>TruCite.ai<sup class="tm">™</sup></h1>
@@ -39,7 +39,6 @@
     <p class="hero-subtitle">
       TruCite evaluates the structural integrity, consistency, uncertainty signals, and drift risk
       of AI-generated content, producing audit-grade reliability scores for regulated and high-risk environments.
-      <br /><br />
       Built for law, healthcare, finance, and other high-liability domains where AI mistakes carry real consequences.
     </p>
 
@@ -60,6 +59,7 @@
   </header>
 
   <main>
+
     <!-- VERIFY SECTION -->
     <section class="verify-section" id="verify">
       <h2 class="section-title">VERIFY AI &amp; AGENT OUTPUT</h2>
@@ -70,11 +70,16 @@
 
       <textarea id="inputText" placeholder="Paste AI- or agent-generated text here…"></textarea>
 
-      <!-- Evidence box (restored) -->
+      <!-- Evidence box (NEW + REQUIRED FOR EVIDENCE SCORING) -->
       <textarea
         id="evidenceText"
         placeholder="Evidence / sources (optional). Paste URLs, DOIs, PMIDs, or brief citations here…"
       ></textarea>
+
+      <!-- Optional tiny helper line under button -->
+      <div class="verify-helper">
+        Tip: Add a PubMed URL/PMID/DOI above to see evidence signals affect the score.
+      </div>
 
       <button class="primary-btn" onclick="scoreText()">VERIFY</button>
 
@@ -154,28 +159,32 @@
         <div class="win-card bright-card">
           <h3>Independent Verification Layer</h3>
           <p>
-            TruCite independently evaluates AI output for reliability, grounding, and risk before it is used in real-world decisions — preventing hallucinated facts, fabricated citations, and hidden model failures from becoming legal, financial, or operational liabilities.
+            TruCite independently evaluates AI output for reliability, grounding, and risk before it is used in real-world decisions —
+            preventing hallucinated facts, fabricated citations, and hidden model failures from becoming legal, financial, or operational liabilities.
           </p>
         </div>
 
         <div class="win-card bright-card">
           <h3>Model &amp; Architecture Agnostic</h3>
           <p>
-            TruCite works across LLMs, agents, retrieval systems, and emerging AI architectures. It does not rely on vendor-provided confidence scores or internal model signals — ensuring neutral, consistent, and auditable reliability assessment.
+            TruCite works across LLMs, agents, retrieval systems, and emerging AI architectures. It does not rely on vendor-provided confidence scores
+            or internal model signals — ensuring neutral, consistent, and auditable reliability assessment.
           </p>
         </div>
 
         <div class="win-card bright-card">
           <h3>Built for Drift &amp; Compliance</h3>
           <p>
-            TruCite continuously monitors behavioral drift, uncertainty signals, and reliability decay over time, generating audit-ready evidence for regulated environments such as law, healthcare, finance, and enterprise risk management.
+            TruCite continuously monitors behavioral drift, uncertainty signals, and reliability decay over time, generating audit-ready evidence
+            for regulated environments such as law, healthcare, finance, and enterprise risk management.
           </p>
         </div>
 
         <div class="win-card bright-card">
           <h3>Future-Proof “Truth OS”</h3>
           <p>
-            As AI systems scale across organizations and decision-making pipelines, TruCite becomes the persistent verification layer that keeps AI output reliable, defensible, and compliant — regardless of how underlying models evolve.
+            As AI systems scale across organizations and decision-making pipelines, TruCite becomes the persistent verification layer that keeps AI output
+            reliable, defensible, and compliant — regardless of how underlying models evolve.
           </p>
         </div>
       </div>
@@ -353,6 +362,7 @@
         </p>
       </div>
     </section>
+
   </main>
 
   <!-- FOOTER -->
@@ -379,6 +389,6 @@
     <p class="footer-note">© 2025 TruCite.ai — Independent Verification Layer for AI Output</p>
   </footer>
 
-  <script src="/static/script.js?v=25"></script>
+  <script src="/static/script.js?v=24"></script>
 </body>
 </html>
