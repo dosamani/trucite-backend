@@ -1,66 +1,105 @@
+// TruCite frontend script.js (v24)
+// Calls backend POST /verify with { text, evidence }
+// Updates gauge + result JSON
+
+const API_VERIFY = "/verify";
+
+function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+function setGauge(score) {
+  const fill = document.getElementById("gaugeFill");
+  const scoreDisplay = document.getElementById("scoreDisplay");
+
+  // SVG arc dash math
+  const total = 260;
+  const pct = clamp(score, 0, 100) / 100;
+  const offset = total - (total * pct);
+
+  if (fill) fill.style.strokeDashoffset = String(offset);
+  if (scoreDisplay) scoreDisplay.textContent = String(score);
+}
+
+function setVerdict(text) {
+  const el = document.getElementById("scoreVerdict");
+  if (el) el.textContent = text || "Score pending…";
+}
+
+function setVerifyStatus(text) {
+  const el = document.getElementById("verifyStatus");
+  if (el) el.textContent = text || "";
+}
+
+function pretty(obj) {
+  try { return JSON.stringify(obj, null, 2); }
+  catch (e) { return String(obj); }
+}
+
 async function scoreText() {
   const inputEl = document.getElementById("inputText");
   const evidenceEl = document.getElementById("evidenceText");
+  const resultEl = document.getElementById("result");
 
   const text = (inputEl?.value || "").trim();
   const evidence = (evidenceEl?.value || "").trim();
 
   if (!text) {
-    alert("Please paste AI/agent output text to verify.");
+    setVerdict("Paste AI output to verify.");
+    if (resultEl) resultEl.textContent = "";
+    setVerifyStatus("Nothing submitted. Paste AI output above, then tap VERIFY.");
     return;
   }
 
-  // UI: reset
-  const scoreDisplay = document.getElementById("scoreDisplay");
-  const scoreVerdict = document.getElementById("scoreVerdict");
-  const resultEl = document.getElementById("result");
-  const gaugeFill = document.getElementById("gaugeFill");
-
-  if (scoreDisplay) scoreDisplay.textContent = "--";
-  if (scoreVerdict) scoreVerdict.textContent = "Scoring…";
-  if (resultEl) resultEl.textContent = "";
-
-  // Gauge reset
-  if (gaugeFill) {
-    gaugeFill.style.strokeDasharray = "260";
-    gaugeFill.style.strokeDashoffset = "260";
-  }
+  setGauge(0);
+  setVerdict("Score pending…");
+  setVerifyStatus(evidence ? "Evidence detected. Submitting claim + evidence…" : "No evidence provided. Submitting claim…");
+  if (resultEl) resultEl.textContent = "Submitting…";
 
   try {
-    const res = await fetch("/verify", {
+    const resp = await fetch(API_VERIFY, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, evidence })
+      body: JSON.stringify({ text, evidence: evidence || null })
     });
 
-    let data = null;
-    try {
-      data = await res.json();
-    } catch (e) {
-      throw new Error("Backend returned a non-JSON response.");
+    if (!resp.ok) {
+      const errText = await resp.text();
+      setVerdict("Engine error");
+      setVerifyStatus(`Error communicating with TruCite engine: HTTP ${resp.status}`);
+      if (resultEl) resultEl.textContent = errText || `HTTP ${resp.status}`;
+      return;
     }
 
-    // Display JSON
-    if (resultEl) resultEl.textContent = JSON.stringify(data, null, 2);
+    const data = await resp.json();
 
-    // Score + verdict
-    const score = (data && typeof data.score === "number") ? data.score : null;
-    const verdict = (data && data.verdict) ? data.verdict : "No verdict";
+    // top-level score/verdict
+    const score = typeof data.score === "number" ? data.score : 0;
+    const verdict = data.verdict || "Unclear / needs verification";
 
-    if (scoreDisplay) scoreDisplay.textContent = score !== null ? String(score) : "--";
-    if (scoreVerdict) scoreVerdict.textContent = verdict;
+    setGauge(score);
+    setVerdict(verdict);
 
-    // Gauge fill (0–100)
-    if (gaugeFill && score !== null) {
-      const dashTotal = 260;
-      const clamped = Math.max(0, Math.min(100, score));
-      const pct = clamped / 100;
-      const offset = dashTotal - dashTotal * pct;
-      gaugeFill.style.strokeDashoffset = String(offset);
+    // Evidence status line (frontend summary)
+    const evidenceProvided = !!(data?.evidence?.provided);
+    const hasUrl = !!(data?.evidence?.signals?.has_url);
+    const hasPmid = !!(data?.evidence?.signals?.has_pmid);
+    const hasDoi = !!(data?.evidence?.signals?.has_doi);
+
+    if (evidenceProvided) {
+      const parts = [];
+      if (hasUrl) parts.push("URL");
+      if (hasPmid) parts.push("PMID");
+      if (hasDoi) parts.push("DOI");
+      const types = parts.length ? parts.join(" + ") : "evidence text";
+      setVerifyStatus(`Evidence detected (${types}). Note: MVP detects evidence presence; enterprise mode validates relevance.`);
+    } else {
+      setVerifyStatus("No evidence detected. High-liability numeric claims may be capped.");
     }
+
+    if (resultEl) resultEl.textContent = pretty(data);
 
   } catch (err) {
-    if (scoreVerdict) scoreVerdict.textContent = "Error scoring";
+    setVerdict("Engine error");
+    setVerifyStatus("Error communicating with TruCite engine.");
     if (resultEl) resultEl.textContent = String(err);
   }
 }
