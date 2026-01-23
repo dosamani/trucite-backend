@@ -391,6 +391,23 @@ def verify(req: VerifyRequest):
     evidence_text = (req.evidence or "").strip() if req.evidence else None
     evidence_info = has_any_evidence(evidence_text)
 
+    # ----------------------------------------
+    # Promote PMID / DOI found in claim text
+    # into evidence_info (Decision Gate rule)
+    # ----------------------------------------
+    if not evidence_info.get("provided"):
+        pmids_in_text = re.findall(PMID_RE, text)
+        dois_in_text = re.findall(DOI_RE, text)
+
+        if pmids_in_text or dois_in_text:
+            evidence_info = {
+                "provided": True,
+                "has_url": False,
+                "has_doi": bool(dois_in_text),
+                "has_pmid": bool(pmids_in_text),
+                "pmids": pmids_in_text,
+            }
+
     # extract claims if claim_parser exists; otherwise treat whole text as one claim
     claims: List[Dict[str, Any]] = []
     if extract_claims:
