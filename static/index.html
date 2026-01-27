@@ -1,358 +1,290 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TruCite.ai — Independent Verification Layer for AI Output</title>
-  <link rel="stylesheet" href="/static/style.css?v=999" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TruCite.ai — AI Verification & Decision Gate</title>
+  <meta name="description" content="Independent verification layer for AI output in high-liability workflows." />
+  <link rel="icon" href="favicon.ico" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
 
-  <!-- Top Nav: ONLY waitlist on top-right -->
-  <header class="top-nav" role="banner" aria-label="Top navigation">
+  <!-- TOP NAV -->
+  <header class="top-nav">
     <div class="top-nav-inner">
-      <a
-        href="https://forms.gle/G8iqhAtJxJmeMMhs7"
-        target="_blank"
-        rel="noopener"
-        class="top-nav-cta"
-        aria-label="Join the TruCite waitlist"
-      >
-        Join the waitlist!! →
-      </a>
+      <a class="top-nav-cta" href="#waitlist">Join the waitlist!! →</a>
     </div>
   </header>
 
   <!-- HERO -->
-  <header class="hero" aria-label="Hero">
-    <img src="/static/logo.jpg?v=1" alt="TruCite Logo" class="logo" />
-    <h1>TruCite.ai<sup class="tm">™</sup></h1>
+  <section class="hero" id="top">
+    <img class="logo" src="logo.png" alt="TruCite.ai" />
+    <h1>TruCite.ai <span class="tm">™</span></h1>
+    <div class="hero-tagline">AI Verification & Decision Gate</div>
+    <div class="hero-subtitle">
+      Independent verification layer for AI output in high-liability workflows.
+    </div>
 
-    <p class="hero-tagline">
-      Independent AI Verification &amp; Decision Gate
-    </p>
-
-    <p class="hero-subtitle">
-      Detect hallucinations, fabricated citations, and hidden risk — before AI output becomes liability.
-    </p>
-
-    <p class="hero-subtitle">
-      TruCite evaluates the <strong>structural integrity</strong>, <strong>consistency</strong>, <strong>uncertainty signals</strong>,
-      and <strong>drift risk</strong> of AI-generated content — producing audit-grade reliability scores for regulated and high-risk environments.
-      Built for law, healthcare, finance, and other high-liability domains where AI mistakes carry real consequences.
-    </p>
-
-    <p class="hero-missing-layer">
-      TruCite is the missing verification layer between AI capability and AI reliability.
-    </p>
-
-    <p class="hero-subtitle hero-subtitle-tight">
-      Designed to complement retrieval systems — TruCite evaluates whether AI output is reliable,
-      not where it came from.
-    </p>
-
-    <p class="hero-mini-links">
-      <a href="https://forms.gle/TAQZuVNwYBudi51i6" target="_blank" rel="noopener">
-        Request early access to TruCite
-      </a>
-    </p>
-  </header>
+    <div class="hero-missing-layer">
+      Generation is not trust. TruCite is the missing verification layer.
+    </div>
+  </section>
 
   <main>
-    <!-- VERIFY SECTION -->
+
+    <!-- VERIFY -->
     <section class="verify-section" id="verify">
-      <h2 class="section-title">VERIFY AI &amp; AGENT OUTPUT</h2>
-      <p class="section-subtitle">
-        Paste AI- or agent-generated text below and tap <strong>VERIFY</strong>
-        to see a demo Truth Score and verdict from the live backend.
+      <h2 class="section-title">Verify AI & Agent Output</h2>
+      <p style="max-width:760px;margin:0 auto 16px;color:#ccc;">
+        Paste AI- or agent-generated text below and tap <strong>VERIFY</strong> to see a demo Truth Score and verdict from the live backend.
       </p>
 
-      <textarea id="inputText" placeholder="Paste AI- or agent-generated text here…"></textarea>
+      <!-- Claim input -->
+      <textarea id="claimInput" placeholder="Paste AI- or agent-generated text here..."></textarea>
 
-      <!-- Evidence box -->
-      <textarea
-        id="evidenceText"
-        class="evidence-box"
-        placeholder="Optional: Paste supporting evidence (URLs / DOI / PMID). Example: https://pubmed.ncbi.nlm.nih.gov/00000000/ or DOI: 10.xxxx/xxxxx"
-      ></textarea>
+      <!-- Evidence input -->
+      <textarea id="evidenceInput" placeholder="Optional: Paste supporting evidence (URLs / DOI / PMID). Example: https://pubmed.ncbi.nlm.nih.gov/00000000/ or DOI: 10.xxxx/xxxxx"></textarea>
 
-      <button class="primary-btn" onclick="scoreText()">VERIFY</button>
+      <button id="verifyBtn" class="primary-btn" type="button">VERIFY</button>
 
-      <!-- Copy tools -->
-      <div class="copy-row" aria-label="Copy tools">
-        <button class="copy-btn" onclick="copyJSONPayload()">Copy JSON payload</button>
-        <button class="copy-btn" onclick="copyCurl()">Copy curl</button>
-        <button class="copy-btn" onclick="copyResponse()">Copy response</button>
+      <!-- Copy buttons -->
+      <div id="copyRow" style="margin-top:10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <button id="copyJsonBtn" type="button" class="copy-btn">Copy JSON payload</button>
+        <button id="copyCurlBtn" type="button" class="copy-btn">Copy curl</button>
+        <button id="copyRespBtn" type="button" class="copy-btn">Copy response</button>
       </div>
 
-      <!-- Status line -->
-      <p id="verifyStatus" class="section-subtitle" style="margin-top:10px;">
+      <p id="tipText" style="margin:12px auto 0;max-width:760px;color:#bbb;">
         Tip: Provide evidence (URL/DOI/PMID) to reduce caps on high-liability numeric claims.
       </p>
 
       <!-- Gauge -->
-      <div id="gaugeContainer" aria-label="Truth score gauge">
-        <svg id="gauge" width="220" height="120">
-          <path
-            d="M20 100 A90 90 0 0 1 200 100"
-            stroke="#333"
-            stroke-width="18"
-            fill="none"
-          />
-          <path
-            id="gaugeFill"
-            d="M20 100 A90 90 0 0 1 200 100"
-            stroke="#FFD700"
-            stroke-width="18"
-            stroke-linecap="round"
-            fill="none"
-            stroke-dasharray="260"
-            stroke-dashoffset="260"
-          />
-        </svg>
+      <div id="gaugeContainer">
+        <!-- your JS can render SVG/canvas gauge here OR you can keep your existing HTML gauge -->
         <div id="scoreDisplay">--</div>
-        <div id="scoreVerdict">Score pending…</div>
+        <div id="scoreVerdict">Score pending...</div>
       </div>
 
-      <!-- Decision Gate card -->
-      <div class="decision-card" aria-label="Decision Gate">
-        <div class="decision-title">Decision Gate</div>
-        <div id="decisionAction" class="decision-action">—</div>
-        <div id="decisionReason" class="decision-reason">Awaiting verification…</div>
+      <!-- Decision Gate box -->
+      <div class="bright-card" style="margin:22px auto 0;max-width:720px;">
+        <h3 style="margin:0 0 8px;font-size:1.25rem;font-weight:900;">Decision Gate</h3>
+        <div id="decisionAction" style="font-size:2rem;font-weight:900;line-height:1.1;margin:4px 0 10px;">
+          —
+        </div>
+        <div id="decisionReason" style="color:#ccc;font-size:1rem;">
+          Awaiting verification...
+        </div>
       </div>
 
-      <div class="result-wrapper">
+      <!-- Result JSON -->
+      <div class="result-wrapper" style="max-width:720px;margin-left:auto;margin-right:auto;">
         <div class="result-label">Validation details, explanation &amp; references</div>
-        <pre id="result"></pre>
+        <pre id="result">{}</pre>
       </div>
     </section>
 
-    <!-- HOW TRUCITE WORKS -->
-    <section id="how" class="blueprint-section">
+    <!-- WHY / TRUST (NEW) -->
+    <section id="why">
+      <h2 class="section-title">Why TruCite Exists</h2>
+
+      <div class="bp-card">
+        <p>
+          AI systems can generate answers, but they cannot independently verify their own reliability.
+          TruCite is built as a verification layer that evaluates:
+          <br /><br />
+          • Structural integrity of reasoning<br />
+          • Evidence presence and relevance<br />
+          • Uncertainty and risk signals<br />
+          • Known hallucination patterns
+          <br /><br />
+          This creates an auditable trust signal before AI output is used in real-world workflows.
+        </p>
+      </div>
+
+      <div class="bp-card">
+        <div class="bp-label">Where TruCite Matters</div>
+        <p>
+          Healthcare AI outputs • Legal document review • Policy analysis • Scientific summarization • Financial risk reports
+          <br /><br />
+          Any environment where incorrect AI output can create real-world consequences.
+        </p>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how">
       <h2 class="section-title">How TruCite Works</h2>
-      <div class="blueprint-grid">
-        <div class="bp-card bright-card">
-          <div class="bp-label">1. Ingest</div>
-          <p>TruCite receives AI output, metadata (model, context), and optional sources.</p>
-          <div class="bp-diagram">
-            <span class="bp-node">AI</span>
-            <span class="bp-arrow">→</span>
-            <span class="bp-node">TruCite</span>
-          </div>
-        </div>
 
-        <div class="bp-card bright-card">
-          <div class="bp-label">2. Analyze</div>
-          <p>We inspect structure, numeric references, uncertainty language, citation signals, and known hallucination patterns.</p>
-          <div class="bp-diagram">
-            <span class="bp-node">Structure</span>
-            <span class="bp-node">Signals</span>
-            <span class="bp-node">Patterns</span>
-          </div>
+      <div class="bp-card">
+        <div class="bp-label">1. Ingest</div>
+        <p>TruCite receives AI output, metadata (model, context), and optional sources.</p>
+        <div class="bp-diagram">
+          <span class="bp-node">AI</span>
+          <span class="bp-arrow">→</span>
+          <span class="bp-node">TruCite</span>
         </div>
+      </div>
 
-        <div class="bp-card bright-card">
-          <div class="bp-label">3. Score &amp; Gate</div>
-          <p>
-            TruCite returns a Truth Score, an enforceable decision gate action, and a human-readable explanation —
-            enabling audit trails for drift and compliance.
-          </p>
-          <div class="bp-diagram">
-            <span class="bp-node">Score</span>
-            <span class="bp-node">Gate</span>
-            <span class="bp-node">Audit</span>
-          </div>
+      <div class="bp-card">
+        <div class="bp-label">2. Analyze</div>
+        <p>We inspect structure, numeric references, uncertainty language, citation signals, and known hallucination patterns.</p>
+        <div class="bp-diagram">
+          <span class="bp-node">Structure</span>
+          <span class="bp-node">Signals</span>
+          <span class="bp-node">Patterns</span>
         </div>
+      </div>
+
+      <div class="bp-card">
+        <div class="bp-label">3. Score &amp; Gate</div>
+        <p>
+          TruCite returns a truth score, an enforceable decision gate action, and a structured
+          <strong>audit record</strong> for traceability and monitoring.
+        </p>
       </div>
     </section>
 
-    <!-- WHY TRUCITE WINS -->
-    <section id="why" class="wins-section">
-      <h2 class="section-title">Why TruCite Wins</h2>
-      <div class="wins-grid">
-        <div class="win-card bright-card">
-          <h3>Verification + Enforcement (Not Just Citations)</h3>
-          <p>
-            Most tools stop at “here are sources.” TruCite adds an auditable reliability score and a Decision Gate action
-            so unsafe output can be blocked before it reaches users, charts, contracts, or clinical decisions.
-          </p>
-        </div>
-
-        <div class="win-card bright-card">
-          <h3>Model &amp; Architecture Agnostic</h3>
-          <p>
-            Works across LLMs, agent frameworks, and retrieval stacks. TruCite does not rely on vendor confidence scores
-            or internal model signals — it evaluates output and evidence signals consistently.
-          </p>
-        </div>
-
-        <div class="win-card bright-card">
-          <h3>Built for High-Liability Workflows</h3>
-          <p>
-            Numeric/statistical and domain-critical claims require evidence. Without validated evidence relevance,
-            TruCite enforces REVIEW (enterprise) or BLOCK (regulated).
-          </p>
-        </div>
-
-        <div class="win-card bright-card">
-          <h3>Drift &amp; Compliance Ready</h3>
-          <p>
-            TruCite can track reliability decay over time and support drift analytics for regulated environments.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- FAQ's -->
-    <section id="faq" class="faq-section">
+    <!-- FAQ (accordion-btn / accordion-panel) -->
+    <section id="faq">
       <h2 class="section-title">FAQ's</h2>
 
       <div class="accordion">
-        <details>
-          <summary>What does the TruCite symbol mean?</summary>
-          <div class="acc-body">
-            The symbol is inspired in part by the Egyptian concept of <strong>Ma’at</strong> — truth and balance —
-            where a feather is weighed against the heart. The golden feather represents <strong>truth</strong>, the
-            blue orb represents <strong>signal</strong> being evaluated, and the curved arc represents the
-            <strong>verification layer</strong> weighing evidence before a truth score is rendered.
+        <div class="accordion-item">
+          <button class="accordion-btn" type="button">What does the TruCite symbol mean?</button>
+          <div class="accordion-panel">
+            <p>
+              It represents “signal integrity” — separating trusted output from unverified generation.
+              TruCite’s goal is to create an auditable reliability layer before AI output reaches high-stakes workflows.
+            </p>
           </div>
-        </details>
+        </div>
 
-        <details>
-          <summary>How is TruCite different from OpenEvidence?</summary>
-          <div class="acc-body">
-            OpenEvidence (and similar tools) primarily focus on <strong>retrieval and citations</strong> — surfacing
-            sources to support an answer. TruCite is a <strong>verification layer</strong>: we score the
-            <strong>output itself</strong> (structure, internal consistency, uncertainty signals, drift risk) and return an audit-grade verdict.
+        <div class="accordion-item">
+          <button class="accordion-btn" type="button">How is TruCite different from OpenEvidence?</button>
+          <div class="accordion-panel">
+            <p>
+              TruCite is not a search tool or RAG wrapper. It’s a verification layer that scores reliability signals,
+              evaluates evidence presence/relevance, and produces an enforceable decision gate outcome (ALLOW / REVIEW / BLOCK).
+            </p>
           </div>
-        </details>
+        </div>
 
-        <details>
-          <summary>Is this just “AI correcting AI”? Isn’t that risky?</summary>
-          <div class="acc-body">
-            TruCite does not replace your models or generate new content. It operates as an independent verification
-            layer that scores AI outputs using structural integrity, uncertainty language, and known risk patterns.
-          </div>
-        </details>
-
-        <details>
-          <summary>How is TruCite future-proof if models keep changing?</summary>
-          <div class="acc-body">
-            TruCite is model-agnostic. It analyzes properties of the output itself — coherence, structure, specificity,
-            risk patterns, drift vs historical outputs — rather than relying on one vendor’s internal confidence signal.
-          </div>
-        </details>
-
-        <details>
-          <summary>Does TruCite store my content?</summary>
-          <div class="acc-body">
-            In this public demo, no. In enterprise deployments, TruCite can store encrypted audit trails under strict
-            retention and access policies.
-          </div>
-        </details>
-
-        <p class="faq-more">
-          <a
-            href="https://docs.google.com/document/d/1oHfzoXv-t0LZNdFwfMUjQKfy8tv9RQJo--HhLYRkPto/edit?usp=drivesdk"
-            target="_blank"
-            rel="noopener"
-          >
-            See full FAQ list 👉
-          </a>
-        </p>
+        <div class="faq-more">
+          <a href="#fullfaq">See full FAQ list 👉</a>
+        </div>
       </div>
     </section>
 
-    <!-- FOUNDER STORY -->
+    <!-- FOUNDER STORY (not auto-open; plain section) -->
     <section id="founder" class="founder-section">
       <h2 class="section-title">Founder Story</h2>
-
-      <div class="accordion">
-        <details>
-          <summary>Read story</summary>
-          <div class="acc-body">
-            TruCite was founded by <strong>Mani Subramanian, MD, MMI</strong> — physician executive, clinical informatics architect,
-            and technology strategist — to address a widening gap in the AI era: systems can now generate decisions, analysis,
-            and guidance at scale, but there is no independent layer ensuring those outputs are reliable enough to trust in high-stakes environments.
-            <br /><br />
-            After years leading clinical informatics, large-scale EHR transformation, and technology-driven care redesign, Mani saw firsthand
-            how even small inaccuracies can cascade into serious consequences in domains like healthcare and law.
-            <br /><br />
-            TruCite was created to be that layer. It is not a chatbot, search tool, or fact-checker. TruCite operates as
-            <strong>independent verification infrastructure</strong>: evaluating structural integrity, evidence relevance, uncertainty signals,
-            and domain risk to produce an auditable <strong>Truth Score</strong> and an enforceable decision outcome (ALLOW / REVIEW / BLOCK).
-          </div>
-        </details>
+      <div class="bp-card">
+        <div class="acc-body" style="padding:0;border-top:0;">
+          TruCite was founded by <strong>Mani Subramanian, MD, MMI</strong> — physician executive, clinical informatics architect, and technology strategist — to address a widening gap in the AI era: systems can now generate decisions, analysis, and guidance at scale, but there is no independent layer ensuring those outputs are reliable enough to trust in high-stakes environments.
+          <br /><br />
+          After years leading clinical informatics, large-scale EHR transformation, and technology-driven care redesign, Mani saw firsthand how even small inaccuracies can cascade into serious consequences in domains like healthcare and law. As AI systems began entering these same environments, it became clear that generation alone was not enough — AI outputs needed a verification layer that could evaluate reliability before they reached real-world workflows.
+          <br /><br />
+          TruCite was created to be that layer. It is not a chatbot, search tool, or fact-checker. TruCite operates as <strong>independent verification infrastructure</strong>: evaluating structural integrity, evidence relevance, uncertainty signals, and domain risk to produce an auditable <strong>Truth Score</strong> and an enforceable decision outcome (ALLOW / REVIEW / BLOCK).
+          <br /><br />
+          The goal is simple: transform AI from a source of hidden liability into a system that can be deployed with defensible, auditable reliability in the environments where correctness matters most.
+        </div>
       </div>
     </section>
 
-    <!-- LEGAL / NOTICES -->
-    <section id="legal" class="legal-section">
+    <!-- LEGAL -->
+    <section id="legal">
       <h2 class="section-title">Legal &amp; Notices</h2>
 
       <div class="accordion">
-        <details>
-          <summary>Privacy</summary>
-          <div class="acc-body">
-            Your demo input is processed only for the purpose of returning a score. For production and enterprise deployments,
-            a full privacy and data governance policy applies.
+        <div class="accordion-item">
+          <button class="accordion-btn" type="button">Privacy</button>
+          <div class="accordion-panel">
+            <p>
+              TruCite MVP does not sell personal data. Text submitted for verification may be logged for debugging,
+              abuse prevention, and product improvement. Do not submit PHI/PII. (Replace with your final policy text.)
+            </p>
           </div>
-        </details>
+        </div>
 
-        <details>
-          <summary>Disclaimer</summary>
-          <div class="acc-body">
-            TruCite’s scores are heuristic indicators, not legal, clinical, or financial advice. They are meant to support
-            human review — not replace professional judgment.
+        <div class="accordion-item">
+          <button class="accordion-btn" type="button">Disclaimer</button>
+          <div class="accordion-panel">
+            <p>
+              TruCite provides a heuristic trust signal and decision gate for demo purposes. It is not legal, medical,
+              or financial advice. Always verify independently for high-stakes decisions.
+            </p>
           </div>
-        </details>
+        </div>
 
-        <p class="faq-more">
+        <div class="legal-links">
           Legal docs:
-          <a
-            href="https://docs.google.com/document/d/1IQM-Qe-SARh9zOm6HT7YYhYxfO4Q2GEVDTt9ZavyA5E/edit?usp=drivesdk"
-            target="_blank"
-            rel="noopener"
-          >
-            Terms of Service
-          </a>
+          <a href="#tos">Terms of Service</a>
           &nbsp;•&nbsp;
-          <a
-            href="https://docs.google.com/document/d/1ZBRksw_MOzfvP4cqxxnQp54cz-aqXF5j-jsur-EdL3E/edit?usp=drivesdk"
-            target="_blank"
-            rel="noopener"
-          >
-            Privacy Policy
-          </a>
+          <a href="#privacy">Privacy Policy</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- WAITLIST anchor -->
+    <section id="waitlist">
+      <h2 class="section-title">Waitlist</h2>
+      <div class="bp-card">
+        <p style="margin:0;">
+          Join the waitlist to get early access, pilot invites, and integration updates.
+          <br /><br />
+          <a href="#" id="waitlistLink">Open waitlist form →</a>
         </p>
       </div>
     </section>
+
   </main>
 
   <!-- FOOTER -->
-  <footer class="site-footer" id="feedback">
-    <p class="footer-links">
-      <a
-        href="https://docs.google.com/document/d/1oHfzoXv-t0LZNdFwfMUjQKfy8tv9RQJo--HhLYRkPto/edit?usp=drivesdk"
-        target="_blank"
-        rel="noopener"
-      >FAQ</a>
-      •
-      <a
-        href="https://docs.google.com/document/d/1IQM-Qe-SARh9zOm6HT7YYhYxfO4Q2GEVDTt9ZavyA5E/edit?usp=drivesdk"
-        target="_blank"
-        rel="noopener"
-      >Legal</a>
-      •
-      <a
-        href="https://forms.gle/TAQZuVNwYBudi51i6"
-        target="_blank"
-        rel="noopener"
-      >Suggestions / Feedback</a>
-    </p>
-    <p class="footer-note">© 2025 TruCite.ai — Independent Verification Layer for AI Output</p>
+  <footer class="site-footer">
+    <div class="footer-links">
+      <a href="#faq">FAQ</a> &nbsp;•&nbsp;
+      <a href="#legal">Legal</a> &nbsp;•&nbsp;
+      <a href="#waitlist">Suggestions / Feedback</a>
+    </div>
+    <div>© 2025 TruCite.ai — Independent Verification Layer for AI Output</div>
   </footer>
 
-  <script src="/static/script.js?v=999"></script>
+  <!-- JS -->
+  <script src="app.js"></script>
+
+  <!-- inline: small helpers (keeps your accordion working even if app.js changes) -->
+  <script>
+    // Accordion toggle for .accordion-btn / .accordion-panel
+    (function () {
+      const btns = document.querySelectorAll(".accordion-btn");
+      btns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          btn.classList.toggle("active");
+          const panel = btn.nextElementSibling;
+          const isOpen = panel && panel.style.display === "block";
+          if (panel) panel.style.display = isOpen ? "none" : "block";
+        });
+      });
+    })();
+  </script>
+
+  <!-- Copy buttons styling (so they are not white even if CSS misses them) -->
+  <style>
+    .copy-btn{
+      background: rgba(0,0,0,0.65);
+      color: #FFD700;
+      border: 1px solid rgba(255,215,0,0.35);
+      border-radius: 14px;
+      padding: 10px 16px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 0 14px rgba(255,215,0,0.08);
+    }
+    .copy-btn:hover{ filter: brightness(1.08); }
+  </style>
+
 </body>
 </html>
+```0
