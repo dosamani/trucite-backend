@@ -1,9 +1,3 @@
-// TruCite Frontend Script (v25)
-// - Calls backend /verify endpoint
-// - Updates gauge + score + verdict
-// - Renders Decision Gate from backend: data.decision.action + data.decision.reason
-// - Adds copy buttons: payload / curl / response
-
 const API_PATH = "/verify";
 
 function clamp(n, min, max) {
@@ -93,7 +87,7 @@ function showCopyStatus(msg) {
   const el = document.getElementById("copyStatus");
   if (!el) return;
   el.textContent = msg;
-  setTimeout(() => { el.textContent = ""; }, 2500);
+  setTimeout(() => { el.textContent = ""; }, 2200);
 }
 
 async function copyToClipboard(str) {
