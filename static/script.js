@@ -1,172 +1,111 @@
-const VERIFY_ENDPOINT = "/verify";
+const API_URL = "/verify";
+
+const verifyBtn = document.getElementById("verifyBtn");
+const inputText = document.getElementById("inputText");
+const evidenceText = document.getElementById("evidenceText");
+
+const scoreDisplay = document.getElementById("scoreDisplay");
+const scoreVerdict = document.getElementById("scoreVerdict");
+
+const decisionBox = document.getElementById("decisionBox");
+const decisionAction = document.getElementById("decisionAction");
+const decisionReason = document.getElementById("decisionReason");
+
+const resultPre = document.getElementById("result");
+
+const copyJsonBtn = document.getElementById("copyJson");
+const copyCurlBtn = document.getElementById("copyCurl");
+const copyRespBtn = document.getElementById("copyResp");
 
 let lastPayload = null;
-let lastResponseText = "";
-let lastCurl = "";
+let lastResponse = null;
 
-function setStatus(msg) {
-  const el = document.getElementById("verifyStatus");
-  if (el) el.textContent = msg;
-}
+verifyBtn.addEventListener("click", async () => {
+  const text = inputText.value.trim();
+  const evidence = evidenceText.value.trim();
 
-function setDecision(action, reason) {
-  const actionEl = document.getElementById("decisionAction");
-  const reasonEl = document.getElementById("decisionReason");
-
-  if (!actionEl || !reasonEl) return;
-
-  actionEl.classList.remove("action-ALLOW", "action-REVIEW", "action-BLOCK");
-  actionEl.textContent = action || "—";
-  reasonEl.textContent = reason || "";
-
-  if (action === "ALLOW") actionEl.classList.add("action-ALLOW");
-  if (action === "REVIEW") actionEl.classList.add("action-REVIEW");
-  if (action === "BLOCK") actionEl.classList.add("action-BLOCK");
-}
-
-function setGauge(score) {
-  const scoreDisplay = document.getElementById("scoreDisplay");
-  const scoreVerdict = document.getElementById("scoreVerdict");
-  const gaugeFill = document.getElementById("gaugeFill");
-
-  if (scoreDisplay) scoreDisplay.textContent = (score === null || score === undefined) ? "--" : String(score);
-  if (scoreVerdict) scoreVerdict.textContent = (score === null || score === undefined) ? "Score pending…" : "";
-
-  if (!gaugeFill) return;
-
-  const dash = 260; // path dasharray
-  if (score === null || score === undefined) {
-    gaugeFill.style.strokeDashoffset = String(dash);
-    return;
-  }
-  const clamped = Math.max(0, Math.min(100, score));
-  const offset = dash - (dash * (clamped / 100));
-  gaugeFill.style.strokeDashoffset = String(offset);
-}
-
-function pretty(obj) {
-  try { return JSON.stringify(obj, null, 2); } catch { return String(obj); }
-}
-
-async function scoreText() {
-  const inputEl = document.getElementById("inputText");
-  const evidenceEl = document.getElementById("evidenceText");
-  const resultEl = document.getElementById("result");
-
-  const text = (inputEl?.value || "").trim();
-  const evidence = (evidenceEl?.value || "").trim();
-
-  // ✅ IMPORTANT: do nothing if no claim/text
   if (!text) {
-    setStatus("Paste AI output first, then tap VERIFY.");
-    setGauge(null);
-    setDecision("REVIEW", "No input provided.");
-    if (resultEl) resultEl.textContent = "No input provided. Paste text and try again.";
+    alert("Please paste AI-generated text to verify.");
     return;
   }
-
-  setStatus("Verifying…");
-  setGauge(null);
-  setDecision("—", "Awaiting verification…");
-  if (resultEl) resultEl.textContent = "";
 
   const payload = {
-    text,
+    text: text,
     evidence: evidence || "",
     policy_mode: "enterprise"
   };
 
   lastPayload = payload;
-  lastCurl =
-    `curl -s -X POST "${location.origin}${VERIFY_ENDPOINT}" ` +
-    `-H "Content-Type: application/json" ` +
-    `-d '${JSON.stringify(payload)}'`;
+
+  scoreDisplay.textContent = "--";
+  scoreVerdict.textContent = "Scoring...";
+  decisionBox.style.display = "none";
+  resultPre.textContent = "";
 
   try {
-    const res = await fetch(VERIFY_ENDPOINT, {
+    const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      lastResponseText = errText;
-      setStatus(`Error: could not score. Backend returned ${res.status}.`);
-      setDecision("REVIEW", `Backend error ${res.status}.`);
-      if (resultEl) resultEl.textContent = `Backend error (${res.status}): ${errText}`;
-      return;
-    }
+    if (!res.ok) throw new Error("Backend error");
 
     const data = await res.json();
-    lastResponseText = pretty(data);
+    lastResponse = data;
 
-    // score + verdict
-    const score = (typeof data.score === "number") ? data.score : null;
-    setGauge(score);
+    updateGauge(data.score);
+    scoreDisplay.textContent = data.score;
+    scoreVerdict.textContent = data.verdict;
 
-    const verdict = data.verdict || "—";
-    const scoreVerdict = document.getElementById("scoreVerdict");
-    if (scoreVerdict) scoreVerdict.textContent = verdict;
+    showDecision(data.decision);
 
-    // decision gate
-    const action = data?.decision?.action || "—";
-    const reason = data?.decision?.reason || "—";
-    setDecision(action, reason);
+    resultPre.textContent = JSON.stringify(data, null, 2);
 
-    // render raw JSON response
-    if (resultEl) resultEl.textContent = pretty(data);
-
-    setStatus("Done. Tip: Add evidence (URL/DOI/PMID) for high-liability claims.");
-
-  } catch (e) {
-    lastResponseText = String(e);
-    setStatus("Error: could not score. Check backend route and try again.");
-    setGauge(null);
-    setDecision("REVIEW", "Backend unavailable or route mismatch.");
-    if (resultEl) resultEl.textContent = `Error: ${String(e)}`;
+  } catch (err) {
+    scoreDisplay.textContent = "Error";
+    scoreVerdict.textContent = "Backend unavailable";
+    decisionBox.style.display = "block";
+    decisionAction.textContent = "REVIEW";
+    decisionReason.textContent = "Backend unavailable or route mismatch.";
+    decisionAction.className = "review";
   }
+});
+
+function updateGauge(score) {
+  const gaugeFill = document.getElementById("gaugeFill");
+  const maxDegrees = 180;
+  const rotation = (score / 100) * maxDegrees;
+  gaugeFill.style.transform = `rotate(${rotation}deg)`;
 }
 
-/* =======================
-   COPY HELPERS
-======================= */
-async function copyToClipboard(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    setStatus("Copied to clipboard.");
-  } catch {
-    // fallback
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    setStatus("Copied to clipboard.");
-  }
+function showDecision(decision) {
+  decisionBox.style.display = "block";
+  decisionAction.textContent = decision.action;
+  decisionReason.textContent = decision.reason;
+
+  decisionAction.classList.remove("allow", "review", "block");
+
+  const action = (decision.action || "").toUpperCase();
+  if (action === "ALLOW") decisionAction.classList.add("allow");
+  if (action === "REVIEW") decisionAction.classList.add("review");
+  if (action === "BLOCK") decisionAction.classList.add("block");
 }
 
-function copyJSONPayload() {
-  if (!lastPayload) {
-    setStatus("Nothing to copy yet. Run VERIFY first.");
-    return;
-  }
-  copyToClipboard(pretty(lastPayload));
-}
+/* ================= COPY BUTTONS ================= */
 
-function copyCurl() {
-  if (!lastCurl) {
-    setStatus("Nothing to copy yet. Run VERIFY first.");
-    return;
-  }
-  copyToClipboard(lastCurl);
-}
+copyJsonBtn.addEventListener("click", () => {
+  if (!lastPayload) return;
+  navigator.clipboard.writeText(JSON.stringify(lastPayload, null, 2));
+});
 
-function copyResponse() {
-  if (!lastResponseText) {
-    setStatus("Nothing to copy yet. Run VERIFY first.");
-    return;
-  }
-  copyToClipboard(lastResponseText);
-}
+copyCurlBtn.addEventListener("click", () => {
+  if (!lastPayload) return;
+  const curl = `curl -X POST ${location.origin}/verify -H "Content-Type: application/json" -d '${JSON.stringify(lastPayload)}'`;
+  navigator.clipboard.writeText(curl);
+});
+
+copyRespBtn.addEventListener("click", () => {
+  if (!lastResponse) return;
+  navigator.clipboard.writeText(JSON.stringify(lastResponse, null, 2));
+});
