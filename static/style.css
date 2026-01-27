@@ -551,3 +551,21 @@ details[open] summary::after { content: "▲"; }
 
 /* If your HTML uses a span like <span id="decisionText">ALLOW</span> */
 #decisionText { color: #2fe57a !important; font-weight: 1000; }
+/* =======================
+   DECISION ACTION COLORS
+======================= */
+
+.allow {
+  color: #2fe57a !important; /* Green */
+  font-weight: 1000;
+}
+
+.review {
+  color: #FFD700 !important; /* Gold */
+  font-weight: 1000;
+}
+
+.block {
+  color: #ff4d4d !important; /* Red */
+  font-weight: 1000;
+}
