@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TruCite.ai — Independent Verification Layer for AI Output</title>
-  <link rel="stylesheet" href="/static/style.css?v=25" />
+  <link rel="stylesheet" href="/static/style.css?v=26" />
 </head>
 <body>
 
-  <!-- Top Nav: ONLY waitlist on top-right -->
+  <!-- Top Nav -->
   <header class="top-nav" role="banner" aria-label="Top navigation">
     <div class="top-nav-inner">
       <a
@@ -28,9 +28,7 @@
     <img src="/static/logo.jpg?v=1" alt="TruCite Logo" class="logo" />
     <h1>TruCite.ai<sup class="tm">™</sup></h1>
 
-    <p class="hero-tagline">
-      Independent AI Verification &amp; Decision Gate
-    </p>
+    <p class="hero-tagline">Independent AI Verification &amp; Decision Gate</p>
 
     <p class="hero-subtitle">
       Detect hallucinations, fabricated citations, and hidden risk — before AI output becomes liability.
@@ -47,8 +45,7 @@
     </p>
 
     <p class="hero-subtitle hero-subtitle-tight">
-      Designed to complement retrieval systems — TruCite evaluates whether AI output is reliable,
-      not where it came from.
+      Designed to complement retrieval systems — TruCite evaluates whether AI output is reliable, not where it came from.
     </p>
 
     <p class="hero-mini-links">
@@ -59,7 +56,7 @@
   </header>
 
   <main>
-    <!-- VERIFY SECTION -->
+    <!-- VERIFY -->
     <section class="verify-section" id="verify">
       <h2 class="section-title">VERIFY AI &amp; AGENT OUTPUT</h2>
       <p class="section-subtitle">
@@ -69,7 +66,6 @@
 
       <textarea id="inputText" placeholder="Paste AI- or agent-generated text here…"></textarea>
 
-      <!-- Evidence box -->
       <textarea
         id="evidenceText"
         class="evidence-box"
@@ -80,14 +76,13 @@
 
       <!-- Copy tools -->
       <div class="copy-row" aria-label="Copy tools">
-        <button class="secondary-btn" onclick="copyPayload()">Copy JSON payload</button>
-        <button class="secondary-btn" onclick="copyCurl()">Copy curl</button>
-        <button class="secondary-btn" onclick="copyResponse()">Copy response</button>
+        <button class="mini-btn" onclick="copyPayload()">Copy JSON payload</button>
+        <button class="mini-btn" onclick="copyCurl()">Copy curl</button>
+        <button class="mini-btn" onclick="copyResponse()">Copy response</button>
       </div>
 
-      <p id="copyStatus" class="section-subtitle" style="margin-top:10px;"></p>
+      <p id="copyStatus" class="copy-status"></p>
 
-      <!-- Small status line under button -->
       <p id="verifyStatus" class="section-subtitle" style="margin-top:10px;">
         Tip: High-liability numeric claims will be capped unless evidence is provided.
       </p>
@@ -95,12 +90,7 @@
       <!-- Gauge -->
       <div id="gaugeContainer" aria-label="Truth score gauge">
         <svg id="gauge" width="220" height="120">
-          <path
-            d="M20 100 A90 90 0 0 1 200 100"
-            stroke="#333"
-            stroke-width="18"
-            fill="none"
-          />
+          <path d="M20 100 A90 90 0 0 1 200 100" stroke="#333" stroke-width="18" fill="none" />
           <path
             id="gaugeFill"
             d="M20 100 A90 90 0 0 1 200 100"
@@ -116,7 +106,7 @@
         <div id="scoreVerdict">Score pending…</div>
       </div>
 
-      <!-- Decision Gate box -->
+      <!-- Decision Gate -->
       <div class="decision-box" aria-label="Decision gate verdict">
         <div class="decision-title">Decision Gate</div>
         <div id="gateAction" class="decision-action">—</div>
@@ -129,7 +119,7 @@
       </div>
     </section>
 
-    <!-- HOW TRUCITE WORKS -->
+    <!-- HOW -->
     <section id="how" class="blueprint-section">
       <h2 class="section-title">How TruCite Works</h2>
       <div class="blueprint-grid">
@@ -137,9 +127,7 @@
           <div class="bp-label">1. Ingest</div>
           <p>TruCite receives AI output, metadata (model, context), and optional sources.</p>
           <div class="bp-diagram">
-            <span class="bp-node">AI</span>
-            <span class="bp-arrow">→</span>
-            <span class="bp-node">TruCite</span>
+            <span class="bp-node">AI</span><span class="bp-arrow">→</span><span class="bp-node">TruCite</span>
           </div>
         </div>
 
@@ -147,9 +135,7 @@
           <div class="bp-label">2. Analyze</div>
           <p>We inspect structure, numeric references, uncertainty language, citation signals, and known hallucination patterns.</p>
           <div class="bp-diagram">
-            <span class="bp-node">Structure</span>
-            <span class="bp-node">Signals</span>
-            <span class="bp-node">Patterns</span>
+            <span class="bp-node">Structure</span><span class="bp-node">Signals</span><span class="bp-node">Patterns</span>
           </div>
         </div>
 
@@ -160,15 +146,13 @@
             enabling audit trails for drift and compliance.
           </p>
           <div class="bp-diagram">
-            <span class="bp-node">Score</span>
-            <span class="bp-node">ALLOW/REVIEW/BLOCK</span>
-            <span class="bp-node">Audit</span>
+            <span class="bp-node">Score</span><span class="bp-node">ALLOW/REVIEW/BLOCK</span><span class="bp-node">Audit</span>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- WHY TRUCITE WINS -->
+    <!-- WHY -->
     <section id="why" class="wins-section">
       <h2 class="section-title">Why TruCite Wins</h2>
       <div class="wins-grid">
@@ -206,7 +190,7 @@
       </div>
     </section>
 
-    <!-- FAQ's -->
+    <!-- FAQ -->
     <section id="faq" class="faq-section">
       <h2 class="section-title">FAQ's</h2>
 
@@ -224,25 +208,9 @@
         <details>
           <summary>How is TruCite different from OpenEvidence?</summary>
           <div class="acc-body">
-            OpenEvidence (and similar tools) primarily focus on <strong>retrieval and citations</strong> — surfacing
-            sources to support an answer. TruCite is a <strong>verification layer</strong>: we score the
-            <strong>output itself</strong> for reliability and return an audit-grade verdict and decision action.
-          </div>
-        </details>
-
-        <details>
-          <summary>Is this just “AI correcting AI”? Isn’t that risky?</summary>
-          <div class="acc-body">
-            TruCite does not replace your models or generate new content. It operates as an independent verification
-            layer that scores AI outputs and enforces decision outcomes before outputs are used downstream.
-          </div>
-        </details>
-
-        <details>
-          <summary>What exactly is a “truth score”?</summary>
-          <div class="acc-body">
-            The truth score is a composite indicator — not a magical oracle. It blends structural features, uncertainty and
-            hallucination signals, and evidence relevance heuristics into an auditable decision gate.
+            OpenEvidence (and similar tools) primarily focus on <strong>retrieval and citations</strong>.
+            TruCite is a <strong>verification layer</strong>: we score the <strong>output itself</strong> and return an
+            audit-grade verdict + enforceable decision action.
           </div>
         </details>
 
@@ -258,7 +226,7 @@
       </div>
     </section>
 
-    <!-- FOUNDER STORY -->
+    <!-- FOUNDER -->
     <section id="founder" class="founder-section">
       <h2 class="section-title">Founder Story</h2>
       <div class="accordion">
@@ -277,7 +245,7 @@
       </div>
     </section>
 
-    <!-- LEGAL / NOTICES -->
+    <!-- LEGAL -->
     <section id="legal" class="legal-section">
       <h2 class="section-title">Legal &amp; Notices</h2>
 
@@ -295,14 +263,6 @@
           <div class="acc-body">
             TruCite’s scores are heuristic indicators, not legal, clinical, or financial advice. They are meant to support
             human review — not replace professional judgment.
-          </div>
-        </details>
-
-        <details>
-          <summary>Patent &amp; Status</summary>
-          <div class="acc-body">
-            Certain aspects of TruCite’s scoring, drift detection, and verification framework may be covered by pending
-            intellectual property filings.
           </div>
         </details>
 
@@ -352,6 +312,6 @@
     <p class="footer-note">© 2025 TruCite.ai — Independent Verification Layer for AI Output</p>
   </footer>
 
-  <script src="/static/script.js?v=25"></script>
+  <script src="/static/script.js?v=26"></script>
 </body>
 </html>
