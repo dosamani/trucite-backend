@@ -1,4 +1,3 @@
-
 import os
 import time
 import hashlib
@@ -58,6 +57,7 @@ def verify():
 
     payload = request.get_json(silent=True) or {}
     text = (payload.get("text") or "").strip()
+    evidence = (payload.get("evidence") or "").strip()
 
     if not text:
         return jsonify({"error": "Missing 'text' in request body"}), 400
@@ -91,13 +91,25 @@ def verify():
         try:
             score, verdict, explanation = score_claim_text(text)
         except Exception:
-            score, verdict, explanation = heuristic_score(text)
+            score, verdict, explanation = heuristic_score(text, evidence)
     else:
-        score, verdict, explanation = heuristic_score(text)
+        score, verdict, explanation = heuristic_score(text, evidence)
+
+    # Decision Gate (ALWAYS included so frontend is consistent)
+    if score >= 75:
+        action = "ALLOW"
+        reason = "High confidence per current MVP scoring."
+    elif score >= 55:
+        action = "REVIEW"
+        reason = "Medium confidence. Human verification recommended."
+    else:
+        action = "BLOCK"
+        reason = "Low confidence. Do not use without verification."
 
     resp = {
         "verdict": verdict,
         "score": int(score),
+        "decision": {"action": action, "reason": reason},
         "event_id": event_id,
         "audit_fingerprint": {
             "sha256": sha,
@@ -110,12 +122,15 @@ def verify():
     return jsonify(resp), 200
 
 
-def heuristic_score(text: str):
+def heuristic_score(text: str, evidence: str = ""):
     """
     Simple MVP heuristic scoring (0-100).
-    You can replace this later with evidence-backed scoring.
+    - Keeps your original behavior as baseline
+    - Adds a small "obvious fact" bump for short, non-numeric declarative claims
+    - Penalizes numeric/liability claims unless evidence is provided
     """
-    t = text.lower()
+    t = (text or "").lower()
+    ev = (evidence or "").strip()
 
     # crude signals
     risky = ["always", "never", "guaranteed", "cure", "100%", "proof", "definitely"]
@@ -133,6 +148,20 @@ def heuristic_score(text: str):
     if len(text) > 800:
         score -= 10
 
+    # Numeric/liability: penalize unless evidence is provided
+    has_digit = any(ch.isdigit() for ch in text)
+    if has_digit and not ev:
+        score -= 18
+    if has_digit and ev:
+        score += 8  # evidence present helps numeric claims
+
+    # "Obvious fact" bump (short, declarative, non-numeric)
+    # Example: "Capital of France is Paris" should not sit at baseline 55.
+    if len(text) < 140 and not has_digit:
+        if " is " in t or " are " in t:
+            # bump but don't go crazy
+            score += 25
+
     score = max(0, min(100, score))
 
     if score >= 75:
@@ -143,8 +172,9 @@ def heuristic_score(text: str):
         verdict = "High risk of error / hallucination"
 
     explanation = (
-        "MVP heuristic score. This demo evaluates linguistic certainty/uncertainty cues "
-        "and basic risk signals. Replace with evidence-backed verification in production."
+        "MVP heuristic score. This demo evaluates linguistic certainty/uncertainty cues, "
+        "basic risk signals, and applies conservative handling for numeric/liability claims "
+        "unless evidence is provided. Replace with evidence-backed verification in production."
     )
 
     return score, verdict, explanation
