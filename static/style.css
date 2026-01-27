@@ -431,3 +431,80 @@ details[open] summary::after { content: "▲"; }
   color: #FFD700;
   font-weight: 900;
 }
+/* =======================
+   DECISION GATE (RESTORE CARD)
+   (works with multiple HTML variants)
+======================= */
+
+/* Outer wrapper spacing */
+#decisionContainer,
+#decisionGateContainer,
+.decision-wrapper,
+.decision-section {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+}
+
+/* The actual card */
+#decisionBox,
+#decisionCard,
+.decision-box,
+.decision-card,
+#decisionGateBox {
+  width: 100%;
+  max-width: 720px;
+  border: 1px solid rgba(255,215,0,0.45);
+  border-radius: 18px;
+  background: rgba(0,0,0,0.65);
+  box-shadow: 0 0 18px rgba(255,215,0,0.10);
+  padding: 20px 18px;
+  text-align: center;
+  margin: 18px auto 0;
+}
+
+/* Title */
+#decisionTitle,
+.decision-title,
+.decision-card h3 {
+  margin: 0 0 10px;
+  color: #fff;
+  font-size: 1.30rem;
+  font-weight: 900;
+}
+
+/* Big action text (ALLOW/REVIEW/BLOCK) */
+#decisionAction,
+.decision-action,
+.decision-status {
+  margin: 6px 0 6px;
+  font-size: 1.55rem;
+  font-weight: 1000;
+  letter-spacing: 0.04em;
+}
+
+/* Reason text under action */
+#decisionReason,
+.decision-reason,
+.decision-message {
+  margin: 0;
+  color: #d9d9d9;
+  font-size: 1.02rem;
+  line-height: 1.55;
+}
+
+/* Optional: color-code the action if your JS sets data-action */
+#decisionBox[data-action="ALLOW"] #decisionAction,
+#decisionCard[data-action="ALLOW"] #decisionAction,
+.decision-box[data-action="ALLOW"] .decision-action,
+.decision-card[data-action="ALLOW"] .decision-action { color: #2fe57a; }
+
+#decisionBox[data-action="REVIEW"] #decisionAction,
+#decisionCard[data-action="REVIEW"] #decisionAction,
+.decision-box[data-action="REVIEW"] .decision-action,
+.decision-card[data-action="REVIEW"] .decision-action { color: #FFD700; }
+
+#decisionBox[data-action="BLOCK"] #decisionAction,
+#decisionCard[data-action="BLOCK"] #decisionAction,
+.decision-box[data-action="BLOCK"] .decision-action,
+.decision-card[data-action="BLOCK"] .decision-action { color: #ff4d4d; }
