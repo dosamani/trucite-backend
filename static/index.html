@@ -4,108 +4,133 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TruCite.ai — Independent Verification Layer for AI Output</title>
-  <link rel="stylesheet" href="/static/style.css?v=1001" />
+  <link rel="stylesheet" href="/static/style.css?v=1000" />
 </head>
 <body>
 
-<header class="top-nav">
-  <div class="top-nav-inner">
-    <a href="https://forms.gle/G8iqhAtJxJmeMMhs7" target="_blank" class="top-nav-cta">
-      Join the waitlist →
-    </a>
-  </div>
-</header>
+  <header class="top-nav">
+    <div class="top-nav-inner">
+      <a href="https://forms.gle/G8iqhAtJxJmeMMhs7" target="_blank" class="top-nav-cta">
+        Join the waitlist!! →
+      </a>
+    </div>
+  </header>
 
-<header class="hero">
-  <img src="/static/logo.jpg" alt="TruCite Logo" class="logo" />
-  <h1>TruCite.ai<sup class="tm">™</sup></h1>
+  <header class="hero">
+    <img src="/static/logo.jpg?v=1" alt="TruCite Logo" class="logo" />
+    <h1>TruCite.ai<sup class="tm">™</sup></h1>
 
-  <p class="hero-tagline">Independent AI Verification & Decision Gate</p>
+    <p class="hero-tagline">
+      Independent AI Verification & Decision Gate
+    </p>
 
-  <p class="hero-subtitle">
-    Detect hallucinations, fabricated citations, and hidden risk — before AI output becomes liability.
-  </p>
+    <p class="hero-subtitle">
+      Detect hallucinations, fabricated citations, and hidden risk — before AI output becomes liability.
+    </p>
 
-  <p class="hero-missing-layer">
-    TruCite is the missing verification layer between AI capability and AI reliability.
-  </p>
-</header>
+    <p class="hero-subtitle">
+      TruCite evaluates the <strong>structural integrity</strong>, <strong>consistency</strong>, <strong>uncertainty signals</strong>,
+      and <strong>drift risk</strong> of AI-generated content — producing audit-grade reliability scores for regulated and high-risk environments.
+      Built for law, healthcare, finance, and other high-liability domains where AI mistakes carry real consequences.
+    </p>
 
-<!-- NEW SECTION -->
-<section class="bp-card bright-card" style="max-width:920px;margin:0 auto 12px;">
-  <div class="bp-label">Why TruCite Exists</div>
-  <p>
-    AI can generate confident output at scale — but confidence is not correctness.
-    In high-liability workflows, hallucinated facts, fabricated citations,
-    and numeric errors create legal, clinical, and financial risk.
-  </p>
-  <p style="margin-top:10px;">
-    TruCite was built as the independent verification layer between AI capability and AI reliability —
-    scoring output integrity and enforcing a Decision Gate before downstream use.
-  </p>
-</section>
+    <p class="hero-missing-layer">
+      TruCite is the missing verification layer between AI capability and AI reliability.
+    </p>
 
-<section class="bp-card bright-card" style="max-width:920px;margin:0 auto 12px;">
-  <div class="bp-label">What TruCite Is (and Is Not)</div>
-  <p><strong>TruCite is:</strong> a verification and enforcement layer that evaluates AI output and returns a Truth Score + Decision Gate action.</p>
-  <p style="margin-top:10px;"><strong>TruCite is not:</strong> a chatbot, search engine, or citation list. It does not generate answers — it evaluates reliability.</p>
-</section>
+    <p class="hero-mini-links">
+      <a href="https://forms.gle/TAQZuVNwYBudi51i6" target="_blank">
+        Request early access to TruCite
+      </a>
+    </p>
+  </header>
 
-<section class="bp-card bright-card" style="max-width:920px;margin:0 auto 20px;">
-  <div class="bp-label">Where TruCite Fits</div>
-  <p>
-    TruCite sits downstream of LLMs and agents, and upstream of high-risk use:
-    contracts, clinical notes, financial reports, policy documents, and more.
-    It complements retrieval systems — TruCite evaluates reliability, not just sources.
-  </p>
-</section>
+  <main>
 
-<main>
+    <!-- WHY TRUCITE EXISTS -->
+    <section id="why-exists" class="wins-section">
+      <h2 class="section-title">Why TruCite Exists</h2>
+      <div class="wins-grid">
+        <div class="win-card bright-card">
+          <p>
+            AI systems are rapidly being deployed into high-stakes environments — healthcare, law, finance, compliance —
+            where incorrect outputs carry real-world consequences. Yet most AI systems provide no independent layer
+            to assess reliability before decisions are made.
+          </p>
+          <p>
+            TruCite exists to bridge this gap. It serves as an independent verification layer that evaluates AI output
+            for structural integrity, internal consistency, uncertainty patterns, and evidence signals —
+            producing a defensible Truth Score and an enforceable Decision Gate action.
+          </p>
+        </div>
+      </div>
+    </section>
 
-<section class="verify-section">
-  <h2 class="section-title">VERIFY AI & AGENT OUTPUT</h2>
+    <!-- USE CASES -->
+    <section id="use-cases" class="wins-section">
+      <h2 class="section-title">Where TruCite Is Used</h2>
+      <div class="wins-grid">
 
-  <textarea id="inputText" placeholder="Paste AI- or agent-generated text here…"></textarea>
-  <textarea id="evidenceText" class="evidence-box" placeholder="Optional: Paste supporting evidence (URLs / DOI / PMID)"></textarea>
+        <div class="win-card bright-card">
+          <h3>Healthcare AI</h3>
+          <p>
+            Clinical AI systems can hallucinate studies, misstate dosing, or fabricate guideline references.
+            TruCite evaluates output reliability before it reaches physicians, charts, or care pathways —
+            helping prevent unsafe clinical decisions driven by AI error.
+          </p>
+        </div>
 
-  <button class="primary-btn">VERIFY</button>
+        <div class="win-card bright-card">
+          <h3>Legal AI & Research</h3>
+          <p>
+            Generative AI tools can produce fabricated case law, misquoted statutes, or unsupported legal reasoning.
+            TruCite provides a verification layer and decision gate so unreliable outputs can be reviewed or blocked
+            before entering briefs, contracts, or advisory workflows.
+          </p>
+        </div>
 
-  <div class="copy-row">
-    <button class="copy-btn" id="copyPayload">Copy JSON payload</button>
-    <button class="copy-btn" id="copycurl">Copy curl</button>
-    <button class="copy-btn" id="copyResponse">Copy response</button>
-  </div>
+        <div class="win-card bright-card">
+          <h3>Financial & Compliance AI</h3>
+          <p>
+            AI-generated financial analysis may include incorrect figures, outdated regulations, or invented sources.
+            TruCite helps ensure outputs meet reliability thresholds before being used in reporting, compliance,
+            or risk-sensitive financial decisions.
+          </p>
+        </div>
 
-  <div id="gaugeContainer">
-    <svg width="220" height="120">
-      <path d="M20 100 A90 90 0 0 1 200 100" stroke="#333" stroke-width="18" fill="none"/>
-      <path id="gaugeFill" d="M20 100 A90 90 0 0 1 200 100" stroke="#FFD700" stroke-width="18" fill="none" stroke-dasharray="260" stroke-dashoffset="260"/>
-    </svg>
-    <div id="scoreDisplay">--</div>
-    <div id="scoreVerdict">Score pending…</div>
-  </div>
+      </div>
+    </section>
 
-  <div class="decision-card">
-    <div class="decision-title">Decision Gate</div>
-    <div id="decisionAction" class="decision-action">—</div>
-    <div id="decisionReason" class="decision-reason">Awaiting verification…</div>
-  </div>
+    <!-- HOW TRUCITE WORKS -->
+    <section id="how" class="blueprint-section">
+      <h2 class="section-title">How TruCite Works</h2>
+      <div class="blueprint-grid">
+        <div class="bp-card bright-card">
+          <div class="bp-label">1. Ingest</div>
+          <p>TruCite receives AI output, metadata (model, context), and optional sources.</p>
+        </div>
+        <div class="bp-card bright-card">
+          <div class="bp-label">2. Analyze</div>
+          <p>We inspect structure, numeric references, uncertainty language, citation signals, and known hallucination patterns.</p>
+        </div>
+        <div class="bp-card bright-card">
+          <div class="bp-label">3. Score & Gate</div>
+          <p>TruCite returns a Truth Score, decision action, and explanation for audit trails.</p>
+        </div>
+      </div>
+    </section>
 
-  <div class="result-wrapper">
-    <div class="result-label">Validation details, explanation & references</div>
-    <pre id="result"></pre>
-  </div>
-</section>
+  </main>
 
-<!-- REST OF YOUR EXISTING SECTIONS REMAIN UNCHANGED -->
-<!-- (How TruCite Works, Why TruCite Wins, FAQ, Founder Story, Legal, Footer) -->
+  <footer class="site-footer">
+    <p class="footer-links">
+      <a href="#faq">FAQ</a> •
+      <a href="#legal">Legal</a> •
+      <a href="https://forms.gle/TAQZuVNwYBudi51i6" target="_blank">Suggestions / Feedback</a>
+    </p>
+    <p class="footer-note">© 2025 TruCite.ai — Independent Verification Layer for AI Output</p>
+  </footer>
 
-</main>
-
-<footer class="site-footer">
-  <p>© 2025 TruCite.ai — Independent Verification Layer for AI Output</p>
-</footer>
-
-<script src="/static/script.js?v=1001"></script>
+  <script src="/static/script.js?v=999"></script>
 </body>
 </html>
