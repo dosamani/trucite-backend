@@ -1,4 +1,10 @@
 /* =======================
+   TruCite.ai — style.css (LOCKED / SAFE)
+   Black + Gold theme
+   Works with your current index.html + script.js
+======================= */
+
+/* =======================
    BASE / RESET
 ======================= */
 * { box-sizing: border-box; }
@@ -83,6 +89,10 @@ details, summary { -webkit-tap-highlight-color: transparent; }
   color: #ccc;
 }
 
+.hero-subtitle-tight {
+  margin-top: 6px;
+}
+
 .hero-missing-layer{
   margin: 12px auto 0;
   max-width: 760px;
@@ -92,9 +102,10 @@ details, summary { -webkit-tap-highlight-color: transparent; }
   text-shadow: 0 0 14px rgba(255,215,0,0.25);
 }
 
-/* Optional helper classes used in your HTML */
-.hero-subtitle-tight { margin-top: 6px; }
-.hero-mini-links { margin-top: 10px; }
+.hero-mini-links {
+  margin: 10px auto 0;
+  font-weight: 800;
+}
 
 /* =======================
    MAIN
@@ -115,9 +126,9 @@ main {
   color: #FFD700;
 }
 
-.section-subtitle{
+.section-subtitle {
   margin: 10px auto 12px;
-  max-width: 760px;
+  max-width: 720px;
   font-size: 0.95rem;
   color: #ccc;
   text-align: center;
@@ -131,7 +142,7 @@ main {
 textarea {
   width: 100%;
   max-width: 720px;
-  height: 150px;
+  min-height: 150px;
   background: #000;
   color: #fff;
   border-radius: 14px;
@@ -148,17 +159,20 @@ textarea:focus {
   box-shadow: 0 0 26px rgba(255,215,0,0.22);
 }
 
-/* Glow also when user has typed */
+/* Glow also when user has typed (not only focus) */
 textarea:not(:placeholder-shown) {
   border-color: rgba(255,215,0,0.85);
   box-shadow: 0 0 26px rgba(255,215,0,0.18);
 }
 
-/* Evidence box is slightly shorter */
-.evidence-box { height: 110px; margin-top: 12px; }
+/* Evidence box slightly smaller by default */
+.evidence-box {
+  min-height: 110px;
+  margin-top: 12px;
+}
 
 /* =======================
-   BUTTON (VERIFY)
+   BUTTON
 ======================= */
 @keyframes goldPulse {
   0%   { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
@@ -201,7 +215,11 @@ textarea:not(:placeholder-shown) {
   box-shadow: 0 0 12px rgba(255,215,0,0.10);
 }
 
-.copy-btn:hover{ filter: brightness(1.10); text-decoration: none; }
+.copy-btn:hover{
+  filter: brightness(1.10);
+  text-decoration: none;
+}
+
 .copy-btn:active{ transform: translateY(1px); }
 .copy-btn:focus{ outline: none; }
 .copy-btn:focus-visible{
@@ -210,9 +228,11 @@ textarea:not(:placeholder-shown) {
 }
 
 /* =======================
-   GAUGE
+   GAUGE (SVG stroke-dashoffset)
 ======================= */
-#gaugeContainer { margin-top: 28px; }
+#gaugeContainer { margin-top: 28px; display: grid; place-items: center; }
+
+#gauge { overflow: visible; }
 
 #scoreDisplay {
   margin-top: 8px;
@@ -220,15 +240,17 @@ textarea:not(:placeholder-shown) {
   font-weight: 900;
   color: #FFD700;
 }
-#scoreVerdict { margin-top: 6px; font-size: 0.95rem; color: #ccc; }
+
+#scoreVerdict {
+  margin-top: 6px;
+  font-size: 0.95rem;
+  color: #ccc;
+}
 
 /* =======================
-   DECISION GATE (CLEAN + RELIABLE)
+   DECISION GATE CARD
 ======================= */
-.decision-card,
-.decision-box,
-#decisionBox,
-#decisionCard {
+.decision-card {
   width: 100%;
   max-width: 720px;
   border: 1px solid rgba(255,215,0,0.45);
@@ -240,39 +262,31 @@ textarea:not(:placeholder-shown) {
   margin: 18px auto 0;
 }
 
-.decision-title{
+.decision-title {
   margin: 0 0 10px;
   color: #fff;
   font-size: 1.30rem;
   font-weight: 900;
 }
 
-.decision-action,
-#decisionAction{
+.decision-action {
   margin: 6px 0 6px;
   font-size: 1.55rem;
   font-weight: 1000;
   letter-spacing: 0.04em;
-  color: #FFD700; /* default */
 }
 
-.decision-reason,
-#decisionReason{
+.decision-reason {
   margin: 0;
   color: #d9d9d9;
   font-size: 1.02rem;
   line-height: 1.55;
 }
 
-/* These 3 are the ONLY truth for colors */
-.decision-action.allow,
-#decisionAction.allow { color: #28d17c !important; }
-
-.decision-action.review,
-#decisionAction.review { color: #FFD700 !important; }
-
-.decision-action.block,
-#decisionAction.block { color: #ff3b3b !important; }
+/* Action color classes (JS toggles allow/review/block) */
+.allow { color: #2fe57a !important; font-weight: 1000; }
+.review { color: #FFD700 !important; font-weight: 1000; }
+.block { color: #ff4d4d !important; font-weight: 1000; }
 
 /* =======================
    RESULT BOX
@@ -283,6 +297,7 @@ textarea:not(:placeholder-shown) {
   font-size: 0.85rem;
   color: #FFD700;
   margin-bottom: 6px;
+  text-align: center;
 }
 
 pre#result {
@@ -310,12 +325,28 @@ pre#result {
   margin: 14px 0;
 }
 
+.blueprint-grid,
+.wins-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 860px) {
+  .blueprint-grid,
+  .wins-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 .bp-label {
   font-weight: 900;
   color: #FFD700;
   margin-bottom: 10px;
   font-size: 1.05rem;
 }
+
+.bp-card p { margin: 0; color: #d9d9d9; font-size: 1.02rem; line-height: 1.55; }
 
 .wins-grid h3 {
   margin: 0 0 10px;
@@ -324,8 +355,7 @@ pre#result {
   font-weight: 900;
 }
 
-.bp-card p { margin: 0; color: #d9d9d9; font-size: 1.02rem; line-height: 1.55; }
-
+/* Diagram pills */
 .bp-diagram { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .bp-node {
   display: inline-block;
@@ -382,18 +412,34 @@ details[open] summary::after { content: "▲"; }
   line-height: 1.55;
 }
 
-/* FAQ "See full..." centered */
+/* =======================
+   FAQ "See full..." centered
+======================= */
+.faq-footer,
 .faq-more {
   text-align: center !important;
   width: 100% !important;
   display: block !important;
   margin: 14px 0 0 !important;
 }
+
+.faq-footer a,
 .faq-more a {
   display: inline-block !important;
   font-weight: 900 !important;
   color: #FFD700 !important;
 }
+
+/* =======================
+   Legal links line
+======================= */
+.legal-links {
+  margin: 12px auto 0;
+  text-align: center;
+  color: #bbb;
+  font-size: 0.98rem;
+}
+.legal-links a { color: #FFD700; font-weight: 900; }
 
 /* =======================
    FOOTER
@@ -406,4 +452,18 @@ details[open] summary::after { content: "▲"; }
 
 .footer-links { margin-bottom: 12px; }
 .footer-links a { color: #FFD700; font-weight: 900; }
-.footer-note { color: #777; }
+
+.footer-note {
+  margin-top: 8px;
+  font-size: 0.92rem;
+  color: #9a9a9a;
+}
+
+/* =======================
+   MOBILE TUNING
+======================= */
+@media (max-width: 520px) {
+  .primary-btn { width: 220px; }
+  textarea { font-size: 0.92rem; }
+  .section-title { font-size: 1.15rem; }
+}
