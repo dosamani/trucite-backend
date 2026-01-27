@@ -2,9 +2,9 @@
 // - Calls backend scoring endpoint
 // - Updates gauge + score + verdict
 // - Renders raw JSON into #result
-// - Adds Decision Gate block (ALLOW / REVIEW / BLOCK)
+// - Renders Decision Gate from backend: data.decision.action + data.decision.reason
 
-const API_PATH = "/score"; // <-- change to "/verify" if your backend route differs
+const API_PATH = "/score"; // keep as-is since it clearly works
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
@@ -27,67 +27,56 @@ function setVerdictText(score, verdictTextFromAPI) {
   const scoreVerdict = document.getElementById("scoreVerdict");
   const s = clamp(Number(score) || 0, 0, 100);
 
-  // If backend gave explicit verdict, prefer it
   if (verdictTextFromAPI && typeof verdictTextFromAPI === "string") {
     scoreVerdict.textContent = verdictTextFromAPI;
     return;
   }
 
-  // Otherwise infer something reasonable
   if (s >= 85) scoreVerdict.textContent = "High reliability (demo)";
   else if (s >= 60) scoreVerdict.textContent = "Moderate reliability (review recommended)";
   else scoreVerdict.textContent = "Low reliability (high risk)";
 }
 
-function setDecisionGate(data, score) {
+function setDecisionGateFromBackend(data, score) {
   const gateActionEl = document.getElementById("gateAction");
   const gateReasonEl = document.getElementById("gateReason");
 
-  // Try multiple schema shapes
-  const gate =
-    data.decision_gate ||
+  // ✅ Your backend schema: data.decision.action + data.decision.reason
+  const decisionObj =
     data.decision ||
+    data.decision_gate ||
     data.gate ||
-    data.verdict_action ||
-    data.action ||
     null;
 
   let action = null;
+  let reason = null;
 
-  // Normalize action
-  if (typeof gate === "string") {
-    const g = gate.toUpperCase();
-    if (g.includes("ALLOW") || g.includes("PASS") || g.includes("APPROVE")) action = "ALLOW";
-    else if (g.includes("BLOCK") || g.includes("FAIL") || g.includes("DENY")) action = "BLOCK";
-    else action = "REVIEW";
-  } else if (gate && typeof gate === "object") {
-    const raw = (gate.action || gate.outcome || gate.label || "").toString().toUpperCase();
-    if (raw.includes("ALLOW") || raw.includes("PASS") || raw.includes("APPROVE")) action = "ALLOW";
-    else if (raw.includes("BLOCK") || raw.includes("FAIL") || raw.includes("DENY")) action = "BLOCK";
+  if (decisionObj && typeof decisionObj === "object") {
+    action = (decisionObj.action || decisionObj.outcome || decisionObj.label || null);
+    reason = (decisionObj.reason || decisionObj.rationale || decisionObj.explanation || null);
+  }
+
+  // Normalize action if present
+  if (typeof action === "string") {
+    const a = action.toUpperCase();
+    if (a.includes("ALLOW") || a.includes("PASS") || a.includes("APPROVE")) action = "ALLOW";
+    else if (a.includes("BLOCK") || a.includes("FAIL") || a.includes("DENY")) action = "BLOCK";
     else action = "REVIEW";
   }
 
-  // Reason
-  const reason =
-    (gate && typeof gate === "object" && (gate.reason || gate.rationale || gate.explanation)) ||
-    data.gate_reason ||
-    data.reason ||
-    data.rationale ||
-    data.explanation ||
-    "See validation details below.";
-
-  // If no gate returned, infer from score (configurable thresholds)
+  // If backend didn't provide action for some reason, infer from score
   if (!action) {
     const s = clamp(Number(score) || 0, 0, 100);
     action = s >= 80 ? "ALLOW" : s < 50 ? "BLOCK" : "REVIEW";
-    gateReasonEl.textContent = "Inferred from Truth Score threshold (configurable).";
-  } else {
-    gateReasonEl.textContent = reason;
+    reason = "Inferred from Truth Score threshold (configurable).";
   }
 
-  gateActionEl.textContent = action;
+  if (!reason) reason = "See validation details below.";
 
-  // Simple color cue (no CSS dependency)
+  gateActionEl.textContent = action;
+  gateReasonEl.textContent = reason;
+
+  // Simple color cue
   gateActionEl.style.color =
     action === "ALLOW" ? "#32D583" : action === "BLOCK" ? "#F04438" : "#F79009";
 }
@@ -108,7 +97,7 @@ async function scoreText() {
 
   verifyStatus.textContent = "Verifying…";
 
-  // Reset UI quickly
+  // Reset UI
   setGauge(0);
   document.getElementById("scoreDisplay").textContent = "--";
   document.getElementById("scoreVerdict").textContent = "Scoring…";
@@ -120,10 +109,7 @@ async function scoreText() {
     const resp = await fetch(API_PATH, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text,
-        evidence
-      })
+      body: JSON.stringify({ text, evidence })
     });
 
     if (!resp.ok) {
@@ -133,16 +119,16 @@ async function scoreText() {
 
     const data = await resp.json();
 
-    // Try common score fields
+    // ✅ Your backend returns "score" (not "truth_score")
     const score =
-      data.truth_score ??
       data.score ??
+      data.truth_score ??
       data.reliability_score ??
       data.truthScore ??
+      data.result?.score ??
       data.result?.truth_score ??
       0;
 
-    // Try common verdict fields
     const verdict =
       data.verdict ??
       data.label ??
@@ -154,8 +140,8 @@ async function scoreText() {
     document.getElementById("scoreDisplay").textContent = String(Math.round(Number(score) || 0));
     setVerdictText(score, verdict);
 
-    // Decision gate (new)
-    setDecisionGate(data, score);
+    // ✅ Decision Gate from backend schema
+    setDecisionGateFromBackend(data, score);
 
     // Pretty print JSON result
     resultEl.textContent = JSON.stringify(data, null, 2);
