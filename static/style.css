@@ -508,3 +508,46 @@ details[open] summary::after { content: "▲"; }
 #decisionCard[data-action="BLOCK"] #decisionAction,
 .decision-box[data-action="BLOCK"] .decision-action,
 .decision-card[data-action="BLOCK"] .decision-action { color: #ff4d4d; }
+/* =======================
+   FORCE COLOR FOR DECISION ACTION TEXT
+======================= */
+
+/* Most common IDs/classes */
+#decisionAction,
+.decision-action,
+.decision-status {
+  font-weight: 1000;
+}
+
+/* If your action text is a separate element with class/id */
+#decisionAction.allow,
+.decision-action.allow,
+.decision-status.allow { color: #2fe57a !important; }
+
+/* If it's plain text inside the box (common) */
+#decisionBox .decision-action,
+#decisionCard .decision-action,
+.decision-box .decision-action,
+.decision-card .decision-action { color: #FFD700; } /* default */
+
+/* Explicit: when the action text literally is in an element with id decisionAction */
+#decisionAction { color: #2fe57a !important; }
+
+/* Fallback: if your action is a <div> or <span> right under Decision Gate box */
+#decisionBox strong,
+#decisionCard strong,
+.decision-box strong,
+.decision-card strong {
+  color: #2fe57a !important;
+}
+
+/* Extra fallback: if you render ALLOW inside an <h2>/<h3>/<p> in the card */
+#decisionBox h2, #decisionBox h3, #decisionBox p,
+#decisionCard h2, #decisionCard h3, #decisionCard p,
+.decision-box h2, .decision-box h3, .decision-box p,
+.decision-card h2, .decision-card h3, .decision-card p {
+  /* don't force everything green */
+}
+
+/* If your HTML uses a span like <span id="decisionText">ALLOW</span> */
+#decisionText { color: #2fe57a !important; font-weight: 1000; }
