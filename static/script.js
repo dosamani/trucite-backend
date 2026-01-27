@@ -118,18 +118,17 @@
   // JSON area: could be <pre id="result">, or a div/text area
   const resultPre = pick("result", "jsonOutput", "#result", "#jsonOutput", "pre", ".json-box");
 
-  // Copy buttons
+  // Copy buttons (OPTIONAL listener wiring; HTML uses onclick anyway)
   const copyJsonBtn = pick("copyJson", "copyPayload", "#copyJson", "#copyPayload", "button[data-copy='json']");
   const copyCurlBtn = pick("copyCurl", "copycurl", "#copyCurl", "#copycurl", "button[data-copy='curl']");
   const copyRespBtn = pick("copyResp", "copyResponse", "#copyResp", "#copyResponse", "button[data-copy='resp']");
 
-  // If your page has multiple buttons, we try to lock to the VERIFY button by text
+  // If your page has multiple buttons, lock to the VERIFY button by text
   function ensureVerifyButton(btn) {
     if (!btn) return null;
     const t = (btn.textContent || "").trim().toUpperCase();
     if (t === "VERIFY") return btn;
 
-    // Find a button with text VERIFY
     const allBtns = Array.from(document.querySelectorAll("button"));
     const v = allBtns.find(b => ((b.textContent || "").trim().toUpperCase() === "VERIFY"));
     return v || btn;
@@ -141,44 +140,44 @@
   let lastPayload = null;
   let lastResponse = null;
 
-  // ---------- Styling (inline fallback) ----------
+  // ---------- Decision color ----------
   function applyDecisionColor(action) {
     if (!decisionAction) return;
 
     const a = (action || "").toUpperCase();
-
-    // Remove known classes if present
     decisionAction.classList.remove("allow", "review", "block");
-
-    // Also apply inline style so it works even if CSS missing
     decisionAction.style.fontWeight = "900";
 
     if (a === "ALLOW") {
       decisionAction.classList.add("allow");
-      decisionAction.style.color = "#28d17c"; // green
+      decisionAction.style.color = "#28d17c";
     } else if (a === "BLOCK") {
       decisionAction.classList.add("block");
-      decisionAction.style.color = "#ff3b3b"; // red
+      decisionAction.style.color = "#ff3b3b";
     } else {
       decisionAction.classList.add("review");
-      decisionAction.style.color = "#FFD700"; // gold
+      decisionAction.style.color = "#FFD700";
     }
   }
 
+  // ---------- Gauge (MATCH your SVG stroke-dashoffset approach) ----------
   function updateGauge(score) {
     if (!gaugeFill) return;
+
     const s = Math.max(0, Math.min(100, Number(score) || 0));
-    const maxDeg = 180;
-    const rot = (s / 100) * maxDeg;
-    gaugeFill.style.transform = `rotate(${rot}deg)`;
+    const total = 260; // MUST match stroke-dasharray in index.html
+    const offset = total - (s / 100) * total;
+
+    gaugeFill.style.strokeDasharray = String(total);
+    gaugeFill.style.strokeDashoffset = String(offset);
   }
 
   function setPendingUI() {
     setText(scoreDisplay, "--");
-    setText(scoreVerdict, "Score pending...");
+    setText(scoreVerdict, "Score pending…");
     if (decisionBox) show(decisionBox, true);
     setText(decisionAction, "—");
-    if (decisionReason) setText(decisionReason, "Awaiting verification...");
+    if (decisionReason) setText(decisionReason, "Awaiting verification…");
     applyDecisionColor("REVIEW");
     if (resultPre) resultPre.textContent = "";
     updateGauge(0);
@@ -192,16 +191,17 @@
     applyDecisionColor("REVIEW");
     if (decisionReason) setText(decisionReason, msg || "Backend unavailable or route mismatch.");
     if (resultPre) {
-      const body = details ? `Backend error: ${details}` : (msg || "Backend error");
+      const body = details ? `Backend error:\n${details}` : (msg || "Backend error");
       resultPre.textContent = body;
     }
+    updateGauge(0);
   }
 
   function renderResponse(data) {
     lastResponse = data;
 
     const score = data?.score ?? "--";
-    setText(scoreDisplay, score);
+    setText(scoreDisplay, String(score));
     setText(scoreVerdict, data?.verdict || "");
 
     updateGauge(Number(score) || 0);
@@ -218,31 +218,18 @@
   }
 
   // ---------- API ----------
-  function buildApiUrl() {
-    // Prefer relative (works when frontend is served from backend domain)
-    // If you ever host frontend elsewhere, it still works by using full origin.
-    const rel = "/verify";
-    try {
-      // If current origin is valid, use it as fallback
-      const abs = `${location.origin}${rel}`;
-      return { rel, abs };
-    } catch {
-      return { rel, abs: rel };
-    }
-  }
-
   async function callVerify(payload) {
-    const { rel, abs } = buildApiUrl();
-
-    // First try relative
+    // Relative works when frontend served from backend
+    const rel = "/verify";
     let res = await fetch(rel, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     }).catch(() => null);
 
-    // If relative failed (CORS / different host), try absolute
+    // Fallback to absolute if needed
     if (!res) {
+      const abs = `${location.origin}${rel}`;
       res = await fetch(abs, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -254,7 +241,7 @@
   }
 
   // ---------- Main click handler ----------
-  async function onVerify() {
+  async function scoreText() {
     const text = (claimBox?.value || "").trim();
     const evidence = (evidenceBox?.value || "").trim();
 
@@ -275,13 +262,9 @@
     try {
       const res = await callVerify(payload);
 
-      // Useful diagnostic if route mismatch
       if (!res || !res.ok) {
         let detailText = "";
-        try {
-          const t = await res.text();
-          detailText = t;
-        } catch {}
+        try { detailText = await res.text(); } catch {}
         setErrorUI("could not score. Check backend route and try again.", detailText || (res ? `${res.status}` : ""));
         return;
       }
@@ -294,44 +277,46 @@
     }
   }
 
-  // ---------- Copy buttons ----------
-  function wireCopyButtons() {
-    if (copyJsonBtn) {
-      copyJsonBtn.addEventListener("click", () => {
-        if (!lastPayload) return;
-        copyToClipboard(safeJson(lastPayload));
-      });
-    }
+  // ---------- Copy functions (MATCH your HTML onclick calls) ----------
+  function copyJSONPayload() {
+    if (!lastPayload) return;
+    copyToClipboard(safeJson(lastPayload));
+  }
 
-    if (copyRespBtn) {
-      copyRespBtn.addEventListener("click", () => {
-        if (!lastResponse) return;
-        copyToClipboard(safeJson(lastResponse));
-      });
-    }
+  function copyCurl() {
+    if (!lastPayload) return;
+    const url = `${location.origin}/verify`;
+    const curl = `curl -X POST "${url}" -H "Content-Type: application/json" -d '${JSON.stringify(lastPayload)}'`;
+    copyToClipboard(curl);
+  }
 
-    if (copyCurlBtn) {
-      copyCurlBtn.addEventListener("click", () => {
-        if (!lastPayload) return;
-        const url = `${location.origin}/verify`;
-        const curl = `curl -X POST "${url}" -H "Content-Type: application/json" -d '${JSON.stringify(lastPayload)}'`;
-        copyToClipboard(curl);
-      });
-    }
+  function copyResponse() {
+    if (!lastResponse) return;
+    copyToClipboard(safeJson(lastResponse));
   }
 
   // ---------- Init ----------
   if (!verifyButton) {
     console.warn("VERIFY button not found. Check your button id/class.");
   } else {
-    verifyButton.addEventListener("click", onVerify);
+    verifyButton.addEventListener("click", scoreText);
   }
 
-  wireCopyButtons();
+  // Optional extra listeners (safe)
+  if (copyJsonBtn) copyJsonBtn.addEventListener("click", copyJSONPayload);
+  if (copyCurlBtn) copyCurlBtn.addEventListener("click", copyCurl);
+  if (copyRespBtn) copyRespBtn.addEventListener("click", copyResponse);
+
+  // Expose functions for inline onclick attributes in index.html
+  window.scoreText = scoreText;
+  window.copyJSONPayload = copyJSONPayload;
+  window.copyCurl = copyCurl;
+  window.copyResponse = copyResponse;
+
   // Start state
   setPendingUI();
 
-  // Expose minimal debug hooks (optional)
+  // Debug hook
   window.TruCiteDebug = {
     elements: { verifyButton, claimBox, evidenceBox, scoreDisplay, scoreVerdict, gaugeFill, decisionBox, decisionAction, decisionReason, resultPre },
     lastPayload: () => lastPayload,
