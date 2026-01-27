@@ -4,7 +4,7 @@
 // - Renders raw JSON into #result
 // - Renders Decision Gate from backend: data.decision.action + data.decision.reason
 
-const API_PATH = "/score"; // keep as-is since it clearly works
+const API_PATH = "/verify";
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
