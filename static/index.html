@@ -76,13 +76,13 @@
         placeholder="Optional: Paste supporting evidence (URLs / DOI / PMID). Example: https://pubmed.ncbi.nlm.nih.gov/00000000/ or DOI: 10.xxxx/xxxxx"
       ></textarea>
 
-      <button class="primary-btn" onclick="scoreText()">VERIFY</button>
+      <button class="primary-btn">VERIFY</button>
 
       <!-- Copy tools -->
       <div class="copy-row" aria-label="Copy tools">
-        <button class="copy-btn" onclick="copyJSONPayload()">Copy JSON payload</button>
-        <button class="copy-btn" onclick="copyCurl()">Copy curl</button>
-        <button class="copy-btn" onclick="copyResponse()">Copy response</button>
+        <button class="copy-btn" id="copyPayload">Copy JSON payload</button>
+        <button class="copy-btn" id="copyCurl">Copy curl</button>
+        <button class="copy-btn" id="copyResponse">Copy response</button>
       </div>
 
       <!-- Status line -->
