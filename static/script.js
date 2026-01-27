@@ -3,7 +3,6 @@
   const $ = (sel) => document.querySelector(sel);
   const byId = (id) => document.getElementById(id);
 
-  // Try a list of selectors/ids and return first match
   function pick(...candidates) {
     for (const c of candidates) {
       if (!c) continue;
@@ -54,81 +53,29 @@
     document.body.removeChild(ta);
   }
 
-  // ---------- Element binding (robust) ----------
-  const verifyBtn = pick(
-    "verifyBtn",
-    "verify",
-    "#verifyBtn",
-    "#verify",
-    "button.primary-btn",
-    "button[data-action='verify']",
-    "button"
-  );
+  // ---------- Element binding ----------
+  const verifyBtn = pick("verifyBtn", "verify", "#verifyBtn", "#verify", "button.primary-btn", "button");
+  const claimBox = pick("inputText", "#inputText", "textarea");
+  const evidenceBox = pick("evidenceText", "#evidenceText", "textarea[placeholder*='evidence']");
 
-  const claimBox = pick(
-    "inputText",
-    "claimText",
-    "claimInput",
-    "#inputText",
-    "#claimText",
-    "textarea[name='claim']",
-    "textarea"
-  );
+  const scoreDisplay = pick("scoreDisplay", "#scoreDisplay");
+  const scoreVerdict = pick("scoreVerdict", "#scoreVerdict");
+  const gaugeFill = pick("gaugeFill", "#gaugeFill");
 
-  const evidenceBox = pick(
-    "evidenceText",
-    "evidence",
-    "evidenceInput",
-    "#evidenceText",
-    "#evidence",
-    "textarea[name='evidence']",
-    "textarea[placeholder*='evidence']"
-  );
+  const decisionBox = pick("decisionBox", "#decisionBox", ".decision-box", ".decision-card");
+  const decisionAction = pick("decisionAction", "#decisionAction", ".decision-action");
+  const decisionReason = pick("decisionReason", "#decisionReason", ".decision-reason");
 
-  const scoreDisplay = pick("scoreDisplay", "score", "#scoreDisplay", "#score");
-  const scoreVerdict = pick("scoreVerdict", "verdict", "#scoreVerdict", "#verdict");
+  const resultPre = pick("result", "#result", "pre");
 
-  const gaugeFill = pick("gaugeFill", "#gaugeFill", ".gauge-fill");
+  const copyJsonBtn = pick("copyPayload", "#copyPayload");
+  const copyCurlBtn = pick("copyCurl", "#copyCurl");
+  const copyRespBtn = pick("copyResponse", "#copyResponse");
 
-  const decisionBox = pick(
-    "decisionBox",
-    "decisionGate",
-    "#decisionBox",
-    "#decisionGate",
-    ".decision-box",
-    ".decision-card"
-  );
-
-  const decisionAction = pick(
-    "decisionAction",
-    "decision",
-    "#decisionAction",
-    "#decision",
-    ".decision-action"
-  );
-
-  const decisionReason = pick(
-    "decisionReason",
-    "decisionMsg",
-    "#decisionReason",
-    "#decisionMsg",
-    ".decision-reason"
-  );
-
-  // JSON area: could be <pre id="result">, or a div/text area
-  const resultPre = pick("result", "jsonOutput", "#result", "#jsonOutput", "pre", ".json-box");
-
-  // Copy buttons (OPTIONAL listener wiring; HTML uses onclick anyway)
-  const copyJsonBtn = pick("copyJson", "copyPayload", "#copyJson", "#copyPayload", "button[data-copy='json']");
-  const copyCurlBtn = pick("copyCurl", "copycurl", "#copyCurl", "#copycurl", "button[data-copy='curl']");
-  const copyRespBtn = pick("copyResp", "copyResponse", "#copyResp", "#copyResponse", "button[data-copy='resp']");
-
-  // If your page has multiple buttons, lock to the VERIFY button by text
   function ensureVerifyButton(btn) {
     if (!btn) return null;
     const t = (btn.textContent || "").trim().toUpperCase();
     if (t === "VERIFY") return btn;
-
     const allBtns = Array.from(document.querySelectorAll("button"));
     const v = allBtns.find(b => ((b.textContent || "").trim().toUpperCase() === "VERIFY"));
     return v || btn;
@@ -140,7 +87,7 @@
   let lastPayload = null;
   let lastResponse = null;
 
-  // ---------- Decision color ----------
+  // ---------- Styling ----------
   function applyDecisionColor(action) {
     if (!decisionAction) return;
 
@@ -160,24 +107,21 @@
     }
   }
 
-  // ---------- Gauge (MATCH your SVG stroke-dashoffset approach) ----------
   function updateGauge(score) {
     if (!gaugeFill) return;
-
     const s = Math.max(0, Math.min(100, Number(score) || 0));
-    const total = 260; // MUST match stroke-dasharray in index.html
-    const offset = total - (s / 100) * total;
-
-    gaugeFill.style.strokeDasharray = String(total);
+    const dash = 260;
+    const offset = dash - (dash * (s / 100));
+    gaugeFill.style.strokeDasharray = String(dash);
     gaugeFill.style.strokeDashoffset = String(offset);
   }
 
   function setPendingUI() {
     setText(scoreDisplay, "--");
-    setText(scoreVerdict, "Score pending…");
+    setText(scoreVerdict, "Score pending...");
     if (decisionBox) show(decisionBox, true);
     setText(decisionAction, "—");
-    if (decisionReason) setText(decisionReason, "Awaiting verification…");
+    if (decisionReason) setText(decisionReason, "Awaiting verification...");
     applyDecisionColor("REVIEW");
     if (resultPre) resultPre.textContent = "";
     updateGauge(0);
@@ -191,19 +135,17 @@
     applyDecisionColor("REVIEW");
     if (decisionReason) setText(decisionReason, msg || "Backend unavailable or route mismatch.");
     if (resultPre) {
-      const body = details ? `Backend error:\n${details}` : (msg || "Backend error");
+      const body = details ? `Backend error: ${details}` : (msg || "Backend error");
       resultPre.textContent = body;
     }
-    updateGauge(0);
   }
 
   function renderResponse(data) {
     lastResponse = data;
 
     const score = data?.score ?? "--";
-    setText(scoreDisplay, String(score));
+    setText(scoreDisplay, score);
     setText(scoreVerdict, data?.verdict || "");
-
     updateGauge(Number(score) || 0);
 
     const action = data?.decision?.action || "REVIEW";
@@ -219,7 +161,6 @@
 
   // ---------- API ----------
   async function callVerify(payload) {
-    // Relative works when frontend served from backend
     const rel = "/verify";
     let res = await fetch(rel, {
       method: "POST",
@@ -227,7 +168,6 @@
       body: JSON.stringify(payload)
     }).catch(() => null);
 
-    // Fallback to absolute if needed
     if (!res) {
       const abs = `${location.origin}${rel}`;
       res = await fetch(abs, {
@@ -236,12 +176,11 @@
         body: JSON.stringify(payload)
       });
     }
-
     return res;
   }
 
   // ---------- Main click handler ----------
-  async function scoreText() {
+  async function onVerify() {
     const text = (claimBox?.value || "").trim();
     const evidence = (evidenceBox?.value || "").trim();
 
@@ -277,46 +216,42 @@
     }
   }
 
-  // ---------- Copy functions (MATCH your HTML onclick calls) ----------
-  function copyJSONPayload() {
-    if (!lastPayload) return;
-    copyToClipboard(safeJson(lastPayload));
-  }
+  // ---------- Copy buttons ----------
+  function wireCopyButtons() {
+    if (copyJsonBtn) {
+      copyJsonBtn.addEventListener("click", () => {
+        if (!lastPayload) return;
+        copyToClipboard(safeJson(lastPayload));
+      });
+    }
 
-  function copyCurl() {
-    if (!lastPayload) return;
-    const url = `${location.origin}/verify`;
-    const curl = `curl -X POST "${url}" -H "Content-Type: application/json" -d '${JSON.stringify(lastPayload)}'`;
-    copyToClipboard(curl);
-  }
+    if (copyRespBtn) {
+      copyRespBtn.addEventListener("click", () => {
+        if (!lastResponse) return;
+        copyToClipboard(safeJson(lastResponse));
+      });
+    }
 
-  function copyResponse() {
-    if (!lastResponse) return;
-    copyToClipboard(safeJson(lastResponse));
+    if (copyCurlBtn) {
+      copyCurlBtn.addEventListener("click", () => {
+        if (!lastPayload) return;
+        const url = `${location.origin}/verify`;
+        const curl = `curl -X POST "${url}" -H "Content-Type: application/json" -d '${JSON.stringify(lastPayload)}'`;
+        copyToClipboard(curl);
+      });
+    }
   }
 
   // ---------- Init ----------
   if (!verifyButton) {
     console.warn("VERIFY button not found. Check your button id/class.");
   } else {
-    verifyButton.addEventListener("click", scoreText);
+    verifyButton.addEventListener("click", onVerify);
   }
 
-  // Optional extra listeners (safe)
-  if (copyJsonBtn) copyJsonBtn.addEventListener("click", copyJSONPayload);
-  if (copyCurlBtn) copyCurlBtn.addEventListener("click", copyCurl);
-  if (copyRespBtn) copyRespBtn.addEventListener("click", copyResponse);
-
-  // Expose functions for inline onclick attributes in index.html
-  window.scoreText = scoreText;
-  window.copyJSONPayload = copyJSONPayload;
-  window.copyCurl = copyCurl;
-  window.copyResponse = copyResponse;
-
-  // Start state
+  wireCopyButtons();
   setPendingUI();
 
-  // Debug hook
   window.TruCiteDebug = {
     elements: { verifyButton, claimBox, evidenceBox, scoreDisplay, scoreVerdict, gaugeFill, decisionBox, decisionAction, decisionReason, resultPre },
     lastPayload: () => lastPayload,
