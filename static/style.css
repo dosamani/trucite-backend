@@ -92,6 +92,10 @@ details, summary { -webkit-tap-highlight-color: transparent; }
   text-shadow: 0 0 14px rgba(255,215,0,0.25);
 }
 
+/* Optional helper classes used in your HTML */
+.hero-subtitle-tight { margin-top: 6px; }
+.hero-mini-links { margin-top: 10px; }
+
 /* =======================
    MAIN
 ======================= */
@@ -109,6 +113,14 @@ main {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #FFD700;
+}
+
+.section-subtitle{
+  margin: 10px auto 12px;
+  max-width: 760px;
+  font-size: 0.95rem;
+  color: #ccc;
+  text-align: center;
 }
 
 /* =======================
@@ -136,14 +148,17 @@ textarea:focus {
   box-shadow: 0 0 26px rgba(255,215,0,0.22);
 }
 
-/* Glow also when user has typed (not only focus) */
+/* Glow also when user has typed */
 textarea:not(:placeholder-shown) {
   border-color: rgba(255,215,0,0.85);
   box-shadow: 0 0 26px rgba(255,215,0,0.18);
 }
 
+/* Evidence box is slightly shorter */
+.evidence-box { height: 110px; margin-top: 12px; }
+
 /* =======================
-   BUTTON
+   BUTTON (VERIFY)
 ======================= */
 @keyframes goldPulse {
   0%   { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
@@ -165,7 +180,7 @@ textarea:not(:placeholder-shown) {
 .primary-btn:hover { filter: brightness(1.08); }
 
 /* =======================
-   COPY BUTTONS (FIXED)
+   COPY BUTTONS
 ======================= */
 .copy-row{
   margin-top: 10px;
@@ -175,7 +190,6 @@ textarea:not(:placeholder-shown) {
   flex-wrap: wrap;
 }
 
-/* ✅ Dark TruCite-style copy buttons (black + gold) */
 .copy-btn{
   background: rgba(0,0,0,0.65);
   color: #FFD700;
@@ -187,19 +201,9 @@ textarea:not(:placeholder-shown) {
   box-shadow: 0 0 12px rgba(255,215,0,0.10);
 }
 
-.copy-btn:hover{
-  filter: brightness(1.10);
-  text-decoration: none;
-}
-
-.copy-btn:active{
-  transform: translateY(1px);
-}
-
-.copy-btn:focus{
-  outline: none;
-}
-
+.copy-btn:hover{ filter: brightness(1.10); text-decoration: none; }
+.copy-btn:active{ transform: translateY(1px); }
+.copy-btn:focus{ outline: none; }
 .copy-btn:focus-visible{
   outline: 2px solid rgba(255,215,0,0.35);
   outline-offset: 2px;
@@ -217,6 +221,58 @@ textarea:not(:placeholder-shown) {
   color: #FFD700;
 }
 #scoreVerdict { margin-top: 6px; font-size: 0.95rem; color: #ccc; }
+
+/* =======================
+   DECISION GATE (CLEAN + RELIABLE)
+======================= */
+.decision-card,
+.decision-box,
+#decisionBox,
+#decisionCard {
+  width: 100%;
+  max-width: 720px;
+  border: 1px solid rgba(255,215,0,0.45);
+  border-radius: 18px;
+  background: rgba(0,0,0,0.65);
+  box-shadow: 0 0 18px rgba(255,215,0,0.10);
+  padding: 20px 18px;
+  text-align: center;
+  margin: 18px auto 0;
+}
+
+.decision-title{
+  margin: 0 0 10px;
+  color: #fff;
+  font-size: 1.30rem;
+  font-weight: 900;
+}
+
+.decision-action,
+#decisionAction{
+  margin: 6px 0 6px;
+  font-size: 1.55rem;
+  font-weight: 1000;
+  letter-spacing: 0.04em;
+  color: #FFD700; /* default */
+}
+
+.decision-reason,
+#decisionReason{
+  margin: 0;
+  color: #d9d9d9;
+  font-size: 1.02rem;
+  line-height: 1.55;
+}
+
+/* These 3 are the ONLY truth for colors */
+.decision-action.allow,
+#decisionAction.allow { color: #28d17c !important; }
+
+.decision-action.review,
+#decisionAction.review { color: #FFD700 !important; }
+
+.decision-action.block,
+#decisionAction.block { color: #ff3b3b !important; }
 
 /* =======================
    RESULT BOX
@@ -238,6 +294,7 @@ pre#result {
   max-height: 280px;
   overflow: auto;
   box-shadow: 0 0 18px rgba(255,215,0,0.06);
+  text-align: left;
 }
 
 /* =======================
@@ -269,7 +326,6 @@ pre#result {
 
 .bp-card p { margin: 0; color: #d9d9d9; font-size: 1.02rem; line-height: 1.55; }
 
-/* Diagram pills */
 .bp-diagram { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .bp-node {
   display: inline-block;
@@ -284,8 +340,7 @@ pre#result {
 .bp-arrow { color: #aaa; font-weight: 900; }
 
 /* =======================
-   ACCORDION (details/summary) — legacy support
-   (kept as-is; not used by your current HTML)
+   ACCORDION (details/summary)
 ======================= */
 .accordion { max-width: 820px; margin: 0 auto; }
 
@@ -327,91 +382,18 @@ details[open] summary::after { content: "▲"; }
   line-height: 1.55;
 }
 
-/* =======================
-   PATCH: Accordion for your current HTML
-   Uses .accordion-btn + .accordion-panel
-======================= */
-.accordion-item { overflow: hidden; }
-
-/* Button (question line) */
-.accordion-btn{
-  width: 100%;
-  background: transparent;
-  border: 0;
-  text-align: left;
-  cursor: pointer;
-  padding: 16px 18px;
-  font-weight: 900;
-  font-size: 1.02rem;
-  color: #FFD700;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.accordion-btn:focus{ outline: none; }
-.accordion-btn:focus-visible{
-  outline: 2px solid rgba(255,215,0,0.35);
-  outline-offset: 2px;
-  border-radius: 12px;
-}
-
-/* Chevrons */
-.accordion-btn::after{
-  content: "▼";
-  color: #FFD700;
-  font-weight: 900;
-  flex: 0 0 auto;
-  transform: translateY(-1px);
-  transition: transform 0.15s ease, opacity 0.15s ease;
-  opacity: 0.95;
-}
-
-.accordion-btn.active::after{
-  content: "▲";
-}
-
-/* Panel */
-.accordion-panel{
-  display: none;
-  padding: 0 18px 18px;
-  border-top: 1px solid rgba(255,215,0,0.18);
-  color: #d9d9d9;
-  font-size: 1.0rem;
-  line-height: 1.55;
-}
-
-.accordion-panel p{ margin: 12px 0 0; }
-
-/* =======================
-   FAQ "See full..." centered
-======================= */
-.faq-footer,
+/* FAQ "See full..." centered */
 .faq-more {
   text-align: center !important;
   width: 100% !important;
   display: block !important;
   margin: 14px 0 0 !important;
 }
-
-.faq-footer a,
 .faq-more a {
   display: inline-block !important;
   font-weight: 900 !important;
   color: #FFD700 !important;
 }
-
-/* =======================
-   Legal links line
-======================= */
-.legal-links {
-  margin: 12px auto 0;
-  text-align: center;
-  color: #bbb;
-  font-size: 0.98rem;
-}
-.legal-links a { color: #FFD700; font-weight: 900; }
 
 /* =======================
    FOOTER
@@ -424,148 +406,4 @@ details[open] summary::after { content: "▲"; }
 
 .footer-links { margin-bottom: 12px; }
 .footer-links a { color: #FFD700; font-weight: 900; }
-
-.footer-suggest a {
-  display: inline-block;
-  margin-top: 10px;
-  color: #FFD700;
-  font-weight: 900;
-}
-/* =======================
-   DECISION GATE (RESTORE CARD)
-   (works with multiple HTML variants)
-======================= */
-
-/* Outer wrapper spacing */
-#decisionContainer,
-#decisionGateContainer,
-.decision-wrapper,
-.decision-section {
-  margin-top: 18px;
-  display: flex;
-  justify-content: center;
-}
-
-/* The actual card */
-#decisionBox,
-#decisionCard,
-.decision-box,
-.decision-card,
-#decisionGateBox {
-  width: 100%;
-  max-width: 720px;
-  border: 1px solid rgba(255,215,0,0.45);
-  border-radius: 18px;
-  background: rgba(0,0,0,0.65);
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
-  padding: 20px 18px;
-  text-align: center;
-  margin: 18px auto 0;
-}
-
-/* Title */
-#decisionTitle,
-.decision-title,
-.decision-card h3 {
-  margin: 0 0 10px;
-  color: #fff;
-  font-size: 1.30rem;
-  font-weight: 900;
-}
-
-/* Big action text (ALLOW/REVIEW/BLOCK) */
-#decisionAction,
-.decision-action,
-.decision-status {
-  margin: 6px 0 6px;
-  font-size: 1.55rem;
-  font-weight: 1000;
-  letter-spacing: 0.04em;
-}
-
-/* Reason text under action */
-#decisionReason,
-.decision-reason,
-.decision-message {
-  margin: 0;
-  color: #d9d9d9;
-  font-size: 1.02rem;
-  line-height: 1.55;
-}
-
-/* Optional: color-code the action if your JS sets data-action */
-#decisionBox[data-action="ALLOW"] #decisionAction,
-#decisionCard[data-action="ALLOW"] #decisionAction,
-.decision-box[data-action="ALLOW"] .decision-action,
-.decision-card[data-action="ALLOW"] .decision-action { color: #2fe57a; }
-
-#decisionBox[data-action="REVIEW"] #decisionAction,
-#decisionCard[data-action="REVIEW"] #decisionAction,
-.decision-box[data-action="REVIEW"] .decision-action,
-.decision-card[data-action="REVIEW"] .decision-action { color: #FFD700; }
-
-#decisionBox[data-action="BLOCK"] #decisionAction,
-#decisionCard[data-action="BLOCK"] #decisionAction,
-.decision-box[data-action="BLOCK"] .decision-action,
-.decision-card[data-action="BLOCK"] .decision-action { color: #ff4d4d; }
-/* =======================
-   FORCE COLOR FOR DECISION ACTION TEXT
-======================= */
-
-/* Most common IDs/classes */
-#decisionAction,
-.decision-action,
-.decision-status {
-  font-weight: 1000;
-}
-
-/* If your action text is a separate element with class/id */
-#decisionAction.allow,
-.decision-action.allow,
-.decision-status.allow { color: #2fe57a !important; }
-
-/* If it's plain text inside the box (common) */
-#decisionBox .decision-action,
-#decisionCard .decision-action,
-.decision-box .decision-action,
-.decision-card .decision-action { color: #FFD700; } /* default */
-
-/* Explicit: when the action text literally is in an element with id decisionAction */
-#decisionAction { color: #2fe57a !important; }
-
-/* Fallback: if your action is a <div> or <span> right under Decision Gate box */
-#decisionBox strong,
-#decisionCard strong,
-.decision-box strong,
-.decision-card strong {
-  color: #2fe57a !important;
-}
-
-/* Extra fallback: if you render ALLOW inside an <h2>/<h3>/<p> in the card */
-#decisionBox h2, #decisionBox h3, #decisionBox p,
-#decisionCard h2, #decisionCard h3, #decisionCard p,
-.decision-box h2, .decision-box h3, .decision-box p,
-.decision-card h2, .decision-card h3, .decision-card p {
-  /* don't force everything green */
-}
-
-/* If your HTML uses a span like <span id="decisionText">ALLOW</span> */
-#decisionText { color: #2fe57a !important; font-weight: 1000; }
-/* =======================
-   DECISION ACTION COLORS
-======================= */
-
-.allow {
-  color: #2fe57a !important; /* Green */
-  font-weight: 1000;
-}
-
-.review {
-  color: #FFD700 !important; /* Gold */
-  font-weight: 1000;
-}
-
-.block {
-  color: #ff4d4d !important; /* Red */
-  font-weight: 1000;
-}
+.footer-note { color: #777; }
