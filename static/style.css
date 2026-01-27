@@ -101,6 +101,12 @@ details, summary { -webkit-tap-highlight-color: transparent; }
   color: #FFD700;
   text-shadow: 0 0 14px rgba(255,215,0,0.25);
 }
+.why-transition{
+  margin-top: 14px;
+  font-weight: 900;
+  color: #FFD700;
+  text-shadow: 0 0 14px rgba(255,215,0,0.18);
+}
 
 .hero-mini-links {
   margin: 10px auto 0;
