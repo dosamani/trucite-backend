@@ -93,7 +93,6 @@ h1{
 }
 
 .hero-subtitle-tight{margin-top:10px;}
-
 .hero-mini-links{margin-top:16px;font-weight:800;}
 
 main{
@@ -150,32 +149,44 @@ main{
 
 .primary-btn:active{transform:scale(0.99);}
 
+/* Copy buttons */
 .copy-row{
   display:flex;
   gap:10px;
   justify-content:center;
   flex-wrap:wrap;
-  margin-top:14px;
+  margin-top:12px;
 }
 
-.secondary-btn{
-  background: transparent;
-  border: 1px solid rgba(255,215,0,0.35);
-  color: #FFD700;
-  padding: 10px 14px;
-  border-radius: 999px;
-  cursor: pointer;
-  font-weight: 900;
-  letter-spacing: 0.02em;
+.mini-btn{
+  appearance:none;
+  -webkit-appearance:none;
+  background:rgba(255,215,0,0.06);
+  border:1px solid rgba(255,215,0,0.35);
+  color:var(--gold);
+  padding:9px 12px;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:900;
+  font-size:14px;
+  line-height:1;
 }
 
-.secondary-btn:hover{
-  border-color: rgba(255,215,0,0.65);
-  background: rgba(255,215,0,0.06);
+.mini-btn:hover{
+  border-color: rgba(255,215,0,0.70);
+  background: rgba(255,215,0,0.10);
+}
+
+.copy-status{
+  text-align:center;
+  margin:10px 0 0;
+  color:var(--gold);
+  font-weight:900;
+  min-height:18px;
 }
 
 #gaugeContainer{
-  margin:26px auto 18px;
+  margin:22px auto 16px;
   width:260px;
   text-align:center;
 }
@@ -222,10 +233,7 @@ main{
   font-size:16px;
 }
 
-.result-wrapper{
-  margin-top:18px;
-}
-
+.result-wrapper{margin-top:18px;}
 .result-label{
   text-align:center;
   margin:10px 0 12px;
@@ -335,4 +343,17 @@ summary::-webkit-details-marker{display:none;}
 }
 
 .site-footer{
-  border-top:1px solid rgba(255,215,0,0.08
+  border-top:1px solid rgba(255,215,0,0.08);
+  padding:22px 16px 30px;
+  text-align:center;
+  color:var(--muted);
+}
+
+.footer-links{margin:0 0 10px;}
+.footer-note{margin:0;font-size:14px;}
+
+@media (max-width: 780px){
+  .blueprint-grid,
+  .wins-grid{grid-template-columns:1fr;}
+  h1{font-size:40px;}
+}
