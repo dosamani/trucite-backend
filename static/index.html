@@ -49,7 +49,7 @@
       not where it came from.
     </p>
 
-    <!-- ✅ Addition (safe, no layout break): reinforces "citations aren't verification" -->
+    <!-- ✅ Addition: reinforces "citations aren't verification" -->
     <p class="hero-missing-layer">
       TruCite evaluates whether output is trustworthy — not whether it has citations.
     </p>
@@ -93,9 +93,14 @@
         Tip: For numeric/medical/legal claims, add evidence (URL/DOI/PMID) to avoid conservative gating.
       </p>
 
-      <!-- ✅ Addition (safe): clarifies product value even without evidence -->
+      <!-- ✅ Addition: clarifies product value even without evidence -->
       <p class="section-subtitle" style="margin-top:6px;">
         Evidence helps for high-liability claims — but TruCite still scores risk signals even when no sources exist.
+      </p>
+
+      <!-- ✅ Addition: MVP disclaimer (minimal, high-trust, no creep) -->
+      <p class="section-subtitle" style="margin-top:6px; opacity:0.9;">
+        Demo scoring is heuristic. Enterprise deployments add domain constraints + external validation hooks.
       </p>
 
       <!-- Gauge -->
@@ -159,6 +164,44 @@
           <p>
             TruCite returns a score + a Decision Gate (ALLOW / REVIEW / BLOCK) so unsafe output can be stopped
             before it reaches users, charts, contracts, or clinical decisions.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ✅ RESTORED: WHAT TRUCITE IS (AND ISN'T) -->
+    <section id="what" class="wins-section">
+      <h2 class="section-title">What TruCite Is (and Isn’t)</h2>
+      <div class="wins-grid">
+        <div class="win-card bright-card">
+          <h3>Not a Fact-Checker</h3>
+          <p>
+            TruCite does not claim to “know everything.” It evaluates whether output is reliable enough to be
+            trusted without human review — based on risk and integrity signals.
+          </p>
+        </div>
+
+        <div class="win-card bright-card">
+          <h3>Works Even Without Evidence</h3>
+          <p>
+            Most enterprise AI output that drives decisions has no citations. TruCite still scores reliability
+            based on structure, language, and risk patterns — even when references are missing.
+          </p>
+        </div>
+
+        <div class="win-card bright-card">
+          <h3>Evidence Improves — But Doesn’t Guarantee</h3>
+          <p>
+            Evidence can reduce risk, but AI can fabricate sources. TruCite treats references as one signal among many
+            and evaluates whether the output itself is coherent and safe to trust.
+          </p>
+        </div>
+
+        <div class="win-card bright-card">
+          <h3>Built for High-Liability Environments</h3>
+          <p>
+            Legal, clinical, financial, and compliance workflows cannot accept “probably correct.”
+            TruCite adds an auditable verification step before decisions get made.
           </p>
         </div>
       </div>
