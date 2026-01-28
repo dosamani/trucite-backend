@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TruCite.ai — Independent Verification Layer for AI Output</title>
-  <link rel="stylesheet" href="/static/style.css?v=1104" />
+  <link rel="stylesheet" href="/static/style.css?v=1103" />
 </head>
 <body>
 
@@ -49,9 +49,8 @@
       not where it came from.
     </p>
 
-    <!-- ✅ Replaces any "references required for ALLOW" implication -->
     <p class="hero-missing-layer">
-      Evidence can improve scoring — but citations alone do not guarantee reliability.
+      TruCite evaluates whether output is trustworthy — not whether it has citations.
     </p>
 
     <p class="hero-mini-links">
@@ -76,10 +75,10 @@
       <textarea
         id="evidenceText"
         class="evidence-box"
-        placeholder="Optional: Paste supporting evidence (URLs / DOI / PMID). Evidence helps for numeric/medical/legal claims — but does not automatically guarantee ALLOW."
+        placeholder="Optional: Paste supporting evidence (URLs / DOI / PMID). Example: https://pubmed.ncbi.nlm.nih.gov/00000000/ or DOI: 10.xxxx/xxxxx"
       ></textarea>
 
-      <button class="primary-btn">VERIFY</button>
+      <button class="primary-btn" onclick="scoreText()">VERIFY</button>
 
       <!-- Copy tools -->
       <div class="copy-row" aria-label="Copy tools">
@@ -88,35 +87,21 @@
         <button class="copy-btn" onclick="copyResponse()">Copy response</button>
       </div>
 
-      <!-- Status line -->
+      <!-- Status line (UPDATED COPY) -->
       <p id="verifyStatus" class="section-subtitle" style="margin-top:10px;">
-        Tip: For numeric / medical / legal claims, add evidence (URL/DOI/PMID) to reduce conservative gating.
+        Evidence is optional — but required to reach <strong>ALLOW</strong> for high-liability or numeric claims (medical/legal/financial).
       </p>
 
       <p class="section-subtitle" style="margin-top:6px;">
-        TruCite still scores risk signals even when no sources exist — because most enterprise AI output has none.
+        TruCite still scores risk signals even when no sources exist.
       </p>
 
       <!-- Gauge -->
       <div id="gaugeContainer" aria-label="Reliability score gauge">
         <div class="gauge-label">AI Reliability Score</div>
         <svg id="gauge" width="220" height="120">
-          <path
-            d="M20 100 A90 90 0 0 1 200 100"
-            stroke="#333"
-            stroke-width="18"
-            fill="none"
-          />
-          <path
-            id="gaugeFill"
-            d="M20 100 A90 90 0 0 1 200 100"
-            stroke="#FFD700"
-            stroke-width="18"
-            stroke-linecap="round"
-            fill="none"
-            stroke-dasharray="260"
-            stroke-dashoffset="260"
-          />
+          <path d="M20 100 A90 90 0 0 1 200 100" stroke="#333" stroke-width="18" fill="none" />
+          <path id="gaugeFill" d="M20 100 A90 90 0 0 1 200 100" stroke="#FFD700" stroke-width="18" stroke-linecap="round" fill="none" stroke-dasharray="260" stroke-dashoffset="260" />
         </svg>
         <div id="scoreDisplay">--</div>
         <div id="scoreVerdict">Score pending…</div>
@@ -223,7 +208,7 @@
         <div class="win-card bright-card">
           <h3>Built for High-Liability Workflows</h3>
           <p>
-            Numeric/statistical and domain-critical claims are conservatively gated unless evidence is present.
+            High-liability and numeric claims are conservatively gated unless evidence is present.
           </p>
         </div>
 
