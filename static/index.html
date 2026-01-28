@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TruCite.ai — Independent Verification Layer for AI Output</title>
-  <link rel="stylesheet" href="/static/style.css?v=1102" />
+  <link rel="stylesheet" href="/static/style.css?v=1103" />
 </head>
 <body>
 
@@ -49,6 +49,11 @@
       not where it came from.
     </p>
 
+    <!-- ✅ Addition (safe, no layout break): reinforces "citations aren't verification" -->
+    <p class="hero-missing-layer">
+      TruCite evaluates whether output is trustworthy — not whether it has citations.
+    </p>
+
     <p class="hero-mini-links">
       <a href="https://forms.gle/TAQZuVNwYBudi51i6" target="_blank" rel="noopener">
         Request early access to TruCite
@@ -86,6 +91,11 @@
       <!-- Status line -->
       <p id="verifyStatus" class="section-subtitle" style="margin-top:10px;">
         Tip: For numeric/medical/legal claims, add evidence (URL/DOI/PMID) to avoid conservative gating.
+      </p>
+
+      <!-- ✅ Addition (safe): clarifies product value even without evidence -->
+      <p class="section-subtitle" style="margin-top:6px;">
+        Evidence helps for high-liability claims — but TruCite still scores risk signals even when no sources exist.
       </p>
 
       <!-- Gauge -->
@@ -126,7 +136,7 @@
       </div>
     </section>
 
-    <!-- WHY TRUCITE EXISTS (acqui-hire messaging) -->
+    <!-- WHY TRUCITE EXISTS -->
     <section id="why-exists" class="wins-section">
       <h2 class="section-title">Why TruCite Exists</h2>
       <div class="wins-grid">
@@ -154,7 +164,7 @@
       </div>
     </section>
 
-    <!-- HOW TRUCITE WORKS (Diagram card section restored) -->
+    <!-- HOW TRUCITE WORKS -->
     <section id="how" class="blueprint-section">
       <h2 class="section-title">How TruCite Works</h2>
       <div class="blueprint-grid">
@@ -250,7 +260,7 @@
       </div>
     </section>
 
-    <!-- FAQ's (Original with Ma’at) -->
+    <!-- FAQ's (Ma’at) -->
     <section id="faq" class="faq-section">
       <h2 class="section-title">FAQ's</h2>
 
@@ -396,6 +406,6 @@
     <p class="footer-note">© 2026 TruCite.ai — Independent Verification Layer for AI Output</p>
   </footer>
 
-  <script src="/static/script.js?v=1102"></script>
+  <script src="/static/script.js?v=1103"></script>
 </body>
 </html>
