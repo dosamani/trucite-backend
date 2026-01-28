@@ -103,8 +103,8 @@ def verify():
     else:
         score, verdict, explanation, signals, references = heuristic_score(text, evidence)
 
-    # Decision Gate
-    action, reason = decision_gate(score, signals)
+    # Decision Gate (policy layer)
+    action, reason = decision_gate(int(score), signals)
 
     resp = {
         "verdict": verdict,
@@ -116,7 +116,7 @@ def verify():
         "claims": claims,
         "references": references,
         "signals": signals,
-        "explanation": explanation,
+        "explanation": explanation
     }
 
     return jsonify(resp), 200
@@ -126,15 +126,38 @@ def verify():
 # Decision logic
 # -------------------------
 def decision_gate(score: int, signals: dict):
+    """
+    Decision Gate is the *policy enforcement* layer.
+    It is intentionally conservative for MVP credibility:
+      - Known-false categories + no evidence => BLOCK
+      - High-confidence but no evidence => REVIEW (policy)
+      - Strong score + no guardrails => ALLOW
+    """
+
+    guard = (signals or {}).get("guardrail")
+
     # Hard guardrails first
-    if signals.get("guardrail") == "known_false_claim_no_evidence":
+    if guard == "known_false_claim_no_evidence":
         return "BLOCK", "Known false / widely debunked category without evidence. Demo guardrail triggered."
-    if signals.get("guardrail") == "unsupported_universal_claim_no_evidence":
+
+    if guard == "unsupported_universal_claim_no_evidence":
         return "REVIEW", "Unsupported universal/high-certainty claim without evidence. Conservative gating applied."
 
-    # Normal thresholds
-    if score >= 80:
-        return "ALLOW", "High confidence per current MVP scoring."
+    has_refs = bool((signals or {}).get("has_references"))
+    liability = ((signals or {}).get("liability_tier") or "low").lower()
+
+    # If no evidence, be conservative even if it looks likely true
+    # (This directly mitigates nonsensical/false-but-confident claims in MVP.)
+    if not has_refs:
+        # Extremely high scores can still ALLOW for low-liability trivial facts,
+        # but keep this conservative for demo optics.
+        if score >= 85 and liability == "low":
+            return "ALLOW", "High confidence and low liability. Allowed under conservative demo policy."
+        return "REVIEW", "Likely true, but no evidence provided. Conservative demo policy requires human verification."
+
+    # Evidence present: allow normal thresholds
+    if score >= 75:
+        return "ALLOW", "High confidence with evidence present."
     elif score >= 55:
         return "REVIEW", "Medium confidence. Human verification recommended."
     else:
@@ -146,28 +169,25 @@ def decision_gate(score: int, signals: dict):
 # -------------------------
 KNOWN_FALSE_PATTERNS = [
     # Keep this list tiny + obvious for demo credibility
-    r"\bearth\s+is\s+flat\b",
     r"\bthe\s+earth\s+is\s+flat\b",
+    r"\bearth\s+is\s+flat\b",
     r"\bflat\s+earth\b",
     r"\bvaccines?\s+cause\s+autism\b",
     r"\b5g\s+causes?\s+covid\b",
-    r"\bmoon\s+landing\s+(was\s+)?fake\b",
+    r"\bmoon\s+landing\s+was\s+fake\b",
 ]
 
 UNIVERSAL_CERTAINTY_TERMS = [
     "always", "never", "guaranteed", "definitely", "proves", "proof", "100%", "cures", "cure"
 ]
 
-
 def has_any_digit(s: str) -> bool:
     return any(ch.isdigit() for ch in (s or ""))
-
 
 def extract_urls(s: str):
     if not s:
         return []
     return re.findall(r"https?://[^\s)]+", s)
-
 
 def looks_like_doi_or_pmid(s: str) -> bool:
     if not s:
@@ -181,7 +201,6 @@ def looks_like_doi_or_pmid(s: str) -> bool:
         return True
     return False
 
-
 def evidence_present(evidence: str) -> bool:
     if not evidence:
         return False
@@ -189,22 +208,17 @@ def evidence_present(evidence: str) -> bool:
         return True
     if looks_like_doi_or_pmid(evidence):
         return True
-    # fallback: any non-trivial evidence string
     return len(evidence.strip()) >= 12
-
 
 def is_short_declarative(text: str) -> bool:
     t = (text or "").strip()
     if len(t) > 160:
         return False
-    # crude declarative cue
     return (" is " in t.lower()) or (" are " in t.lower()) or t.endswith(".")
-
 
 def contains_universal_certainty(text: str) -> bool:
     t = (text or "").lower()
     return any(w in t for w in UNIVERSAL_CERTAINTY_TERMS)
-
 
 def matches_known_false(text: str) -> bool:
     t = (text or "").lower()
@@ -215,10 +229,8 @@ def matches_known_false(text: str) -> bool:
 
 
 def enrich_with_guardrails(text: str, evidence: str, score: int, verdict: str, explanation: str):
-    # Used if external scorer is present but not returning signals
     base_score = int(max(0, min(100, score)))
     s, v, e, signals, references = heuristic_score(text, evidence, seed_score=base_score)
-    # Keep original verdict/explanation if they are more detailed
     if verdict and isinstance(verdict, str):
         v = verdict
     if explanation and isinstance(explanation, str):
@@ -234,7 +246,7 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     MVP heuristic scoring (0-100) + conservative guardrails.
     - Scores linguistic certainty/uncertainty + risk signals
     - Evidence boosts only when present (URL/DOI/PMID)
-    - Adds conservative gating for universal/high-certainty unsupported claims
+    - Adds conservative guardrails for universal/high-certainty unsupported claims
     - Adds tiny demo guardrail list for widely debunked categories (e.g., "Earth is flat")
     """
 
@@ -247,7 +259,6 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     for u in extract_urls(ev):
         references.append({"type": "url", "value": u})
     if looks_like_doi_or_pmid(ev) and not extract_urls(ev):
-        # capture evidence string as reference if DOI/PMID-like
         references.append({"type": "evidence", "value": ev[:240]})
 
     has_refs = evidence_present(ev)
@@ -257,7 +268,6 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     hedges = ["may", "might", "could", "likely", "possibly", "suggests", "uncertain"]
 
     risk_flags = []
-
     score = int(seed_score)
 
     if any(w in tl for w in risky_terms):
@@ -280,15 +290,14 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         score += 8
         risk_flags.append("numeric_with_evidence")
 
-    # "Short declarative" bump is ONLY safe if it doesn't trip guardrails
+    # "Short declarative" bump is modest and still subject to guardrails
     short_decl = is_short_declarative(t)
     if short_decl and not has_digit:
         risk_flags.append("short_declarative_claim")
-        score += 20  # modest bump to avoid over-penalizing simple facts
+        score += 18  # slightly reduced to avoid easy ALLOW
 
     # --- Guardrail #1: Known false categories (demo list) ---
     if matches_known_false(t) and not has_refs:
-        # Force conservative outcome (no ALLOW)
         score = min(score, 45)
         risk_flags.append("known_false_category_no_evidence")
         guardrail = "known_false_claim_no_evidence"
@@ -296,13 +305,12 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         guardrail = None
 
     # --- Guardrail #2: Unsupported universal/high-certainty claims w/out evidence ---
-    # Example: sweeping statements that sound definitive; if no evidence, cap at REVIEW ceiling
     if (short_decl and contains_universal_certainty(t)) and not has_refs and guardrail is None:
-        score = min(score, 60)  # prevents ALLOW (>=75)
+        score = min(score, 60)
         risk_flags.append("unsupported_universal_claim_no_evidence")
         guardrail = "unsupported_universal_claim_no_evidence"
 
-    # Evidence helps, but should not automatically guarantee ALLOW
+    # Evidence helps, but does not guarantee
     if has_refs:
         score += 5
         risk_flags.append("evidence_present")
@@ -323,12 +331,17 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         "from being ALLOWed without evidence. Replace with evidence-backed verification in production."
     )
 
+    # Lightweight liability tier (for messaging + future)
+    liability_tier = "high" if (has_digit or any(w in tl for w in ["legal", "clinical", "diagnos", "dose", "contract", "liability"])) else "low"
+
     signals = {
         "has_digit": bool(has_digit),
         "has_references": bool(has_refs),
         "reference_count": len(references),
         "risk_flags": risk_flags,
         "guardrail": guardrail,
+        "liability_tier": liability_tier,
+        "evidence_required_for_allow": False
     }
 
     return score, verdict, explanation, signals, references
