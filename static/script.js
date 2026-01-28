@@ -41,13 +41,19 @@
   }
 
   // ---------- Element binding ----------
-  const verifyButton = pick("verifyBtn", "#verifyBtn", "button.primary-btn");
+  // Robust: find VERIFY button by id or class; fallback to button with text "VERIFY"
+  let verifyButton = pick("verifyBtn", "#verifyBtn", "button.primary-btn");
+  if (!verifyButton) {
+    const allBtns = Array.from(document.querySelectorAll("button"));
+    verifyButton = allBtns.find(b => (b.textContent || "").trim().toUpperCase() === "VERIFY") || null;
+  }
+
   const claimBox = pick("inputText", "#inputText", "textarea");
   const evidenceBox = pick("evidenceText", "#evidenceText");
   const scoreDisplay = pick("scoreDisplay", "#scoreDisplay");
   const scoreVerdict = pick("scoreVerdict", "#scoreVerdict");
   const gaugeFill = pick("gaugeFill", "#gaugeFill");
-  const decisionBox = pick("decisionBox", "#decisionBox", ".decision-card");
+  const decisionCard = pick(".decision-card", "decisionBox", "#decisionBox");
   const decisionAction = pick("decisionAction", "#decisionAction");
   const decisionReason = pick("decisionReason", "#decisionReason");
   const resultPre = pick("result", "#result");
@@ -65,24 +71,39 @@
     else decisionAction.classList.add("review");
   }
 
+  // Gauge uses stroke-dashoffset in your SVG (best for your current HTML/CSS)
   function updateGauge(score) {
     if (!gaugeFill) return;
     const s = Math.max(0, Math.min(100, Number(score) || 0));
-    const maxDeg = 180;
-    gaugeFill.style.strokeDashoffset = 260 - (s / 100) * 260;
+    const total = 260; // matches dasharray in HTML
+    gaugeFill.style.strokeDashoffset = total - (s / 100) * total;
   }
 
   function setPendingUI() {
     setText(scoreDisplay, "--");
-    setText(scoreVerdict, "Score pending...");
+    setText(scoreVerdict, "Score pending…");
+    if (decisionCard) show(decisionCard, true);
     setText(decisionAction, "—");
-    setText(decisionReason, "Awaiting verification...");
+    setText(decisionReason, "Awaiting verification…");
     updateGauge(0);
     if (resultPre) resultPre.textContent = "";
   }
 
+  function setErrorUI(userMsg, debugText) {
+    setText(scoreDisplay, "--");
+    setText(scoreVerdict, "Error");
+    if (decisionCard) show(decisionCard, true);
+    setText(decisionAction, "REVIEW");
+    applyDecisionColor("REVIEW");
+    setText(decisionReason, userMsg || "Backend error.");
+    if (resultPre) {
+      resultPre.textContent = debugText ? `Backend error:\n${debugText}` : (userMsg || "Backend error.");
+    }
+  }
+
   function renderResponse(data) {
     lastResponse = data;
+
     const score = data?.score ?? "--";
     setText(scoreDisplay, score);
     setText(scoreVerdict, data?.verdict || "");
@@ -90,6 +111,7 @@
 
     const action = data?.decision?.action || "REVIEW";
     const reason = data?.decision?.reason || "";
+    if (decisionCard) show(decisionCard, true);
     setText(decisionAction, action);
     applyDecisionColor(action);
     setText(decisionReason, reason);
@@ -98,10 +120,12 @@
   }
 
   async function onVerify() {
-    const text = claimBox?.value?.trim();
-    if (!text) return alert("Paste AI text first.");
+    const text = (claimBox?.value || "").trim();
+    const evidence = (evidenceBox?.value || "").trim();
 
-    const payload = { text, evidence: evidenceBox?.value || "", policy_mode: "enterprise" };
+    if (!text) return alert("Paste AI- or agent-generated text first.");
+
+    const payload = { text, evidence: evidence || "", policy_mode: "enterprise" };
     lastPayload = payload;
     setPendingUI();
 
@@ -111,17 +135,43 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
+
+      // Handle non-OK errors gracefully
+      if (!res.ok) {
+        let t = "";
+        try { t = await res.text(); } catch {}
+        setErrorUI("could not score. Check backend route and try again.", t || `HTTP ${res.status}`);
+        return;
+      }
+
+      // Parse JSON safely
+      let data = null;
+      try {
+        data = await res.json();
+      } catch (e) {
+        const txt = await res.text().catch(() => "");
+        setErrorUI("could not parse response JSON.", txt || String(e));
+        return;
+      }
+
       renderResponse(data);
     } catch (e) {
-      setText(scoreVerdict, "Error");
-      setText(decisionReason, "Backend error.");
+      setErrorUI("could not score. Network or backend unavailable.", String(e));
     }
   }
 
+  // Attach handler
   if (verifyButton) verifyButton.addEventListener("click", onVerify);
+  else console.warn("VERIFY button not found. Check id/class.");
 
-  // ---------- COPY FUNCTIONS (NEW) ----------
+  // ✅ IMPORTANT: Inline onclick compatibility shim.
+  // Your HTML currently uses onclick="scoreText()". This ensures it always works.
+  window.scoreText = function () {
+    if (verifyButton) verifyButton.click();
+    else onVerify();
+  };
+
+  // ---------- COPY FUNCTIONS ----------
   window.copyJSONPayload = function () {
     if (!lastPayload) return alert("Run a verification first.");
     copyToClipboard(safeJson(lastPayload));
@@ -138,5 +188,13 @@
     copyToClipboard(curl);
   };
 
+  // Start state
   setPendingUI();
+
+  // Optional debug hook
+  window.TruCiteDebug = {
+    elements: { verifyButton, claimBox, evidenceBox, scoreDisplay, scoreVerdict, gaugeFill, decisionCard, decisionAction, decisionReason, resultPre },
+    lastPayload: () => lastPayload,
+    lastResponse: () => lastResponse
+  };
 })();
