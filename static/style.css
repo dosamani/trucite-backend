@@ -413,3 +413,10 @@ details[open] summary::after { content: "▲"; }
 .footer-links a { color: #FFD700; font-weight: 900; }
 
 .footer-note{ color:#bbb; }
+.decision-subnote {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #b5b5b5;
+  text-align: center;
+  opacity: 0.85;
+}
