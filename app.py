@@ -134,7 +134,7 @@ def decision_gate(score: int, signals: dict):
 
     # Normal thresholds
     if score >= 80:
-    return "ALLOW", "High confidence per current MVP scoring."
+        return "ALLOW", "High confidence per current MVP scoring."
     elif score >= 55:
         return "REVIEW", "Medium confidence. Human verification recommended."
     else:
