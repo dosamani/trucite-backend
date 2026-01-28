@@ -286,23 +286,21 @@
           <summary>How is TruCite different from OpenEvidence?</summary>
           <div class="acc-body">
             OpenEvidence and similar tools focus on <strong>retrieval and citations</strong>.
-            TruCite is a <strong>verification layer</strong>: it scores the output itself and returns a gate action.
+            TruCite is a <strong>verification and policy layer</strong>: it scores the output itself and returns an enforceable gate action that downstream systems can use to control AI-driven workflows.
           </div>
         </details>
 
         <details>
           <summary>Is this just “AI correcting AI”? Isn’t that risky?</summary>
           <div class="acc-body">
-            TruCite does not replace your models or generate new content.
-            It operates as an independent scoring and gating layer that supports human review.
+            TruCite does not replace your models or generate new content. It operates as an independent scoring and <strong>policy enforcement layer</strong> that supports human oversight and system-level safeguards.
           </div>
         </details>
 
         <details>
           <summary>How is TruCite future-proof if models keep changing?</summary>
           <div class="acc-body">
-            TruCite is model-agnostic. It focuses on properties of output integrity and risk signals,
-            not on internal vendor confidence signals.
+            TruCite is model-agnostic. It focuses on output integrity and risk signals rather than internal vendor confidence scores. This allows TruCite to function as a stable verification and enforcement layer even as underlying models evolve.
           </div>
         </details>
 
@@ -340,8 +338,7 @@
             After years leading clinical informatics, large-scale EHR transformation, and technology-driven care redesign,
             Mani saw how even small inaccuracies can cascade into real-world harm in healthcare and law.
             <br /><br />
-            TruCite was created to be that layer: <strong>independent verification infrastructure</strong> that evaluates
-            reliability and produces an auditable score and enforceable gate outcome (ALLOW / REVIEW / BLOCK).
+            TruCite was created to be that layer: <strong>independent verification infrastructure</strong> that evaluates reliability and produces an auditable score and enforceable gate outcome (ALLOW / REVIEW / BLOCK) that enterprise systems can use to control AI-driven workflows.
           </div>
         </details>
       </div>
