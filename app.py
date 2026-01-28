@@ -89,13 +89,11 @@ def verify():
             score, verdict, explanation, signals, references = score_claim_text(
                 text, evidence=evidence, policy_mode=policy_mode
             )
-            # If external scorer returns no signals, add guardrails + evidence parsing
             if not isinstance(signals, dict):
                 score, verdict, explanation, signals, references = enrich_with_guardrails(
                     text, evidence, int(score), verdict, explanation
                 )
         except TypeError:
-            # backwards-compatible signature
             try:
                 score, verdict, explanation = score_claim_text(text)
                 score, verdict, explanation, signals, references = enrich_with_guardrails(
@@ -108,7 +106,7 @@ def verify():
     else:
         score, verdict, explanation, signals, references = heuristic_score(text, evidence)
 
-    # Decision Gate (policy enforcement)
+    # Decision Gate
     action, reason = decision_gate(int(score), signals)
 
     resp = {
@@ -128,17 +126,14 @@ def verify():
 
 
 # -------------------------
-# Decision logic (MVP policy)
+# Decision logic (MVP demo policy)
 # -------------------------
 def decision_gate(score: int, signals: dict):
     """
-    MVP policy that avoids demo embarrassment BUT doesn't make trivial facts REVIEW-only.
-
-    Rules:
-      1) Known-debunked categories + no evidence => BLOCK
-      2) High-certainty/universal claims + no evidence => REVIEW
-      3) High-liability or numeric claims need evidence to reach ALLOW
-      4) Low-liability, non-numeric, high score can ALLOW without evidence
+    Demo policy tuned for acquisition optics:
+      - Block known-debunked without evidence
+      - Require evidence for numeric/high-liability to reach ALLOW
+      - Allow low-liability obvious claims at >=70 (reduces annoying REVIEWs)
     """
 
     s = signals or {}
@@ -147,24 +142,24 @@ def decision_gate(score: int, signals: dict):
     has_digit = bool(s.get("has_digit"))
     liability = (s.get("liability_tier") or "low").lower()
 
-    # 1) Hard guardrail: known false categories
+    # Hard guardrail: known false categories
     if guard == "known_false_claim_no_evidence":
         return "BLOCK", "Known false / widely debunked category without evidence. Demo guardrail triggered."
 
-    # 2) Universal/high-certainty without evidence => REVIEW
+    # Universal/high-certainty without evidence => REVIEW
     if guard == "unsupported_universal_claim_no_evidence":
         return "REVIEW", "Unsupported universal/high-certainty claim without evidence. Conservative gating applied."
 
-    # 3) Evidence required to reach ALLOW for numeric / high-liability
+    # Evidence required for numeric or high-liability to reach ALLOW
     if (has_digit or liability == "high") and not has_refs:
-        if score >= 75:
+        if score >= 70:
             return "REVIEW", "High-liability or numeric claim without evidence. Add URL/DOI/PMID or route to human review."
         if score >= 55:
             return "REVIEW", "Medium confidence. High-liability/numeric content requires verification."
         return "BLOCK", "Low confidence and high-liability/numeric without evidence."
 
-    # 4) Low-liability content: normal thresholds (evidence optional)
-    if score >= 75:
+    # Low-liability, non-numeric: relaxed demo threshold
+    if score >= 70:
         return "ALLOW", "High confidence per current MVP scoring."
     if score >= 55:
         return "REVIEW", "Medium confidence. Human verification recommended."
@@ -172,7 +167,7 @@ def decision_gate(score: int, signals: dict):
 
 
 # -------------------------
-# Guardrails + evidence parsing (used when reference_engine is absent or thin)
+# Guardrails + evidence parsing
 # -------------------------
 KNOWN_FALSE_PATTERNS = [
     r"\bthe\s+earth\s+is\s+flat\b",
@@ -261,7 +256,6 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     tl = t.lower()
     ev = (evidence or "").strip()
 
-    # References extraction
     references = []
     for u in extract_urls(ev):
         references.append({"type": "url", "value": u})
@@ -310,7 +304,7 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     else:
         guardrail = None
 
-    # Guardrail #2: universal/high-certainty without evidence (prevents easy ALLOW)
+    # Guardrail #2: universal/high-certainty without evidence
     if (short_decl and contains_universal_certainty(t)) and not has_refs and guardrail is None:
         score = min(score, 60)
         risk_flags.append("unsupported_universal_claim_no_evidence")
@@ -322,7 +316,7 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
 
     score = max(0, min(100, score))
 
-    if score >= 75:
+    if score >= 70:
         verdict = "Likely true / consistent"
     elif score >= 55:
         verdict = "Unclear / needs verification"
