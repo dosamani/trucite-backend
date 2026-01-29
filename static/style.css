@@ -428,3 +428,29 @@ details[open] summary::after { content: "▲"; }
   margin-right: auto;
   display: block;
 }
+/* ===== TruCite desktop alignment fix (textarea stack) ===== */
+.verify-section textarea {
+  width: 100%;
+  max-width: 900px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+/* If the button + copy row look offset on desktop, center them too */
+.verify-section .primary-btn,
+.verify-section .copy-row {
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+/* If your COPY buttons wrap weirdly on desktop, this keeps them tidy */
+.verify-section .copy-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
