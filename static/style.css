@@ -420,3 +420,11 @@ details[open] summary::after { content: "▲"; }
   text-align: center;
   opacity: 0.85;
 }
+/* Desktop alignment fix for input boxes */
+.verify-section textarea {
+  width: 100%;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+}
