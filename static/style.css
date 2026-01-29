@@ -462,3 +462,43 @@ details[open] summary::after { content: "▲"; }
   position: absolute;
   left: 20px;
 }
+/* Container */
+.top-nav-inner.dual-cta {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    padding: 0 24px;
+    height: 64px;
+}
+
+/* Base button style (already exists but safe to reinforce) */
+.top-nav-cta {
+    position: absolute;
+    top: 12px;
+}
+
+/* Left button */
+.left-cta {
+    left: 24px;
+}
+
+/* Right button */
+.right-cta {
+    right: 24px;
+}
+
+/* Mobile fallback */
+@media (max-width: 768px) {
+    .top-nav-inner.dual-cta {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        height: auto;
+        padding: 12px;
+    }
+
+    .top-nav-cta {
+        position: static;
+    }
+}
