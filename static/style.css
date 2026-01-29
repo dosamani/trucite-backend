@@ -454,3 +454,11 @@ details[open] summary::after { content: "▲"; }
   flex-wrap: wrap;
   justify-content: center;
 }
+.top-nav-inner {
+  position: relative;
+}
+
+.top-nav-left {
+  position: absolute;
+  left: 20px;
+}
