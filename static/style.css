@@ -1,504 +1,218 @@
-/* =======================
-   BASE / RESET
-======================= */
-* { box-sizing: border-box; }
-
-html, body { width: 100%; }
+/* =========================
+   GLOBAL STYLES
+========================= */
 
 body {
-  margin: 0;
-  background: #000;
-  color: #fff;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
-  line-height: 1.5;
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: radial-gradient(circle at top, #111 0%, #000 60%);
+    color: #eaeaea;
+    text-align: center;
 }
 
-a { color: #FFD700; text-decoration: none; }
-a:hover { text-decoration: underline; }
+h1, h2, h3 {
+    margin: 0;
+    font-weight: 600;
+}
 
-/* Kill weird default markers / artifacts */
-summary::-webkit-details-marker { display: none; }
-details { outline: none; }
-details, summary { -webkit-tap-highlight-color: transparent; }
+a {
+    text-decoration: none;
+}
 
-/* =======================
-   TOP NAV
-======================= */
+/* =========================
+   TOP NAV BUTTONS
+========================= */
+
 .top-nav {
-  position: sticky;
-  top: 0;
-  z-index: 999;
-  background: #000;
-  border-bottom: 1px solid #111;
-  padding: 10px 14px;
+    width: 100%;
+    position: relative;
+    z-index: 10;
 }
 
-.top-nav-inner {
-  width: 100%;
-  max-width: 920px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+.top-nav-inner.dual-cta {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .top-nav-cta {
-  margin-left: auto;
-  font-weight: 800;
-  font-size: 0.95rem;
-  color: #FFD700;
-  padding: 8px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,215,0,0.55);
-  background: rgba(255,215,0,0.10);
-  white-space: nowrap;
-  box-shadow: 0 0 10px rgba(255,215,0,0.10);
+    background: linear-gradient(90deg, #f6c543, #ffde59);
+    color: #000;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+    transition: all 0.25s ease;
 }
-.top-nav-cta:hover { text-decoration: none; filter: brightness(1.08); }
 
-/* =======================
-   HERO
-======================= */
+.top-nav-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 18px rgba(255, 215, 0, 0.6);
+}
+
+/* Mobile stacking */
+@media (max-width: 768px) {
+    .top-nav-inner.dual-cta {
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+    }
+}
+
+/* =========================
+   HERO SECTION
+========================= */
+
 .hero {
-  text-align: center;
-  padding: 42px 16px 14px;
+    padding: 40px 20px 20px 20px;
 }
 
-.logo { height: 70px; margin-bottom: 12px; }
-
-.hero h1 { margin: 6px 0; font-size: 1.9rem; }
-
-.tm { font-size: 0.7em; vertical-align: super; }
+.logo {
+    width: 80px;
+    margin-bottom: 15px;
+}
 
 .hero-tagline {
-  margin-top: 8px;
-  font-size: 1rem;
-  color: #FFD700;
+    font-size: 20px;
+    margin-top: 12px;
+    color: #f6c543;
 }
 
 .hero-subtitle {
-  margin: 10px auto 12px;
-  max-width: 720px;
-  font-size: 0.95rem;
-  color: #ccc;
+    font-size: 15px;
+    margin: 10px auto;
+    max-width: 760px;
+    line-height: 1.6;
+    color: #dcdcdc;
 }
 
-.hero-subtitle-tight {
-  margin-top: 6px;
-}
+/* =========================
+   INPUT SECTION
+========================= */
 
-.hero-missing-layer{
-  margin: 12px auto 0;
-  max-width: 760px;
-  font-size: 1.02rem;
-  font-weight: 900;
-  color: #FFD700;
-  text-shadow: 0 0 14px rgba(255,215,0,0.25);
+.input-section {
+    max-width: 820px;
+    margin: 30px auto;
+    padding: 0 20px;
 }
-
-.hero-mini-links{
-  margin-top: 10px;
-}
-
-/* =======================
-   MAIN
-======================= */
-main {
-  max-width: 920px;
-  margin: 0 auto;
-  padding: 18px;
-}
-
-.section-title {
-  margin-top: 64px;
-  margin-bottom: 18px;
-  font-size: 1.25rem;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #FFD700;
-}
-
-.section-subtitle{
-  margin: 10px auto 12px;
-  max-width: 740px;
-  color: #cfcfcf;
-  font-size: 0.95rem;
-  text-align: center;
-}
-
-/* =======================
-   VERIFY / INPUT
-======================= */
-.verify-section { text-align: center; margin-top: 30px; }
 
 textarea {
-  width: 100%;
-  max-width: 720px;
-  height: 150px;
-  background: #000;
-  color: #fff;
-  border-radius: 14px;
-  border: 1px solid rgba(255,215,0,0.55);
-  padding: 12px;
-  font-size: 0.95rem;
-  resize: vertical;
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid #333;
+    padding: 14px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    background: #111;
+    color: #eee;
 }
 
 textarea:focus {
-  outline: none;
-  border-color: rgba(255,215,0,0.95);
-  box-shadow: 0 0 26px rgba(255,215,0,0.22);
+    outline: none;
+    border-color: #f6c543;
 }
 
-/* Glow also when user has typed (not only focus) */
-textarea:not(:placeholder-shown) {
-  border-color: rgba(255,215,0,0.85);
-  box-shadow: 0 0 26px rgba(255,215,0,0.18);
-}
-
-/* =======================
-   BUTTON
-======================= */
-@keyframes goldPulse {
-  0%   { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
-  50%  { box-shadow: 0 0 22px rgba(255,215,0,0.28); }
-  100% { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
-}
-
+/* Buttons */
 .primary-btn {
-  margin-top: 14px;
-  background: #FFD700;
-  color: #000;
-  border: 1px solid rgba(255,215,0,0.65);
-  border-radius: 14px;
-  padding: 12px 34px;
-  font-weight: 900;
-  cursor: pointer;
-  animation: goldPulse 2.2s ease-in-out infinite;
-}
-.primary-btn:hover { filter: brightness(1.08); }
-
-/* =======================
-   COPY BUTTONS
-======================= */
-.copy-row{
-  margin-top: 10px;
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  flex-wrap: wrap;
+    background: linear-gradient(90deg, #f6c543, #ffde59);
+    color: #000;
+    border: none;
+    padding: 12px 22px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.copy-btn{
-  background: rgba(0,0,0,0.65);
-  color: #FFD700;
-  border: 1px solid rgba(255,215,0,0.55);
-  border-radius: 12px;
-  padding: 9px 14px;
-  font-weight: 900;
-  cursor: pointer;
-  box-shadow: 0 0 12px rgba(255,215,0,0.10);
+.primary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 16px rgba(255, 215, 0, 0.6);
 }
 
-.copy-btn:hover{ filter: brightness(1.10); text-decoration: none; }
-.copy-btn:active{ transform: translateY(1px); }
-.copy-btn:focus{ outline: none; }
-.copy-btn:focus-visible{
-  outline: 2px solid rgba(255,215,0,0.35);
-  outline-offset: 2px;
+/* =========================
+   GAUGE & RESULTS
+========================= */
+
+.gauge-container {
+    margin-top: 30px;
 }
 
-/* =======================
-   GAUGE
-======================= */
-#gaugeContainer { margin-top: 28px; }
-
-.gauge-label{
-  margin-bottom: 8px;
-  font-weight: 900;
-  color: #FFD700;
-  letter-spacing: 0.03em;
+.score-number {
+    font-size: 48px;
+    margin-top: 10px;
+    color: #f6c543;
 }
 
-#scoreDisplay {
-  margin-top: 8px;
-  font-size: 1.95rem;
-  font-weight: 900;
-  color: #FFD700;
-}
-#scoreVerdict { margin-top: 6px; font-size: 0.95rem; color: #ccc; }
-
-/* =======================
-   RESULT BOX
-======================= */
-.result-wrapper { margin-top: 34px; }
-
-.result-label {
-  font-size: 0.85rem;
-  color: #FFD700;
-  margin-bottom: 6px;
+.verdict-text {
+    margin-top: 6px;
+    font-size: 16px;
 }
 
-pre#result {
-  background: #0b0b0b;
-  border: 1px solid rgba(255,215,0,0.25);
-  border-radius: 14px;
-  padding: 14px;
-  font-size: 0.8rem;
-  max-height: 280px;
-  overflow: auto;
-  box-shadow: 0 0 18px rgba(255,215,0,0.06);
+/* =========================
+   DECISION GATE
+========================= */
+
+.decision-card {
+    margin: 30px auto;
+    max-width: 720px;
+    padding: 22px;
+    border-radius: 12px;
+    background: #111;
+    border: 1px solid #333;
 }
 
-/* =======================
-   CARDS (How + Wins)
-======================= */
-.bp-card,
-.bright-card {
-  border: 1px solid rgba(255,215,0,0.45);
-  border-radius: 18px;
-  background: rgba(0,0,0,0.65);
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
-  padding: 18px;
-  margin: 14px 0;
+.decision-title {
+    font-size: 22px;
+    margin-bottom: 10px;
 }
 
-.bp-label {
-  font-weight: 900;
-  color: #FFD700;
-  margin-bottom: 10px;
-  font-size: 1.05rem;
+.decision-result {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 8px 0;
 }
 
-.bp-card p { margin: 0; color: #d9d9d9; font-size: 1.02rem; line-height: 1.55; }
-
-/* Diagram pills */
-.bp-diagram { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: center; }
-.bp-node {
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,215,0,0.35);
-  background: rgba(255,215,0,0.10);
-  color: #FFD700;
-  font-weight: 800;
-  font-size: 0.95rem;
-}
-.bp-arrow { color: #aaa; font-weight: 900; }
-
-/* Wins / Use cases grid helpers */
-.wins-grid, .blueprint-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-  max-width: 820px;
-  margin: 0 auto;
+.policy-line {
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 10px;
 }
 
-@media (min-width: 780px){
-  .wins-grid, .blueprint-grid {
-    grid-template-columns: 1fr 1fr;
-  }
+/* =========================
+   CARDS SECTION
+========================= */
+
+.cards {
+    max-width: 1100px;
+    margin: 50px auto;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
 }
 
-/* =======================
-   ACCORDION (details/summary)
-======================= */
-.accordion { max-width: 820px; margin: 0 auto; }
-
-details {
-  border: 1px solid rgba(255,215,0,0.35);
-  border-radius: 16px;
-  background: rgba(0,0,0,0.65);
-  box-shadow: 0 0 18px rgba(255,215,0,0.08);
-  margin: 14px 0;
-  overflow: hidden;
+.card {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 20px;
 }
 
-summary {
-  cursor: pointer;
-  padding: 16px 18px;
-  font-weight: 900;
-  color: #FFD700;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+.card h3 {
+    color: #f6c543;
+    margin-bottom: 8px;
 }
 
-summary::after {
-  content: "▼";
-  color: #FFD700;
-  font-weight: 900;
-  flex: 0 0 auto;
-  transform: translateY(-1px);
-}
-
-details[open] summary::after { content: "▲"; }
-
-.acc-body {
-  padding: 16px 18px 18px;
-  border-top: 1px solid rgba(255,215,0,0.18);
-  color: #d9d9d9;
-  font-size: 1.0rem;
-  line-height: 1.55;
-}
-
-/* FAQ "See full..." centered */
-.faq-more {
-  text-align: center !important;
-  width: 100% !important;
-  display: block !important;
-  margin: 14px 0 0 !important;
-}
-.faq-more a {
-  display: inline-block !important;
-  font-weight: 900 !important;
-  color: #FFD700 !important;
-}
-
-/* =======================
-   DECISION CARD
-======================= */
-.decision-card{
-  width: 100%;
-  max-width: 720px;
-  margin: 18px auto 0;
-  border: 1px solid rgba(255,215,0,0.45);
-  border-radius: 18px;
-  background: rgba(0,0,0,0.65);
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
-  padding: 20px 18px;
-  text-align: center;
-}
-
-.decision-title{
-  margin: 0 0 10px;
-  color: #fff;
-  font-size: 1.30rem;
-  font-weight: 900;
-}
-
-.decision-action{
-  margin: 6px 0 6px;
-  font-size: 1.55rem;
-  font-weight: 1000;
-  letter-spacing: 0.04em;
-}
-
-.decision-reason{
-  margin: 0;
-  color: #d9d9d9;
-  font-size: 1.02rem;
-  line-height: 1.55;
-}
-
-/* Decision action colors */
-.allow { color: #2fe57a !important; font-weight: 1000; }
-.review { color: #FFD700 !important; font-weight: 1000; }
-.block { color: #ff4d4d !important; font-weight: 1000; }
-
-/* =======================
+/* =========================
    FOOTER
-======================= */
-.site-footer {
-  margin: 52px auto 40px;
-  text-align: center;
-  color: #bbb;
-}
+========================= */
 
-.footer-links { margin-bottom: 12px; }
-.footer-links a { color: #FFD700; font-weight: 900; }
-
-.footer-note{ color:#bbb; }
-.decision-subnote {
-  margin-top: 8px;
-  font-size: 0.85rem;
-  color: #b5b5b5;
-  text-align: center;
-  opacity: 0.85;
-}
-/* Desktop alignment fix for input boxes */
-.verify-section textarea {
-  width: 100%;
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
-  display: block;
-}
-/* ===== TruCite desktop alignment fix (textarea stack) ===== */
-.verify-section textarea {
-  width: 100%;
-  max-width: 900px;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  box-sizing: border-box;
-}
-
-/* If the button + copy row look offset on desktop, center them too */
-.verify-section .primary-btn,
-.verify-section .copy-row {
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
-  box-sizing: border-box;
-}
-
-/* If your COPY buttons wrap weirdly on desktop, this keeps them tidy */
-.verify-section .copy-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.top-nav-inner {
-  position: relative;
-}
-
-.top-nav-left {
-  position: absolute;
-  left: 20px;
-}
-/* Container */
-.top-nav-inner.dual-cta {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    position: relative;
-    padding: 0 24px;
-    height: 64px;
-}
-
-/* Base button style (already exists but safe to reinforce) */
-.top-nav-cta {
-    position: absolute;
-    top: 12px;
-}
-
-/* Left button */
-.left-cta {
-    left: 24px;
-}
-
-/* Right button */
-.right-cta {
-    right: 24px;
-}
-
-/* Mobile fallback */
-@media (max-width: 768px) {
-    .top-nav-inner.dual-cta {
-        display: flex;
-        justify-content: center;
-        gap: 12px;
-        height: auto;
-        padding: 12px;
-    }
-
-    .top-nav-cta {
-        position: static;
-    }
+footer {
+    margin: 50px 0 20px 0;
+    font-size: 12px;
+    color: #aaa;
 }
