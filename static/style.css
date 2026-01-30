@@ -63,24 +63,28 @@ details, summary { -webkit-tap-highlight-color: transparent; }
     flex-direction: column;
     align-items: stretch;
   }
+
   .top-nav-cta{
     width: 100%;
     text-align: center;
-  .api-cta-wrapper{
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  margin-right: auto; /* keeps left button anchored */
   }
-   
- .api-subnote{
-  text-align: center;
-  font-size: 0.78rem;
-  color: #c9c9c9;
-  margin: 8px 0 6px;
-  line-height: 1.4;
-  } 
 
+  .api-cta-wrapper{
+    display: flex;
+    flex-direction: column;
+    align-items: center;   /* ✅ centers button + subtext */
+    width: 100%;
+  }
+
+  .api-subnote{
+    width: 100%;
+    text-align: center;    /* ✅ centers the subtext line */
+    margin: 8px 0 6px;
+    font-size: 0.78rem;
+    color: #bdbdbd;
+    line-height: 1.4;
+  }
+}
 /* =======================
    HERO
 ======================= */
