@@ -73,14 +73,13 @@ details, summary { -webkit-tap-highlight-color: transparent; }
   margin-right: auto; /* keeps left button anchored */
   }
    
-}
-.api-subnote{
-  font-size: 0.70rem;
-  color: #b5b5b5;
-  margin-top: 4px;
-  text-align: right;
-  opacity: 0.85;
-}
+ .api-subnote{
+  text-align: center;
+  font-size: 0.78rem;
+  color: #c9c9c9;
+  margin: 8px 0 6px;
+  line-height: 1.4;
+  } 
 
 /* =======================
    HERO
