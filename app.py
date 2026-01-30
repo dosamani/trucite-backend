@@ -42,7 +42,47 @@ def static_files(filename):
 @app.get("/health")
 def health():
     return jsonify({"status": "ok", "service": "trucite-backend", "ts": int(time.time())})
-
+# -------------------------
+# OpenAPI stub (API credibility signal)
+# -------------------------
+@app.get("/openapi.json")
+def openapi_spec():
+    return jsonify({
+        "openapi": "3.0.0",
+        "info": {
+            "title": "TruCite Verification API",
+            "version": "1.0.0",
+            "description": "Independent AI output verification and decision gating layer."
+        },
+        "paths": {
+            "/verify": {
+                "post": {
+                    "summary": "Verify AI-generated output",
+                    "description": "Returns reliability score and enforcement decision for AI output.",
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "text": {"type": "string"},
+                                        "evidence": {"type": "string"},
+                                        "policy_mode": {"type": "string"}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "Verification result"
+                        }
+                    }
+                }
+            }
+        }
+    })
 
 # -------------------------
 # Verify endpoint
