@@ -364,10 +364,13 @@ def decision_gate(score: int, signals: dict):
 
     # Enforce evidence for ALLOW in high-liability (or numeric) cases
     if evidence_required_for_allow and not has_refs:
-        # Even if score is high, force REVIEW (demo conservative posture)
-        if score >= 70:
-            return "REVIEW", "Likely true, but no evidence provided. Conservative demo policy requires human verification."
-        return "REVIEW", "No evidence provided for high-liability or numeric claim. Human verification recommended."
+    # If it's low confidence AND missing evidence, don't waste human cycles
+    if score < 55:
+        return "BLOCK", "Low confidence + no evidence for high-liability/numeric claim. Blocked to prevent downstream harm."
+    # Medium/high confidence but missing evidence -> route to human review
+    if score >= 70:
+        return "REVIEW", "Likely true, but no evidence provided. Human verification required under high-liability policy."
+    return "REVIEW", "No evidence provided for high-liability or numeric claim. Human verification recommended."
 
     # Thresholds by liability tier
     if liability == "low":
