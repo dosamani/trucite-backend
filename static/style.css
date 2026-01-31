@@ -496,3 +496,10 @@ details[open] summary::after { content: "▲"; }
   flex-wrap: wrap;
   justify-content: center;
 }
+.policy-mode-note{
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: #bdbdbd;
+  opacity: 0.85;
+  letter-spacing: 0.04em;
+}
