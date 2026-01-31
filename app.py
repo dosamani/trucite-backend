@@ -359,29 +359,32 @@ def decision_gate(score: int, signals: dict):
     # Hard guardrails first
     if guardrail == "known_false_claim_no_evidence":
         return "BLOCK", "Known false / widely debunked category without evidence. Demo guardrail triggered."
+
     if guardrail == "unsupported_universal_claim_no_evidence":
         return "REVIEW", "Unsupported universal/high-certainty claim without evidence. Conservative gating applied."
 
-    # Enforce evidence for ALLOW in high-liability (or numeric) cases
+    # Enforce evidence requirement for high-liability or numeric claims
     if evidence_required_for_allow and not has_refs:
-    # If it's low confidence AND missing evidence, don't waste human cycles
-    if score < 55:
-        return "BLOCK", "Low confidence + no evidence for high-liability/numeric claim. Blocked to prevent downstream harm."
-    # Medium/high confidence but missing evidence -> route to human review
-    if score >= 70:
-        return "REVIEW", "Likely true, but no evidence provided. Human verification required under high-liability policy."
+        # If it's already low confidence, block instead of wasting human review
+        if score < 55:
+            return "BLOCK", "Low confidence + no evidence for high-liability or numeric claim. Blocked to prevent downstream harm."
+
+        # Medium or high confidence but missing evidence -> human review
+        if score >= 70:
+            return "REVIEW", "Likely true, but no evidence provided. Human verification required under high-liability policy."
+
         return "REVIEW", "No evidence provided for high-liability or numeric claim. Human verification recommended."
 
     # Thresholds by liability tier
     if liability == "low":
-        # Low-liability can ALLOW at >=70
         if score >= 70:
             return "ALLOW", "High confidence per current MVP scoring."
         elif score >= 55:
             return "REVIEW", "Medium confidence. Human verification recommended."
         return "BLOCK", "Low confidence. Do not use without verification."
+
     else:
-        # High-liability: still require higher bar even with evidence
+        # High-liability tier WITH evidence
         if score >= 75:
             return "ALLOW", "High confidence with evidence under high-liability policy."
         elif score >= 55:
