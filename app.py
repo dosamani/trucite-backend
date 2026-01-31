@@ -22,6 +22,12 @@ except Exception:
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 CORS(app)
 
+# -------------------------
+# Policy metadata (acquirer-facing polish)
+# -------------------------
+POLICY_VERSION = "2026.01"
+POLICY_HASH = hashlib.sha256(POLICY_VERSION.encode("utf-8")).hexdigest()[:12]
+
 
 # -------------------------
 # Static landing page
@@ -42,6 +48,29 @@ def static_files(filename):
 @app.get("/health")
 def health():
     return jsonify({"status": "ok", "service": "trucite-backend", "ts": int(time.time())})
+
+
+# -------------------------
+# Policy endpoint (credibility signal)
+# -------------------------
+@app.get("/policy")
+def policy():
+    return jsonify({
+        "policy_version": POLICY_VERSION,
+        "policy_hash": POLICY_HASH,
+        "notes": "MVP policy for scoring + decision gating. Production deployments can replace heuristics with evidence-backed validation.",
+        "guardrails": [
+            "known_false_claim_no_evidence",
+            "unsupported_universal_claim_no_evidence"
+        ],
+        "decision_thresholds": {
+            "low_liability": {"allow": 70, "review": 55},
+            "high_liability": {"allow": 75, "review": 55},
+            "evidence_required_for_allow_when": "high_liability_or_numeric"
+        }
+    })
+
+
 # -------------------------
 # OpenAPI stub (API credibility signal)
 # -------------------------
@@ -80,9 +109,50 @@ def openapi_spec():
                         }
                     }
                 }
+            },
+            "/verify/batch": {
+                "post": {
+                    "summary": "Batch verify AI-generated output",
+                    "description": "Returns an array of full verification objects for pipeline ingestion.",
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "items": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "text": {"type": "string"},
+                                                    "evidence": {"type": "string"},
+                                                    "policy_mode": {"type": "string"}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "Batch verification results"
+                        }
+                    }
+                }
+            },
+            "/policy": {
+                "get": {
+                    "summary": "Return current TruCite policy metadata",
+                    "description": "Returns policy version/hash and guardrail thresholds for auditing."
+                }
             }
         }
     })
+
 
 # -------------------------
 # Verify endpoint
@@ -152,12 +222,19 @@ def verify():
     # Decision Gate (uses signals incl. liability tier + evidence requirement)
     action, reason = decision_gate(int(score), signals)
 
+    # ✅ Ensure rules_fired exists even if a future engine returns signals without it
+    if isinstance(signals, dict) and "rules_fired" not in signals:
+        signals["rules_fired"] = []
+
     resp = {
         "verdict": verdict,
         "score": int(score),
         "decision": {"action": action, "reason": reason},
         "event_id": event_id,
         "policy_mode": policy_mode,
+        # ✅ policy metadata for auditability
+        "policy_version": POLICY_VERSION,
+        "policy_hash": POLICY_HASH,
         "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
         "claims": claims,
         "references": references,
@@ -166,6 +243,102 @@ def verify():
     }
 
     return jsonify(resp), 200
+
+
+# -------------------------
+# Batch verify endpoint (Phase-1 polish)
+# -------------------------
+@app.route("/verify/batch", methods=["POST"])
+def verify_batch():
+    payload = request.get_json(silent=True) or {}
+    items = payload.get("items") or []
+
+    if not isinstance(items, list) or len(items) == 0:
+        return jsonify({"error": "Missing 'items' array in request body"}), 400
+
+    results = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+
+        text = (item.get("text") or "").strip()
+        evidence = (item.get("evidence") or "").strip()
+        policy_mode = (item.get("policy_mode") or "enterprise").strip()
+
+        if not text:
+            results.append({"error": "Missing 'text' in item"})
+            continue
+
+        # Reuse the exact /verify path semantics by internally calling the same logic
+        # (We rebuild a response object for each item)
+        sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        event_id = sha[:12]
+        ts = datetime.now(timezone.utc).isoformat()
+
+        claims = []
+        if extract_claims:
+            try:
+                extracted = extract_claims(text)
+                if isinstance(extracted, list):
+                    for c in extracted:
+                        if isinstance(c, dict) and "text" in c:
+                            claims.append({"text": str(c["text"])})
+                        elif isinstance(c, str):
+                            claims.append({"text": c})
+                elif isinstance(extracted, str):
+                    claims = [{"text": extracted}]
+            except Exception:
+                claims = [{"text": text}]
+        else:
+            claims = [{"text": text}]
+
+        if score_claim_text:
+            try:
+                out = score_claim_text(text, evidence=evidence, policy_mode=policy_mode)
+                if isinstance(out, (list, tuple)) and len(out) >= 5:
+                    score, verdict, explanation, signals, references = out[:5]
+                elif isinstance(out, (list, tuple)) and len(out) == 3:
+                    score, verdict, explanation = out
+                    score, verdict, explanation, signals, references = enrich_with_guardrails(text, evidence, int(score), verdict, explanation)
+                else:
+                    score, verdict, explanation, signals, references = heuristic_score(text, evidence)
+            except TypeError:
+                try:
+                    score, verdict, explanation = score_claim_text(text)
+                    score, verdict, explanation, signals, references = enrich_with_guardrails(text, evidence, int(score), verdict, explanation)
+                except Exception:
+                    score, verdict, explanation, signals, references = heuristic_score(text, evidence)
+            except Exception:
+                score, verdict, explanation, signals, references = heuristic_score(text, evidence)
+        else:
+            score, verdict, explanation, signals, references = heuristic_score(text, evidence)
+
+        action, reason = decision_gate(int(score), signals)
+
+        if isinstance(signals, dict) and "rules_fired" not in signals:
+            signals["rules_fired"] = []
+
+        results.append({
+            "verdict": verdict,
+            "score": int(score),
+            "decision": {"action": action, "reason": reason},
+            "event_id": event_id,
+            "policy_mode": policy_mode,
+            "policy_version": POLICY_VERSION,
+            "policy_hash": POLICY_HASH,
+            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+            "claims": claims,
+            "references": references,
+            "signals": signals,
+            "explanation": explanation
+        })
+
+    return jsonify({
+        "policy_version": POLICY_VERSION,
+        "policy_hash": POLICY_HASH,
+        "count": len(results),
+        "results": results
+    }), 200
 
 
 # -------------------------
@@ -349,39 +522,46 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     hedges = ["may", "might", "could", "likely", "possibly", "suggests", "uncertain"]
 
     risk_flags = []
+    rules_fired = []
     score = int(seed_score)
 
     # certainty / hedging signals
     if any(w in tl for w in risky_terms):
         score -= 15
         risk_flags.append("high_certainty_language")
+        rules_fired.append("high_certainty_language_penalty")
 
     if any(w in tl for w in hedges):
         score += 10
         risk_flags.append("hedging_language")
+        rules_fired.append("hedging_language_bonus")
 
     if len(t) > 800:
         score -= 10
         risk_flags.append("very_long_output")
+        rules_fired.append("very_long_output_penalty")
 
     # Numeric / liability: penalize unless evidence
     if has_digit and not has_refs:
         score -= 18
         risk_flags.append("numeric_without_evidence")
+        rules_fired.append("numeric_without_evidence_penalty")
     if has_digit and has_refs:
         score += 8
         risk_flags.append("numeric_with_evidence")
+        rules_fired.append("numeric_with_evidence_bonus")
 
     short_decl = is_short_declarative(t)
     if short_decl and not has_digit:
         risk_flags.append("short_declarative_claim")
-        # Smaller bump to avoid accidental ALLOW due only to brevity
         score += 18
+        rules_fired.append("short_declarative_bonus")
 
     # --- Guardrail #1: Known false categories (demo list) ---
     if matches_known_false(t) and not has_refs:
         score = min(score, 45)
         risk_flags.append("known_false_category_no_evidence")
+        rules_fired.append("guardrail_known_false_no_evidence")
         guardrail = "known_false_claim_no_evidence"
     else:
         guardrail = None
@@ -390,17 +570,20 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     if (short_decl and contains_universal_certainty(t)) and not has_refs and guardrail is None:
         score = min(score, 60)
         risk_flags.append("unsupported_universal_claim_no_evidence")
+        rules_fired.append("guardrail_universal_claim_no_evidence")
         guardrail = "unsupported_universal_claim_no_evidence"
 
     # Evidence helps, but should not auto-guarantee ALLOW
     if has_refs:
         score += 5
         risk_flags.append("evidence_present")
+        rules_fired.append("evidence_present_bonus")
 
     # Slight conservative bias for high-liability without evidence (even before gate)
     if tier == "high" and not has_refs:
         score = min(score, 73)  # prevents "easy" 80+ scores on high-liability w/out evidence
         risk_flags.append("high_liability_without_evidence_cap")
+        rules_fired.append("high_liability_without_evidence_cap")
 
     score = max(0, min(100, int(score)))
 
@@ -425,6 +608,7 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         "has_references": bool(has_refs),
         "reference_count": len(references),
         "risk_flags": risk_flags,
+        "rules_fired": rules_fired,
         "guardrail": guardrail
     }
 
