@@ -118,6 +118,7 @@
         </svg>
         <div id="scoreDisplay">--</div>
         <div id="scoreVerdict">Score pending…</div>
+        <div class="policy-mode-note">Policy Mode: Enterprise</div>
         <div class="realtime-note">&lt;300ms real-time API decisioning</div>
       </div>
 
@@ -216,6 +217,28 @@
         </div>
       </div>
     </section>
+    <!-- ARCHITECTURE -->
+<section id="architecture" class="blueprint-section">
+  <h2 class="section-title">Architecture Placement</h2>
+  <p class="section-subtitle">
+    TruCite operates as a real-time risk and policy layer between AI systems and enterprise workflows.
+  </p>
+
+  <div class="bp-card bright-card">
+    <div class="bp-diagram" style="margin-top:18px;">
+      <span class="bp-node">LLM / Agent</span>
+      <span class="bp-arrow">→</span>
+      <span class="bp-node">TruCite Risk & Policy Layer</span>
+      <span class="bp-arrow">→</span>
+      <span class="bp-node">Enterprise Systems</span>
+    </div>
+
+    <p style="margin-top:16px;">
+      TruCite evaluates AI output in real time and returns a machine-consumable decision that
+      downstream systems can use to enforce reliability, trigger review, or block unsafe output.
+    </p>
+  </div>
+</section>
 
     <!-- WHY TRUCITE WINS -->
     <section id="why" class="wins-section">
