@@ -19,8 +19,52 @@ except Exception:
     score_claim_text = None
 
 
+# =========================
+# Phase 1 Policy Metadata
+# =========================
+POLICY_VERSION = "2026.01"
+
+
+def compute_policy_hash() -> str:
+    """
+    Stable-ish hash of policy configuration and heuristics list.
+    This is an enterprise signal (versioned policy control-plane).
+    """
+    policy_material = {
+        "POLICY_VERSION": POLICY_VERSION,
+        "UNIVERSAL_CERTAINTY_TERMS": [
+            "always", "never", "guaranteed", "definitely", "proves", "proof",
+            "100%", "cures", "cure", "no doubt"
+        ],
+        "KNOWN_FALSE_PATTERNS": [
+            r"\bthe\s+earth\s+is\s+flat\b",
+            r"\bearth\s+is\s+flat\b",
+            r"\bflat\s+earth\b",
+            r"\bvaccines?\s+cause\s+autism\b",
+            r"\b5g\s+causes?\s+covid\b",
+            r"\bmoon\s+landing\s+was\s+fake\b",
+        ],
+        "HIGH_LIABILITY_KEYWORDS": [
+            # medical
+            "dose", "dosage", "mg", "mcg", "units", "diagnosis", "treat", "treatment",
+            "contraindication", "side effect", "guideline", "clinical", "patient",
+            "prescribe", "medication", "drug", "insulin", "warfarin",
+            # legal
+            "contract", "liability", "lawsuit", "indemnify", "breach", "statute",
+            "jurisdiction", "legal advice",
+            # finance
+            "roi", "interest rate", "apr", "yield", "stock", "market", "earnings",
+            "arr", "revenue", "forecast", "valuation", "tax", "irs"
+        ]
+    }
+
+    serialized = repr(policy_material).encode("utf-8")
+    return hashlib.sha256(serialized).hexdigest()[:12]
+
+
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 CORS(app)
+
 
 # -------------------------
 # Static landing page
@@ -41,6 +85,36 @@ def static_files(filename):
 @app.get("/health")
 def health():
     return jsonify({"status": "ok", "service": "trucite-backend", "ts": int(time.time())})
+
+
+# -------------------------
+# Config endpoint (enterprise signal)
+# -------------------------
+@app.get("/config")
+def config():
+    """
+    Public config surface (enterprise signal):
+    Shows policy modes, enforcement outputs, and integration semantics.
+    """
+    return jsonify({
+        "service": "trucite-backend",
+        "policy_version": POLICY_VERSION,
+        "policy_hash": compute_policy_hash(),
+        "supported_policy_modes": ["enterprise", "conservative", "strict"],
+        "decision_actions": ["ALLOW", "REVIEW", "BLOCK"],
+        "headers_emitted": [
+            "X-Policy-Hash",
+            "X-Policy-Version",
+            "X-Event-ID",
+            "X-Decision",
+            "X-Reliability-Score"
+        ],
+        "integration_notes": [
+            "Decisions are machine-consumable for downstream enforcement.",
+            "Intended for gateways, copilots, agents, audit logs, and human-review queues."
+        ],
+        "ts": int(time.time())
+    }), 200
 
 
 # -------------------------
@@ -76,119 +150,22 @@ def openapi_spec():
                         }
                     },
                     "responses": {
-                        "200": {
-                            "description": "Verification result"
-                        }
+                        "200": {"description": "Verification result"}
                     }
                 }
             },
-            "/policy": {
+            "/config": {
                 "get": {
-                    "summary": "Get current TruCite policy metadata",
-                    "description": "Returns policy version/hash and high-level guardrails/thresholds."
-                }
-            },
-            "/version": {
-                "get": {
-                    "summary": "Get service version metadata",
-                    "description": "Returns service version/build metadata useful for enterprise integration."
+                    "summary": "Get TruCite policy + integration config",
+                    "description": "Returns policy version/hash, supported modes, decision actions, and emitted headers.",
+                    "responses": {
+                        "200": {"description": "Config payload"}
+                    }
                 }
             }
         }
     })
     # -------------------------
-# Policy + Version metadata (enterprise polish)
-# -------------------------
-POLICY_VERSION = "2026.01"
-
-
-def compute_policy_hash() -> str:
-    """
-    Stable-ish hash for the policy/ruleset versioning.
-    Keep deterministic and tied to rule constants & version.
-    """
-    basis = (
-        POLICY_VERSION
-        + "|UNIVERSAL=" + ",".join(UNIVERSAL_CERTAINTY_TERMS)
-        + "|KNOWN_FALSE=" + ",".join(KNOWN_FALSE_PATTERNS)
-        + "|HIGH_LIAB=" + ",".join(HIGH_LIABILITY_KEYWORDS)
-    )
-    return hashlib.sha256(basis.encode("utf-8")).hexdigest()[:12]
-
-
-def build_timestamp_utc() -> str:
-    # Use env if CI provides, else now (still useful for demo)
-    return os.environ.get("BUILD_TS_UTC") or datetime.now(timezone.utc).isoformat()
-
-
-def get_commit_sha() -> str:
-    return os.environ.get("COMMIT_SHA") or os.environ.get("RENDER_GIT_COMMIT") or ""
-
-
-@app.get("/version")
-def version():
-    """
-    Enterprise signal: deployment + traceability metadata.
-    """
-    policy_hash = compute_policy_hash()
-    resp = {
-        "service": "trucite-backend",
-        "service_version": os.environ.get("SERVICE_VERSION", "1.0.0"),
-        "policy_version": POLICY_VERSION,
-        "policy_hash": policy_hash,
-        "build_timestamp_utc": build_timestamp_utc(),
-        "commit_sha": get_commit_sha(),
-        "runtime": {
-            "python": os.environ.get("PYTHON_VERSION", ""),
-            "port": os.environ.get("PORT", "")
-        }
-    }
-    return jsonify(resp), 200
-
-
-@app.get("/policy")
-def policy():
-    """
-    Enterprise signal: expose policy surface area without exposing proprietary internals.
-    """
-    policy_hash = compute_policy_hash()
-    resp = {
-        "policy_version": POLICY_VERSION,
-        "policy_hash": policy_hash,
-        "decision_gate": {
-            "actions": ["ALLOW", "REVIEW", "BLOCK"],
-            "low_liability_thresholds": {
-                "allow_min_score": 70,
-                "review_min_score": 55
-            },
-            "high_liability_thresholds": {
-                "allow_min_score_with_evidence": 75,
-                "review_min_score": 55
-            },
-            "evidence_required_for_allow_when": [
-                "numeric_claims",
-                "high_liability_keywords"
-            ]
-        },
-        "guardrails": {
-            "known_false_patterns_enabled": True,
-            "unsupported_universal_claim_gate_enabled": True,
-            "known_false_examples": [
-                "earth is flat",
-                "vaccines cause autism",
-                "5g causes covid",
-                "moon landing was fake"
-            ]
-        },
-        "notes": [
-            "MVP heuristic policy for demo credibility.",
-            "Production policy should be evidence-backed and organization-configurable."
-        ]
-    }
-    return jsonify(resp), 200
-
-
-# -------------------------
 # Verify endpoint
 # -------------------------
 @app.route("/verify", methods=["POST", "OPTIONS"])
@@ -209,6 +186,8 @@ def verify():
     event_id = sha[:12]
     ts = datetime.now(timezone.utc).isoformat()
 
+    policy_hash = compute_policy_hash()
+
     # Claims extraction
     claims = []
     if extract_claims:
@@ -228,11 +207,18 @@ def verify():
         claims = [{"text": text}]
 
     # Scoring
+    # If reference_engine exists and returns signals/references, we’ll use it.
+    # If it returns only (score, verdict, explanation), we enrich with our guardrails.
     if score_claim_text:
         try:
             out = score_claim_text(text, evidence=evidence, policy_mode=policy_mode)
+
+            # Expecting: score, verdict, explanation, signals, references
             if isinstance(out, (list, tuple)) and len(out) >= 5:
                 score, verdict, explanation, signals, references = out[:5]
+                # Ensure rules_fired exists even if external engine doesn’t add it
+                if isinstance(signals, dict) and "rules_fired" not in signals:
+                    signals["rules_fired"] = []
             elif isinstance(out, (list, tuple)) and len(out) == 3:
                 score, verdict, explanation = out
                 score, verdict, explanation, signals, references = enrich_with_guardrails(
@@ -241,6 +227,7 @@ def verify():
             else:
                 score, verdict, explanation, signals, references = heuristic_score(text, evidence)
         except TypeError:
+            # backwards-compatible signature
             try:
                 score, verdict, explanation = score_claim_text(text)
                 score, verdict, explanation, signals, references = enrich_with_guardrails(
@@ -255,8 +242,6 @@ def verify():
 
     # Decision Gate
     action, reason = decision_gate(int(score), signals)
-
-    policy_hash = compute_policy_hash()
 
     resp = {
         "verdict": verdict,
@@ -273,7 +258,15 @@ def verify():
         "explanation": explanation
     }
 
-    return jsonify(resp), 200
+    # Emit enterprise-style headers (middleware semantics)
+    response = jsonify(resp)
+    response.headers["X-Policy-Hash"] = policy_hash
+    response.headers["X-Policy-Version"] = POLICY_VERSION
+    response.headers["X-Event-ID"] = event_id
+    response.headers["X-Decision"] = action
+    response.headers["X-Reliability-Score"] = str(int(score))
+
+    return response, 200
     # -------------------------
 # Decision logic
 # -------------------------
@@ -289,16 +282,23 @@ def decision_gate(score: int, signals: dict):
     liability = (signals.get("liability_tier") or "low").lower()
     evidence_required_for_allow = bool(signals.get("evidence_required_for_allow"))
 
+    # Hard guardrails first
     if guardrail == "known_false_claim_no_evidence":
         return "BLOCK", "Known false / widely debunked category without evidence. Demo guardrail triggered."
     if guardrail == "unsupported_universal_claim_no_evidence":
         return "REVIEW", "Unsupported universal/high-certainty claim without evidence. Conservative gating applied."
 
+    # Enforce evidence for ALLOW in high-liability (or numeric) cases
     if evidence_required_for_allow and not has_refs:
+        # If low score, BLOCK to prevent downstream harm (stronger enterprise posture)
+        if score < 40:
+            return "BLOCK", "Low confidence + no evidence for high-liability or numeric claim. Blocked to prevent downstream harm."
+        # Even if score is higher, force REVIEW
         if score >= 70:
             return "REVIEW", "Likely true, but no evidence provided. Conservative demo policy requires human verification."
         return "REVIEW", "No evidence provided for high-liability or numeric claim. Human verification recommended."
 
+    # Thresholds by liability tier
     if liability == "low":
         if score >= 70:
             return "ALLOW", "High confidence per current MVP scoring."
@@ -426,6 +426,10 @@ def enrich_with_guardrails(text: str, evidence: str, score: int, verdict: str, e
 def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     """
     MVP heuristic scoring (0-100) + conservative guardrails.
+    - Scores linguistic certainty/uncertainty + risk signals
+    - Evidence boosts only when present (URL/DOI/PMID)
+    - High-liability or numeric claims require evidence to reach ALLOW (enforced in decision_gate)
+    - Tiny demo guardrail list for widely debunked categories (e.g., "Earth is flat")
     """
 
     raw = (text or "")
@@ -433,6 +437,7 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     tl = normalize_text(t)
     ev = (evidence or "").strip()
 
+    # References extraction (demo only)
     references = []
     for u in extract_urls(ev):
         references.append({"type": "url", "value": u})
@@ -473,6 +478,7 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         score -= 18
         risk_flags.append("numeric_without_evidence")
         rules_fired.append("numeric_without_evidence_penalty")
+
     if has_digit and has_refs:
         score += 8
         risk_flags.append("numeric_with_evidence")
@@ -481,32 +487,32 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     short_decl = is_short_declarative(t)
     if short_decl and not has_digit:
         risk_flags.append("short_declarative_claim")
-        rules_fired.append("short_declarative_claim_bonus")
+        rules_fired.append("short_declarative_bonus")
         score += 18
 
-    # Guardrail #1: Known false categories
+    # --- Guardrail #1: Known false categories (demo list) ---
     if matches_known_false(t) and not has_refs:
         score = min(score, 45)
         risk_flags.append("known_false_category_no_evidence")
-        rules_fired.append("known_false_category_guardrail")
+        rules_fired.append("known_false_guardrail")
         guardrail = "known_false_claim_no_evidence"
     else:
         guardrail = None
 
-    # Guardrail #2: Universal/high-certainty without evidence
+    # --- Guardrail #2: Unsupported universal/high-certainty claims w/out evidence ---
     if (short_decl and contains_universal_certainty(t)) and not has_refs and guardrail is None:
         score = min(score, 60)
         risk_flags.append("unsupported_universal_claim_no_evidence")
         rules_fired.append("unsupported_universal_claim_guardrail")
         guardrail = "unsupported_universal_claim_no_evidence"
 
-    # Evidence helps but not auto-guarantee
+    # Evidence helps, but should not auto-guarantee ALLOW
     if has_refs:
         score += 5
         risk_flags.append("evidence_present")
         rules_fired.append("evidence_present_bonus")
 
-    # High-liability without evidence cap
+    # Slight conservative bias for high-liability without evidence (even before gate)
     if tier == "high" and not has_refs:
         score = min(score, 73)
         risk_flags.append("high_liability_without_evidence_cap")
