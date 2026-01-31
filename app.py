@@ -19,14 +19,15 @@ except Exception:
     score_claim_text = None
 
 
-app = Flask(__name__, static_folder="static", static_url_path="/static")
-CORS(app)
-
 # -------------------------
-# Policy metadata (acquirer-facing polish)
+# Policy metadata (Phase-1 polish / acquisition optics)
 # -------------------------
 POLICY_VERSION = "2026.01"
 POLICY_HASH = hashlib.sha256(POLICY_VERSION.encode("utf-8")).hexdigest()[:12]
+
+
+app = Flask(__name__, static_folder="static", static_url_path="/static")
+CORS(app)
 
 
 # -------------------------
@@ -48,27 +49,6 @@ def static_files(filename):
 @app.get("/health")
 def health():
     return jsonify({"status": "ok", "service": "trucite-backend", "ts": int(time.time())})
-
-
-# -------------------------
-# Policy endpoint (credibility signal)
-# -------------------------
-@app.get("/policy")
-def policy():
-    return jsonify({
-        "policy_version": POLICY_VERSION,
-        "policy_hash": POLICY_HASH,
-        "notes": "MVP policy for scoring + decision gating. Production deployments can replace heuristics with evidence-backed validation.",
-        "guardrails": [
-            "known_false_claim_no_evidence",
-            "unsupported_universal_claim_no_evidence"
-        ],
-        "decision_thresholds": {
-            "low_liability": {"allow": 70, "review": 55},
-            "high_liability": {"allow": 75, "review": 55},
-            "evidence_required_for_allow_when": "high_liability_or_numeric"
-        }
-    })
 
 
 # -------------------------
@@ -108,46 +88,6 @@ def openapi_spec():
                             "description": "Verification result"
                         }
                     }
-                }
-            },
-            "/verify/batch": {
-                "post": {
-                    "summary": "Batch verify AI-generated output",
-                    "description": "Returns an array of full verification objects for pipeline ingestion.",
-                    "requestBody": {
-                        "required": True,
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "items": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "text": {"type": "string"},
-                                                    "evidence": {"type": "string"},
-                                                    "policy_mode": {"type": "string"}
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "responses": {
-                        "200": {
-                            "description": "Batch verification results"
-                        }
-                    }
-                }
-            },
-            "/policy": {
-                "get": {
-                    "summary": "Return current TruCite policy metadata",
-                    "description": "Returns policy version/hash and guardrail thresholds for auditing."
                 }
             }
         }
@@ -204,14 +144,18 @@ def verify():
                 score, verdict, explanation, signals, references = out[:5]
             elif isinstance(out, (list, tuple)) and len(out) == 3:
                 score, verdict, explanation = out
-                score, verdict, explanation, signals, references = enrich_with_guardrails(text, evidence, int(score), verdict, explanation)
+                score, verdict, explanation, signals, references = enrich_with_guardrails(
+                    text, evidence, int(score), verdict, explanation
+                )
             else:
                 score, verdict, explanation, signals, references = heuristic_score(text, evidence)
         except TypeError:
             # backwards-compatible signature
             try:
                 score, verdict, explanation = score_claim_text(text)
-                score, verdict, explanation, signals, references = enrich_with_guardrails(text, evidence, int(score), verdict, explanation)
+                score, verdict, explanation, signals, references = enrich_with_guardrails(
+                    text, evidence, int(score), verdict, explanation
+                )
             except Exception:
                 score, verdict, explanation, signals, references = heuristic_score(text, evidence)
         except Exception:
@@ -222,7 +166,7 @@ def verify():
     # Decision Gate (uses signals incl. liability tier + evidence requirement)
     action, reason = decision_gate(int(score), signals)
 
-    # ✅ Ensure rules_fired exists even if a future engine returns signals without it
+    # Ensure rules_fired exists (some engines may not return it)
     if isinstance(signals, dict) and "rules_fired" not in signals:
         signals["rules_fired"] = []
 
@@ -232,7 +176,6 @@ def verify():
         "decision": {"action": action, "reason": reason},
         "event_id": event_id,
         "policy_mode": policy_mode,
-        # ✅ policy metadata for auditability
         "policy_version": POLICY_VERSION,
         "policy_hash": POLICY_HASH,
         "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
@@ -243,13 +186,15 @@ def verify():
     }
 
     return jsonify(resp), 200
-
-
+    
 # -------------------------
-# Batch verify endpoint (Phase-1 polish)
+# Verify batch endpoint (Phase-1 polish)
 # -------------------------
-@app.route("/verify/batch", methods=["POST"])
+@app.route("/verify/batch", methods=["POST", "OPTIONS"])
 def verify_batch():
+    if request.method == "OPTIONS":
+        return ("", 204)
+
     payload = request.get_json(silent=True) or {}
     items = payload.get("items") or []
 
@@ -263,34 +208,18 @@ def verify_batch():
 
         text = (item.get("text") or "").strip()
         evidence = (item.get("evidence") or "").strip()
-        policy_mode = (item.get("policy_mode") or "enterprise").strip()
+        policy_mode = (item.get("policy_mode") or payload.get("policy_mode") or "enterprise").strip()
 
         if not text:
-            results.append({"error": "Missing 'text' in item"})
+            results.append({"error": "Missing 'text'", "item": item})
             continue
 
-        # Reuse the exact /verify path semantics by internally calling the same logic
-        # (We rebuild a response object for each item)
         sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
         event_id = sha[:12]
         ts = datetime.now(timezone.utc).isoformat()
 
-        claims = []
-        if extract_claims:
-            try:
-                extracted = extract_claims(text)
-                if isinstance(extracted, list):
-                    for c in extracted:
-                        if isinstance(c, dict) and "text" in c:
-                            claims.append({"text": str(c["text"])})
-                        elif isinstance(c, str):
-                            claims.append({"text": c})
-                elif isinstance(extracted, str):
-                    claims = [{"text": extracted}]
-            except Exception:
-                claims = [{"text": text}]
-        else:
-            claims = [{"text": text}]
+        # Claims extraction (lite)
+        claims = [{"text": text}]
 
         if score_claim_text:
             try:
@@ -299,14 +228,10 @@ def verify_batch():
                     score, verdict, explanation, signals, references = out[:5]
                 elif isinstance(out, (list, tuple)) and len(out) == 3:
                     score, verdict, explanation = out
-                    score, verdict, explanation, signals, references = enrich_with_guardrails(text, evidence, int(score), verdict, explanation)
+                    score, verdict, explanation, signals, references = enrich_with_guardrails(
+                        text, evidence, int(score), verdict, explanation
+                    )
                 else:
-                    score, verdict, explanation, signals, references = heuristic_score(text, evidence)
-            except TypeError:
-                try:
-                    score, verdict, explanation = score_claim_text(text)
-                    score, verdict, explanation, signals, references = enrich_with_guardrails(text, evidence, int(score), verdict, explanation)
-                except Exception:
                     score, verdict, explanation, signals, references = heuristic_score(text, evidence)
             except Exception:
                 score, verdict, explanation, signals, references = heuristic_score(text, evidence)
@@ -333,63 +258,52 @@ def verify_batch():
             "explanation": explanation
         })
 
-    return jsonify({
-        "policy_version": POLICY_VERSION,
-        "policy_hash": POLICY_HASH,
-        "count": len(results),
-        "results": results
-    }), 200
+    return jsonify({"count": len(results), "results": results}), 200
 
 
 # -------------------------
-# Decision logic
+# Decision logic (UPDATED)
 # -------------------------
 def decision_gate(score: int, signals: dict):
     """
-    Demo policy (good for MVP / acqui-hire optics):
-      - Known-debunked categories: BLOCK unless evidence
-      - High-liability or numeric claims: evidence required to reach ALLOW
-      - Low-liability non-numeric: can ALLOW at a lower threshold (e.g., 70)
+    Enterprise demo policy:
+    - Known-debunked categories: BLOCK unless evidence
+    - Unsupported universal/high-certainty claims without evidence: BLOCK
+    - High-liability or numeric claims: evidence required to reach ALLOW
+    - Conservative thresholds for enterprise-safe gating
     """
+
     guardrail = signals.get("guardrail")
     has_refs = bool(signals.get("has_references"))
     liability = (signals.get("liability_tier") or "low").lower()
-    evidence_required_for_allow = bool(signals.get("evidence_required_for_allow"))
 
-    # Hard guardrails first
+    # Hard guardrails
     if guardrail == "known_false_claim_no_evidence":
-        return "BLOCK", "Known false / widely debunked category without evidence. Demo guardrail triggered."
+        return "BLOCK", "Known false or widely debunked claim without evidence."
 
     if guardrail == "unsupported_universal_claim_no_evidence":
-        return "REVIEW", "Unsupported universal/high-certainty claim without evidence. Conservative gating applied."
+        return "BLOCK", "Absolute or universal claim made without evidence."
 
-    # Enforce evidence requirement for high-liability or numeric claims
-    if evidence_required_for_allow and not has_refs:
-        # If it's already low confidence, block instead of wasting human review
+    # High-liability requires evidence
+    if liability == "high" and not has_refs:
         if score < 55:
-            return "BLOCK", "Low confidence + no evidence for high-liability or numeric claim. Blocked to prevent downstream harm."
+            return "BLOCK", "Low confidence + no evidence for high-liability or numeric claim."
+        return "BLOCK", "High-liability or numeric claim requires evidence under enterprise policy."
 
-        # Medium or high confidence but missing evidence -> human review
-        if score >= 70:
-            return "REVIEW", "Likely true, but no evidence provided. Human verification required under high-liability policy."
-
-        return "REVIEW", "No evidence provided for high-liability or numeric claim. Human verification recommended."
-
-    # Thresholds by liability tier
+    # Low-liability thresholds
     if liability == "low":
         if score >= 70:
-            return "ALLOW", "High confidence per current MVP scoring."
+            return "ALLOW", "High confidence per MVP scoring."
         elif score >= 55:
             return "REVIEW", "Medium confidence. Human verification recommended."
         return "BLOCK", "Low confidence. Do not use without verification."
 
-    else:
-        # High-liability tier WITH evidence
-        if score >= 75:
-            return "ALLOW", "High confidence with evidence under high-liability policy."
-        elif score >= 55:
-            return "REVIEW", "Medium confidence. Human verification recommended."
-        return "BLOCK", "Low confidence. Do not use without verification."
+    # High-liability WITH evidence thresholds
+    if score >= 75:
+        return "ALLOW", "High confidence with evidence under high-liability policy."
+    elif score >= 55:
+        return "REVIEW", "Medium confidence. Human verification recommended."
+    return "BLOCK", "Low confidence even with evidence."
 
 
 # -------------------------
@@ -552,6 +466,7 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         score -= 18
         risk_flags.append("numeric_without_evidence")
         rules_fired.append("numeric_without_evidence_penalty")
+
     if has_digit and has_refs:
         score += 8
         risk_flags.append("numeric_with_evidence")
@@ -560,14 +475,15 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     short_decl = is_short_declarative(t)
     if short_decl and not has_digit:
         risk_flags.append("short_declarative_claim")
+        rules_fired.append("short_declarative_claim_bonus")
+        # Smaller bump to avoid accidental ALLOW due only to brevity
         score += 18
-        rules_fired.append("short_declarative_bonus")
 
     # --- Guardrail #1: Known false categories (demo list) ---
     if matches_known_false(t) and not has_refs:
         score = min(score, 45)
         risk_flags.append("known_false_category_no_evidence")
-        rules_fired.append("guardrail_known_false_no_evidence")
+        rules_fired.append("known_false_category_cap")
         guardrail = "known_false_claim_no_evidence"
     else:
         guardrail = None
@@ -576,7 +492,7 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     if (short_decl and contains_universal_certainty(t)) and not has_refs and guardrail is None:
         score = min(score, 60)
         risk_flags.append("unsupported_universal_claim_no_evidence")
-        rules_fired.append("guardrail_universal_claim_no_evidence")
+        rules_fired.append("unsupported_universal_claim_cap")
         guardrail = "unsupported_universal_claim_no_evidence"
 
     # Evidence helps, but should not auto-guarantee ALLOW
