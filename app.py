@@ -370,7 +370,7 @@ def decision_gate(score: int, signals: dict):
     # Medium/high confidence but missing evidence -> route to human review
     if score >= 70:
         return "REVIEW", "Likely true, but no evidence provided. Human verification required under high-liability policy."
-    return "REVIEW", "No evidence provided for high-liability or numeric claim. Human verification recommended."
+        return "REVIEW", "No evidence provided for high-liability or numeric claim. Human verification recommended."
 
     # Thresholds by liability tier
     if liability == "low":
