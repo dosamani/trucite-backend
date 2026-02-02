@@ -111,10 +111,21 @@
 
   // Gauge uses stroke-dashoffset in your SVG (best for your current HTML/CSS)
   function updateGauge(score) {
-    if (!gaugeFill) return;
-    const s = Math.max(0, Math.min(100, Number(score) || 0));
-    const total = 260; // matches dasharray in HTML
-    gaugeFill.style.strokeDashoffset = total - (s / 100) * total;
+  if (!gaugeFill) return;
+
+  const s = Math.max(0, Math.min(100, Number(score) || 0));
+  const total = 260;
+
+  // Reset first so animation plays every time
+  gaugeFill.style.transition = "none";
+  gaugeFill.style.strokeDashoffset = total;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      gaugeFill.style.transition = "stroke-dashoffset 0.9s cubic-bezier(0.4, 0, 0.2, 1)";
+      gaugeFill.style.strokeDashoffset = total - (s / 100) * total;
+    });
+  });
   }
 
   function setPendingUI() {
