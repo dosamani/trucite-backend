@@ -147,16 +147,28 @@
   <p id="verifyStatus" class="section-subtitle" style="margin-top:10px;">
     Evidence is optional — but required to reach <strong>ALLOW</strong> for high-liability or numeric claims.
   </p>
+<div id="gaugeContainer">
+  <div class="gauge-label">AI Reliability Score</div>
+  <svg id="gauge" width="220" height="120">
+    <path d="M20 100 A90 90 0 0 1 200 100" stroke="#333" />
+    <path id="gaugeFill" d="M20 100 A90 90 0 0 1 200 100" />
+  </svg>
 
-  <div id="gaugeContainer">
-    <div class="gauge-label">AI Reliability Score</div>
-    <svg id="gauge" width="220" height="120">
-      <path d="M20 100 A90 90 0 0 1 200 100" stroke="#333" stroke-width="18" fill="none" />
-      <path id="gaugeFill" d="M20 100 A90 90 0 0 1 200 100" stroke="#FFD700" stroke-width="18" fill="none" stroke-dasharray="260" stroke-dashoffset="260" />
-    </svg>
-    <div id="scoreDisplay">--</div>
-    <div id="scoreVerdict">Score pending…</div>
+  <div id="scoreDisplay">--</div>
+  <div id="scoreVerdict">Score pending…</div>
+
+  <!-- NEW: Knowledge Volatility + Policy -->
+  <div id="volatilityLine" class="realtime-note" style="margin-top:6px;">
+    Volatile knowledge: <span id="volatilityValue">—</span>
   </div>
+  <div id="policyLine" class="realtime-note" style="margin-top:4px;">
+    Policy: <span id="policyValue">—</span>
+  </div>
+
+  <div class="realtime-note" style="margin-top:6px;">
+    &lt;300ms real-time API decisioning
+  </div>
+</div>
 
   <div class="decision-card">
     <div class="decision-title">Decision Gate</div>
