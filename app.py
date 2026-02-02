@@ -22,18 +22,42 @@ except Exception:
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 CORS(app)
 
+# -------------------------
+# Config (Phase 1 polish)
+# -------------------------
+POLICY_VERSION = "2026.01"
+DEFAULT_POLICY_MODE = "enterprise"
+
+# Basic API hardening signals (acquirer-friendly)
+DEFAULT_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Cache-Control": "no-store",
+}
+
+def with_headers(resp):
+    for k, v in DEFAULT_HEADERS.items():
+        resp.headers[k] = v
+    return resp
+
+def policy_hash(policy_mode: str) -> str:
+    base = f"{POLICY_VERSION}:{(policy_mode or DEFAULT_POLICY_MODE).strip().lower()}"
+    return hashlib.sha256(base.encode("utf-8")).hexdigest()[:12]
+
 
 # -------------------------
 # Static landing page
 # -------------------------
 @app.get("/")
 def landing():
-    return send_from_directory(app.static_folder, "index.html")
-
+    resp = make_response(send_from_directory(app.static_folder, "index.html"))
+    return with_headers(resp)
 
 @app.get("/static/<path:filename>")
 def static_files(filename):
-    return send_from_directory(app.static_folder, filename)
+    resp = make_response(send_from_directory(app.static_folder, filename))
+    return with_headers(resp)
 
 
 # -------------------------
@@ -41,7 +65,8 @@ def static_files(filename):
 # -------------------------
 @app.get("/health")
 def health():
-    return jsonify({"status": "ok", "service": "trucite-backend", "ts": int(time.time())})
+    resp = make_response(jsonify({"status": "ok", "service": "trucite-backend", "ts": int(time.time())}))
+    return with_headers(resp)
 
 
 # -------------------------
@@ -49,7 +74,7 @@ def health():
 # -------------------------
 @app.get("/openapi.json")
 def openapi_spec():
-    return jsonify({
+    spec = {
         "openapi": "3.0.0",
         "info": {
             "title": "TruCite Verification API",
@@ -77,12 +102,16 @@ def openapi_spec():
                         }
                     },
                     "responses": {
-                        "200": {"description": "Verification result"}
+                        "200": {
+                            "description": "Verification result"
+                        }
                     }
                 }
             }
         }
-    })
+    }
+    resp = make_response(jsonify(spec))
+    return with_headers(resp)
 
 
 # -------------------------
@@ -96,10 +125,11 @@ def verify():
     payload = request.get_json(silent=True) or {}
     text = (payload.get("text") or "").strip()
     evidence = (payload.get("evidence") or "").strip()
-    policy_mode = (payload.get("policy_mode") or "enterprise").strip()
+    policy_mode = (payload.get("policy_mode") or DEFAULT_POLICY_MODE).strip()
 
     if not text:
-        return jsonify({"error": "Missing 'text' in request body"}), 400
+        resp = make_response(jsonify({"error": "Missing 'text' in request body"}), 400)
+        return with_headers(resp)
 
     # Fingerprint / Event ID
     sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -125,8 +155,6 @@ def verify():
         claims = [{"text": text}]
 
     # Scoring
-    # If reference_engine exists and returns signals/references, we’ll use it.
-    # If it returns only (score, verdict, explanation), we enrich with our guardrails.
     if score_claim_text:
         try:
             out = score_claim_text(text, evidence=evidence, policy_mode=policy_mode)
@@ -134,18 +162,13 @@ def verify():
                 score, verdict, explanation, signals, references = out[:5]
             elif isinstance(out, (list, tuple)) and len(out) == 3:
                 score, verdict, explanation = out
-                score, verdict, explanation, signals, references = enrich_with_guardrails(
-                    text, evidence, int(score), verdict, explanation
-                )
+                score, verdict, explanation, signals, references = enrich_with_guardrails(text, evidence, int(score), verdict, explanation)
             else:
                 score, verdict, explanation, signals, references = heuristic_score(text, evidence)
         except TypeError:
-            # backwards-compatible signature
             try:
                 score, verdict, explanation = score_claim_text(text)
-                score, verdict, explanation, signals, references = enrich_with_guardrails(
-                    text, evidence, int(score), verdict, explanation
-                )
+                score, verdict, explanation, signals, references = enrich_with_guardrails(text, evidence, int(score), verdict, explanation)
             except Exception:
                 score, verdict, explanation, signals, references = heuristic_score(text, evidence)
         except Exception:
@@ -153,16 +176,15 @@ def verify():
     else:
         score, verdict, explanation, signals, references = heuristic_score(text, evidence)
 
-    # Decision Gate (uses signals incl. liability tier + evidence requirement + volatility)
     action, reason = decision_gate(int(score), signals)
 
-    resp = {
+    resp_obj = {
         "verdict": verdict,
         "score": int(score),
         "decision": {"action": action, "reason": reason},
         "event_id": event_id,
         "policy_mode": policy_mode,
-        "policy_version": "2026.02",
+        "policy_version": POLICY_VERSION,
         "policy_hash": policy_hash(policy_mode),
         "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
         "claims": claims,
@@ -171,59 +193,40 @@ def verify():
         "explanation": explanation
     }
 
-    return jsonify(resp), 200
+    resp = make_response(jsonify(resp_obj), 200)
+    return with_headers(resp)
     # -------------------------
-# Policy hashing (audit signal)
-# -------------------------
-def policy_hash(policy_mode: str) -> str:
-    seed = f"trucite|{(policy_mode or 'enterprise').strip().lower()}|2026.02"
-    return hashlib.sha256(seed.encode("utf-8")).hexdigest()[:12]
-
-
-# -------------------------
-# Decision logic (UPDATED for volatility + legal)
+# Decision logic
 # -------------------------
 def decision_gate(score: int, signals: dict):
     """
-    Demo policy (good for MVP / acquisition optics):
+    Demo policy (acquirer-friendly):
       - Known-debunked categories: BLOCK unless evidence
       - High-liability or numeric claims: evidence required to reach ALLOW
-      - Volatile knowledge (current events / leadership / legal-regulatory): evidence required to reach ALLOW
-      - Low-liability non-numeric: can ALLOW at a lower threshold (e.g., 70)
+      - Volatile current-event facts: REVIEW unless evidence (prevents stale ALLOWs)
+      - Low-liability non-numeric: can ALLOW at a lower threshold (>=70)
     """
     guardrail = signals.get("guardrail")
     has_refs = bool(signals.get("has_references"))
     liability = (signals.get("liability_tier") or "low").lower()
     evidence_required_for_allow = bool(signals.get("evidence_required_for_allow"))
 
-    # NEW: volatility gating signals
-    volatile = bool(signals.get("volatile_knowledge"))
-    volatile_class = (signals.get("volatile_class") or "").strip()  # e.g., "current_events", "legal_regulatory"
-    volatility_requires_evidence = bool(signals.get("volatility_requires_evidence"))
-
     # Hard guardrails first
     if guardrail == "known_false_claim_no_evidence":
-        return "BLOCK", "Known false / widely debunked category without evidence. Demo guardrail triggered."
+        return "BLOCK", "Known false / widely debunked category without evidence. Guardrail triggered."
 
     if guardrail == "unsupported_universal_claim_no_evidence":
         return "REVIEW", "Unsupported universal/high-certainty claim without evidence. Conservative gating applied."
 
-    # NEW: Volatility requires evidence to reach ALLOW
-    if volatile and volatility_requires_evidence and not has_refs:
-        # This prevents embarrassing ALLOW decisions on current office-holders / legal status / regulations
-        if score >= 75:
-            return "REVIEW", f"High confidence signal, but '{volatile_class}' is time-variant / jurisdiction-dependent. Evidence required to ALLOW."
-        if score >= 55:
-            return "REVIEW", f"'{volatile_class}' claims are volatile. Evidence required. Human verification recommended."
-        return "BLOCK", f"Low confidence + no evidence for volatile '{volatile_class}' claim. Blocked to prevent downstream misuse."
+    # ✅ NEW: Volatile current facts (leaders, titles, 'current CEO', etc.)
+    if guardrail == "volatile_current_fact_no_evidence":
+        return "REVIEW", "Volatile real-world fact detected (current roles/events). Evidence required to ALLOW."
 
     # Enforce evidence for ALLOW in high-liability (or numeric) cases
     if evidence_required_for_allow and not has_refs:
         if score >= 70:
-            return "REVIEW", "Likely true, but no evidence provided. Conservative demo policy requires human verification."
-        if score >= 45:
-            return "REVIEW", "No evidence provided for high-liability or numeric claim. Human verification recommended."
-        return "BLOCK", "Low confidence + no evidence for high-liability or numeric claim. Blocked to prevent downstream harm."
+            return "REVIEW", "Likely plausible, but no evidence provided. Policy requires verification for high-liability/numeric."
+        return "REVIEW", "No evidence provided for high-liability or numeric claim. Human verification recommended."
 
     # Thresholds by liability tier
     if liability == "low":
@@ -232,13 +235,14 @@ def decision_gate(score: int, signals: dict):
         elif score >= 55:
             return "REVIEW", "Medium confidence. Human verification recommended."
         return "BLOCK", "Low confidence. Do not use without verification."
-    else:
-        if score >= 75:
-            return "ALLOW", "High confidence with evidence under high-liability policy."
-        elif score >= 55:
-            return "REVIEW", "Medium confidence. Human verification recommended."
-        return "BLOCK", "Low confidence. Do not use without verification."
-        # -------------------------
+
+    # High-liability
+    if score >= 75:
+        return "ALLOW", "High confidence with evidence under high-liability policy."
+    elif score >= 55:
+        return "REVIEW", "Medium confidence. Human verification recommended."
+    return "BLOCK", "Low confidence. Do not use without verification."
+    # -------------------------
 # Guardrails + parsing helpers
 # -------------------------
 UNIVERSAL_CERTAINTY_TERMS = [
@@ -260,30 +264,27 @@ HIGH_LIABILITY_KEYWORDS = [
     "guideline", "clinical", "patient", "prescribe", "medication", "drug", "insulin", "warfarin",
     # legal
     "contract", "liability", "lawsuit", "indemnify", "breach", "statute", "jurisdiction", "legal advice",
-    "compliance", "regulation", "regulatory", "gdpr", "hipaa", "hitech",
     # finance
     "roi", "interest rate", "apr", "yield", "stock", "market", "earnings", "arr", "revenue", "forecast",
     "valuation", "tax", "irs"
 ]
 
-# NEW: volatility triggers (time-variant + jurisdiction-dependent)
-CURRENT_EVENTS_TERMS = [
-    "current", "currently", "as of", "today", "now", "this year", "this month", "recently"
+# ✅ NEW: volatile fact patterns (current roles/events/titles)
+VOLATILE_FACT_PATTERNS = [
+    r"\bprime\s+minister\b",
+    r"\bpresident\b",
+    r"\bchancellor\b",
+    r"\bgovernor\b",
+    r"\bmayor\b",
+    r"\bceo\b",
+    r"\bcfo\b",
+    r"\bchief\s+medical\s+officer\b",
+    r"\bcurrent\b",
+    r"\bas\s+of\s+\d{4}\b",
+    r"\btoday\b",
+    r"\bright\s+now\b",
+    r"\bis\s+the\s+(ceo|president|prime\s+minister|governor|mayor)\b",
 ]
-
-OFFICE_HOLDER_TERMS = [
-    "prime minister", "president", "chancellor", "governor", "senator", "speaker",
-    "ceo", "cfo", "cto", "chairman", "chair", "head of"
-]
-
-LEGAL_VOLATILITY_TERMS = [
-    "legal", "illegal", "lawful", "unlawful",
-    "statute", "case law", "precedent", "ruling", "court held", "supreme court",
-    "regulation", "regulatory", "compliance", "gdpr", "hipaa", "hitech",
-    "requires", "prohibits", "mandatory", "permitted",
-    "jurisdiction", "in california", "in texas", "in new york", "in the eu", "in india", "in canada"
-]
-
 
 def normalize_text(s: str) -> str:
     s = (s or "").strip().lower()
@@ -291,16 +292,13 @@ def normalize_text(s: str) -> str:
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
-
 def has_any_digit(s: str) -> bool:
     return any(ch.isdigit() for ch in (s or ""))
-
 
 def extract_urls(s: str):
     if not s:
         return []
     return re.findall(r"https?://[^\s)]+", s)
-
 
 def looks_like_doi_or_pmid(s: str) -> bool:
     if not s:
@@ -314,7 +312,6 @@ def looks_like_doi_or_pmid(s: str) -> bool:
         return True
     return False
 
-
 def evidence_present(evidence: str) -> bool:
     if not evidence:
         return False
@@ -324,7 +321,6 @@ def evidence_present(evidence: str) -> bool:
         return True
     return len(evidence.strip()) >= 12
 
-
 def is_short_declarative(text: str) -> bool:
     t = (text or "").strip()
     if len(t) > 160:
@@ -332,11 +328,9 @@ def is_short_declarative(text: str) -> bool:
     tl = normalize_text(t)
     return (" is " in tl) or (" are " in tl) or t.endswith(".")
 
-
 def contains_universal_certainty(text: str) -> bool:
     tl = normalize_text(text)
     return any(w in tl for w in UNIVERSAL_CERTAINTY_TERMS)
-
 
 def matches_known_false(text: str) -> bool:
     tl = normalize_text(text)
@@ -345,6 +339,12 @@ def matches_known_false(text: str) -> bool:
             return True
     return False
 
+def matches_volatile_current_fact(text: str) -> bool:
+    tl = normalize_text(text)
+    for pat in VOLATILE_FACT_PATTERNS:
+        if re.search(pat, tl, re.I):
+            return True
+    return False
 
 def liability_tier(text: str) -> str:
     tl = normalize_text(text)
@@ -354,39 +354,6 @@ def liability_tier(text: str) -> str:
         if kw in tl:
             return "high"
     return "low"
-
-
-# NEW: volatility detector (current events + legal/regulatory)
-def detect_volatility(text: str) -> dict:
-    tl = normalize_text(text)
-
-    # current events / office-holder volatility
-    office_holder = any(term in tl for term in OFFICE_HOLDER_TERMS)
-    currentness = any(term in tl for term in CURRENT_EVENTS_TERMS)
-
-    # legal/regulatory volatility
-    legalish = any(term in tl for term in LEGAL_VOLATILITY_TERMS)
-
-    volatile = False
-    vclass = None
-
-    # If it asserts office-holder OR explicitly uses "current" phrasing => volatile
-    if office_holder or currentness:
-        volatile = True
-        vclass = "current_events"
-
-    # If it claims legality/compliance/regulatory status => volatile (jurisdiction-dependent)
-    if legalish:
-        volatile = True
-        # if both trigger, keep the sharper class label
-        vclass = "legal_regulatory" if vclass is None else f"{vclass}+legal_regulatory"
-
-    return {
-        "volatile_knowledge": volatile,
-        "volatile_class": vclass,
-        "volatility_requires_evidence": volatile  # for MVP, always require evidence for volatile class to ALLOW
-    }
-
 
 def enrich_with_guardrails(text: str, evidence: str, score: int, verdict: str, explanation: str):
     base_score = int(max(0, min(100, score)))
@@ -403,7 +370,9 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     """
     MVP heuristic scoring (0-100) + conservative guardrails.
     Adds:
-      - Volatile knowledge detection (current events + legal/regulatory) => evidence required to ALLOW
+      - Known-false guardrail
+      - Unsupported universal certainty guardrail
+      - ✅ Volatile current-fact guardrail (prevents stale ALLOWs without evidence)
     """
 
     raw = (text or "")
@@ -424,18 +393,13 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     tier = liability_tier(t)
     evidence_required_for_allow = (tier == "high")
 
-    # NEW: volatility flags
-    volatility = detect_volatility(t)
-    volatile_knowledge = bool(volatility.get("volatile_knowledge"))
-    volatile_class = volatility.get("volatile_class")
-    volatility_requires_evidence = bool(volatility.get("volatility_requires_evidence"))
-
     risky_terms = ["always", "never", "guaranteed", "cure", "100%", "proof", "definitely", "no doubt"]
     hedges = ["may", "might", "could", "likely", "possibly", "suggests", "uncertain"]
 
     risk_flags = []
     rules_fired = []
     score = int(seed_score)
+    guardrail = None
 
     # certainty / hedging signals
     if any(w in tl for w in risky_terms):
@@ -458,6 +422,7 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         score -= 18
         risk_flags.append("numeric_without_evidence")
         rules_fired.append("numeric_without_evidence_penalty")
+
     if has_digit and has_refs:
         score += 8
         risk_flags.append("numeric_with_evidence")
@@ -469,35 +434,34 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         score += 18
         rules_fired.append("short_declarative_bonus")
 
-    # Guardrail #1: Known false categories (demo list)
+    # --- Guardrail #1: Known false categories ---
     if matches_known_false(t) and not has_refs:
         score = min(score, 45)
         risk_flags.append("known_false_category_no_evidence")
         rules_fired.append("known_false_category_cap")
         guardrail = "known_false_claim_no_evidence"
-    else:
-        guardrail = None
 
-    # Guardrail #2: Unsupported universal/high-certainty claims w/out evidence
+    # --- Guardrail #2: Unsupported universal certainty w/out evidence ---
     if (short_decl and contains_universal_certainty(t)) and not has_refs and guardrail is None:
         score = min(score, 60)
         risk_flags.append("unsupported_universal_claim_no_evidence")
         rules_fired.append("unsupported_universal_claim_cap")
         guardrail = "unsupported_universal_claim_no_evidence"
 
-    # NEW: Volatility cap without evidence (prevents accidental ALLOW on office-holder / legal claims)
-    if volatile_knowledge and volatility_requires_evidence and not has_refs:
-        score = min(score, 68)  # forces REVIEW at best unless evidence is provided
-        risk_flags.append("volatile_knowledge_without_evidence_cap")
-        rules_fired.append("volatile_knowledge_without_evidence_cap")
+    # ✅ Guardrail #3: Volatile current facts (leaders, titles, etc.)
+    if matches_volatile_current_fact(t) and not has_refs and guardrail is None:
+        score = min(score, 65)  # prevents easy ALLOW
+        risk_flags.append("volatile_current_fact_no_evidence")
+        rules_fired.append("volatile_current_fact_cap")
+        guardrail = "volatile_current_fact_no_evidence"
 
-    # Evidence helps, but should not auto-guarantee ALLOW
+    # Evidence helps but does not guarantee ALLOW
     if has_refs:
         score += 5
         risk_flags.append("evidence_present")
         rules_fired.append("evidence_present_bonus")
 
-    # Conservative bias for high-liability without evidence
+    # Conservative cap for high-liability without evidence
     if tier == "high" and not has_refs:
         score = min(score, 73)
         risk_flags.append("high_liability_without_evidence_cap")
@@ -513,10 +477,11 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         verdict = "High risk of error / hallucination"
 
     explanation = (
-        "MVP heuristic score. This demo evaluates linguistic certainty and uncertainty cues, basic risk signals, "
-        "and applies conservative handling for numeric, high-liability, and volatile knowledge claims unless evidence is provided. "
-        "It also includes lightweight guardrails to prevent obvious debunked categories and unsupported universal claims "
-        "from being ALLOWed without evidence. Replace with evidence-backed verification in production."
+        "MVP heuristic score. This demo evaluates linguistic certainty/uncertainty cues, risk signals, "
+        "and applies conservative handling for numeric/high-liability content unless evidence is provided. "
+        "It also includes lightweight guardrails for debunked categories, unsupported universal certainty, "
+        "and volatile real-world facts (current roles/events) to reduce false ALLOW outcomes. "
+        "Replace with evidence-backed verification in production."
     )
 
     signals = {
@@ -525,12 +490,6 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         "has_digit": bool(has_digit),
         "has_references": bool(has_refs),
         "reference_count": len(references),
-
-        # NEW volatility signals (important for enterprise credibility)
-        "volatile_knowledge": volatile_knowledge,
-        "volatile_class": volatile_class,
-        "volatility_requires_evidence": bool(volatility_requires_evidence),
-
         "risk_flags": risk_flags,
         "rules_fired": rules_fired,
         "guardrail": guardrail
