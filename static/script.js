@@ -1,4 +1,26 @@
 (() => {
+  // ================================
+  // TruCite Frontend Script (MVP)
+  // Step 3/4 Updates: headers + config + volatility gating (client-side failsafe)
+  // ================================
+
+  // ---------- CONFIG ----------
+  const CONFIG = {
+    // If your frontend is served from the same host as backend, leave "".
+    // If you ever split domains, set: "https://YOUR-BACKEND.onrender.com"
+    API_BASE: "",
+
+    // Demo runs enterprise-style policy by default
+    POLICY_MODE: "enterprise",
+
+    // Request safety
+    TIMEOUT_MS: 15000,
+
+    // Client-side failsafe:
+    // If backend flags a claim as VOLATILE knowledge, do not ALLOW unless evidence is present.
+    VOLATILE_REQUIRES_EVIDENCE_FOR_ALLOW: true
+  };
+
   // ---------- Helpers ----------
   const $ = (sel) => document.querySelector(sel);
   const byId = (id) => document.getElementById(id);
@@ -20,6 +42,18 @@
   function setText(el, txt) { if (el) el.textContent = txt; }
   function show(el, on = true) { if (el) el.style.display = on ? "" : "none"; }
   function safeJson(obj) { try { return JSON.stringify(obj, null, 2); } catch { return String(obj); } }
+
+  // Fetch with timeout
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      return res;
+    } finally {
+      clearTimeout(t);
+    }
+  }
 
   function copyToClipboard(text) {
     if (!text) return;
@@ -58,6 +92,10 @@
   const decisionReason = pick("decisionReason", "#decisionReason");
   const resultPre = pick("result", "#result");
 
+  // Optional: If you add these elements in HTML later, JS will populate them.
+  const volatilityValue = pick("volatilityValue", "#volatilityValue");
+  const policyValue = pick("policyValue", "#policyValue");
+
   let lastPayload = null;
   let lastResponse = null;
 
@@ -87,6 +125,10 @@
     setText(decisionReason, "Awaiting verification…");
     updateGauge(0);
     if (resultPre) resultPre.textContent = "";
+
+    // Optional fields
+    setText(volatilityValue, "—");
+    setText(policyValue, "—");
   }
 
   function setErrorUI(userMsg, debugText) {
@@ -101,13 +143,54 @@
     }
   }
 
+  // Client-side failsafe policy adjustment:
+  // If VOLATILE knowledge is detected, do not allow ALLOW unless evidence is present.
+  function applyClientFailSafe(data) {
+    try {
+      const vol = (data?.signals?.knowledge_volatility || data?.signals?.volatility || "").toString().toUpperCase();
+      const action = (data?.decision?.action || "").toString().toUpperCase();
+      const hasEvidence =
+        !!(lastPayload?.evidence && String(lastPayload.evidence).trim().length > 0) ||
+        !!(data?.signals?.has_evidence);
+
+      if (CONFIG.VOLATILE_REQUIRES_EVIDENCE_FOR_ALLOW && vol === "VOLATILE" && action === "ALLOW" && !hasEvidence) {
+        // Mutate response for UI purposes (keeps JSON visible to user)
+        data.decision = data.decision || {};
+        data.decision.action = "REVIEW";
+        data.decision.reason =
+          "Knowledge volatility detected (time-sensitive fact). Evidence required for ALLOW in enterprise mode.";
+        data.verdict = data.verdict || "Unclear / needs verification";
+        // Add a visible flag
+        data.signals = data.signals || {};
+        if (!Array.isArray(data.signals.risk_flags)) data.signals.risk_flags = [];
+        if (!data.signals.risk_flags.includes("knowledge_volatility_requires_evidence")) {
+          data.signals.risk_flags.push("knowledge_volatility_requires_evidence");
+        }
+      }
+    } catch (e) {
+      // never crash UI
+      console.warn("Client failsafe error:", e);
+    }
+    return data;
+  }
+
   function renderResponse(data) {
     lastResponse = data;
+
+    // Apply client-side failsafe *before* showing action
+    data = applyClientFailSafe(data);
 
     const score = data?.score ?? "--";
     setText(scoreDisplay, score);
     setText(scoreVerdict, data?.verdict || "");
     updateGauge(score);
+
+    // Optional: policy/volatility labels (won't break if HTML not present)
+    const vol = data?.signals?.knowledge_volatility || data?.signals?.volatility || "LOW";
+    setText(volatilityValue, String(vol).toUpperCase());
+    const pMode = data?.policy_mode || CONFIG.POLICY_MODE;
+    const pVer = data?.policy_version || "";
+    setText(policyValue, pVer ? `${pMode} v${pVer}` : `${pMode}`);
 
     const action = data?.decision?.action || "REVIEW";
     const reason = data?.decision?.reason || "";
@@ -125,16 +208,24 @@
 
     if (!text) return alert("Paste AI- or agent-generated text first.");
 
-    const payload = { text, evidence: evidence || "", policy_mode: "enterprise" };
+    const payload = { text, evidence: evidence || "", policy_mode: CONFIG.POLICY_MODE };
     lastPayload = payload;
     setPendingUI();
 
+    // Build URL
+    const url = `${CONFIG.API_BASE}/verify`;
+
     try {
-      const res = await fetch("/verify", {
+      const res = await fetchWithTimeout(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          // Optional headers for enterprise-style observability (backend can ignore safely)
+          "X-TruCite-Client": "web-mvp",
+          "X-TruCite-Policy-Mode": CONFIG.POLICY_MODE
+        },
         body: JSON.stringify(payload)
-      });
+      }, CONFIG.TIMEOUT_MS);
 
       // Handle non-OK errors gracefully
       if (!res.ok) {
@@ -156,7 +247,10 @@
 
       renderResponse(data);
     } catch (e) {
-      setErrorUI("could not score. Network or backend unavailable.", String(e));
+      const msg = (String(e || "").includes("AbortError"))
+        ? "Request timed out. Backend may be waking up. Try again."
+        : "could not score. Network or backend unavailable.";
+      setErrorUI(msg, String(e));
     }
   }
 
@@ -193,7 +287,8 @@
 
   // Optional debug hook
   window.TruCiteDebug = {
-    elements: { verifyButton, claimBox, evidenceBox, scoreDisplay, scoreVerdict, gaugeFill, decisionCard, decisionAction, decisionReason, resultPre },
+    config: CONFIG,
+    elements: { verifyButton, claimBox, evidenceBox, scoreDisplay, scoreVerdict, gaugeFill, decisionCard, decisionAction, decisionReason, resultPre, volatilityValue, policyValue },
     lastPayload: () => lastPayload,
     lastResponse: () => lastResponse
   };
