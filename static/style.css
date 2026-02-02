@@ -269,9 +269,7 @@ textarea:not(:placeholder-shown) {
   color: #FFD700;
 }
 #scoreVerdict { margin-top: 6px; font-size: 0.95rem; color: #ccc; }
-#gaugeFill {
-  transition: stroke-dashoffset 0.9s cubic-bezier(0.4, 0, 0.2, 1);
-}
+
 /* =======================
    RESULT BOX
 ======================= */
@@ -504,4 +502,7 @@ details[open] summary::after { content: "▲"; }
   color: #bdbdbd;
   opacity: 0.85;
   letter-spacing: 0.04em;
+}
+#gaugeFill {
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.4, 0, 0.2, 1);
 }
