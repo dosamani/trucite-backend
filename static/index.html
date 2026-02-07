@@ -59,11 +59,10 @@
   <p class="hero-subtitle hero-subtitle-tight">
   TruCite detects volatile or time-sensitive claims and applies conservative policy gating unless evidence is present.
   </p>
-
-  <p class="hero-subtitle hero-subtitle-tight">
-    TruCite returns a Reliability Score, a machine-enforceable ALLOW / REVIEW / BLOCK decision,
-    and a cryptographic audit fingerprint of the evaluated output for compliance-grade logging.
-  </p>
+<p class="hero-subtitle hero-subtitle-tight">
+  TruCite returns a Reliability Score, a machine-enforceable <strong>ALLOW / REVIEW / BLOCK</strong> decision,
+  and an immutable cryptographic fingerprint of the evaluated output — so enterprises can audit what was approved, when, and under which policy.
+</p>
 
   <p class="hero-missing-layer">
     TruCite is the policy and reliability infrastructure enterprises will require as AI moves from experimentation to production.
@@ -95,6 +94,45 @@
       <p>Enterprise systems consume TruCite decisions to allow, review, or block AI output before it reaches users, records, or customers.</p>
     </div>
 
+  </div>
+</section>
+
+<!-- DIFFERENTIATION: TRUCITE VS EVALS VS RAG VS GUARDRAILS -->
+<section class="wins-section" id="differentiation">
+  <h2 class="section-title">TruCite Is Not Model Eval, RAG, or “Guardrails”</h2>
+
+  <div class="wins-grid">
+    <div class="win-card bright-card">
+      <h3>Model Evals (Benchmarks)</h3>
+      <p>
+        Measure how models perform <em>in general</em>. Useful for research and selection —
+        but they don’t return a runtime enforcement decision inside enterprise workflows.
+      </p>
+    </div>
+
+    <div class="win-card bright-card">
+      <h3>RAG / Retrieval</h3>
+      <p>
+        Improves grounding by fetching sources. But citations don’t guarantee the output is coherent,
+        safe, or action-ready — and retrieval alone doesn’t gate what gets shipped.
+      </p>
+    </div>
+
+    <div class="win-card bright-card">
+      <h3>Safety / Red-Teaming</h3>
+      <p>
+        Tests models for jailbreaks and harmful behaviors. Important — but mostly pre-deployment.
+        Enterprises still need a runtime control layer when outputs hit real users and decisions.
+      </p>
+    </div>
+
+    <div class="win-card bright-card">
+      <h3>TruCite (Runtime Decision Gate)</h3>
+      <p>
+        TruCite is a <strong>model-agnostic control layer</strong> that evaluates output risk in real time and returns:
+        <strong>Score + ALLOW/REVIEW/BLOCK + audit fingerprint</strong> — for downstream enforcement and compliance.
+      </p>
+    </div>
   </div>
 </section>
 
@@ -479,6 +517,10 @@
 <section class="wins-section">
   <h2 class="section-title">Policy Notes</h2>
   <div class="wins-grid">
+
+    <p>
+  TruCite is a <strong>runtime reliability control plane</strong> — designed for enforcement, auditability, and downstream workflow gating.
+    </p>
 
     <div class="win-card bright-card">
       <h3>Heuristic Scoring (MVP)</h3>
