@@ -8,10 +8,8 @@
 </head>
 <body>
 
-<!-- TOP NAV -->
 <header class="top-nav" role="banner" aria-label="Top navigation">
   <div class="top-nav-inner">
-
     <div class="api-cta-wrapper">
       <a class="top-nav-cta" href="https://forms.gle/upyaT8L2prfQvaVx6" target="_blank" rel="noopener">
         Request API access →
@@ -24,11 +22,9 @@
     <a class="top-nav-cta" href="https://forms.gle/CRz4aJqGL25ReQW1A" target="_blank" rel="noopener">
       Join the Waitlist →
     </a>
-
   </div>
 </header>
 
-<!-- HERO -->
 <header class="hero" aria-label="Hero">
   <img src="/static/logo.jpg?v=1" alt="TruCite Logo" class="logo" />
   <h1>TruCite.ai<sup class="tm">™</sup></h1>
@@ -57,12 +53,13 @@
   </p>
 
   <p class="hero-subtitle hero-subtitle-tight">
-  TruCite detects volatile or time-sensitive claims and applies conservative policy gating unless evidence is present.
+    TruCite detects volatile or time-sensitive claims and applies conservative policy gating unless evidence is present.
   </p>
-<p class="hero-subtitle hero-subtitle-tight">
-  TruCite returns a Reliability Score, a machine-enforceable <strong>ALLOW / REVIEW / BLOCK</strong> decision,
-  and an immutable cryptographic fingerprint of the evaluated output — so enterprises can audit what was approved, when, and under which policy.
-</p>
+
+  <p class="hero-subtitle hero-subtitle-tight">
+    TruCite returns a Reliability Score, a machine-enforceable <strong>ALLOW / REVIEW / BLOCK</strong> decision,
+    and an immutable cryptographic fingerprint of the evaluated output — so enterprises can audit what was approved, when, and under which policy.
+  </p>
 
   <p class="hero-missing-layer">
     TruCite is the policy and reliability infrastructure enterprises will require as AI moves from experimentation to production.
@@ -74,11 +71,9 @@
 </header>
 
 <main>
-  <!-- WHERE TRUCITE FITS -->
-<section class="blueprint-section">
+  <section class="blueprint-section">
   <h2 class="section-title">Where TruCite Fits</h2>
   <div class="blueprint-grid">
-
     <div class="bp-card bright-card">
       <div class="bp-label">Upstream AI Systems</div>
       <p>LLMs, RAG pipelines, and AI agents generate output for enterprise workflows.</p>
@@ -93,487 +88,175 @@
       <div class="bp-label">Downstream Enforcement</div>
       <p>Enterprise systems consume TruCite decisions to allow, review, or block AI output before it reaches users, records, or customers.</p>
     </div>
-
   </div>
 </section>
 
-<!-- DIFFERENTIATION: TRUCITE VS EVALS VS RAG VS GUARDRAILS -->
 <section class="wins-section" id="differentiation">
   <h2 class="section-title">TruCite Is Not Model Eval, RAG, or “Guardrails”</h2>
-
   <div class="wins-grid">
     <div class="win-card bright-card">
       <h3>Model Evals (Benchmarks)</h3>
-      <p>
-        Measure how models perform <em>in general</em>. Useful for research and selection —
-        but they don’t return a runtime enforcement decision inside enterprise workflows.
-      </p>
+      <p>Measure how models perform in general. Useful for research and selection — but they don’t return a runtime enforcement decision inside enterprise workflows.</p>
     </div>
 
     <div class="win-card bright-card">
       <h3>RAG / Retrieval</h3>
-      <p>
-        Improves grounding by fetching sources. But citations don’t guarantee the output is coherent,
-        safe, or action-ready — and retrieval alone doesn’t gate what gets shipped.
-      </p>
+      <p>Improves grounding by fetching sources. But citations don’t guarantee the output is coherent, safe, or action-ready — and retrieval alone doesn’t gate what gets shipped.</p>
     </div>
 
     <div class="win-card bright-card">
       <h3>Safety / Red-Teaming</h3>
-      <p>
-        Tests models for jailbreaks and harmful behaviors. Important — but mostly pre-deployment.
-        Enterprises still need a runtime control layer when outputs hit real users and decisions.
-      </p>
+      <p>Tests models for jailbreaks and harmful behaviors. Important — but mostly pre-deployment. Enterprises still need a runtime control layer when outputs hit real users and decisions.</p>
     </div>
 
     <div class="win-card bright-card">
       <h3>TruCite (Runtime Decision Gate)</h3>
-      <p>
-        TruCite is a <strong>model-agnostic control layer</strong> that evaluates output risk in real time and returns:
-        <strong>Score + ALLOW/REVIEW/BLOCK + audit fingerprint</strong> — for downstream enforcement and compliance.
-      </p>
+      <p>TruCite is a <strong>model-agnostic control layer</strong> that evaluates output risk in real time and returns:
+      <strong>Score + ALLOW/REVIEW/BLOCK + audit fingerprint</strong>.</p>
     </div>
   </div>
 </section>
 
-<!-- WHERE TRUCITE BECOMES CRITICAL -->
 <section class="wins-section">
-  <h2 class="section-title">Where TruCite Becomes Critical</h2>
-  <div class="wins-grid">
-
-    <div class="win-card bright-card">
-      <h3>LLM &amp; AI Platform Providers</h3>
-      <p>Add enterprise-grade output verification and policy enforcement for regulated or high-liability deployments.</p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Legal AI Systems</h3>
-      <p>Prevent fabricated citations, unsafe legal reasoning, and hallucinated precedents from reaching clients.</p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Healthcare AI</h3>
-      <p>Gate clinical and dosage claims unless evidence signals are present.</p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Enterprise Copilots &amp; Agents</h3>
-      <p>Detect overconfidence, drift, and hallucinations in internal AI assistants before decisions reach employees.</p>
-    </div>
-
-  </div>
-</section>
-<section class="verify-section" id="verify">
-  <h2 class="section-title">VERIFY AI &amp; AGENT OUTPUT</h2>
-  <p class="section-subtitle">
-    Paste AI- or agent-generated text below and tap <strong>VERIFY</strong>.
-    TruCite returns a demo <strong>Reliability Score</strong> + an enforceable <strong>Decision Gate</strong>.
-  </p>
-
-  <textarea id="inputText" placeholder="Paste AI- or agent-generated text here…"></textarea>
-
-  <textarea
-    id="evidenceText"
-    class="evidence-box"
-    placeholder="Optional: Paste supporting evidence (URLs / DOI / PMID)."
-  ></textarea>
-
-  <button class="primary-btn" onclick="scoreText()">VERIFY</button>
-
-  <div class="copy-row">
-    <button class="copy-btn" onclick="copyJSONPayload()">Copy JSON payload</button>
-    <button class="copy-btn" onclick="copyCurl()">Copy curl</button>
-    <button class="copy-btn" onclick="copyResponse()">Copy response</button>
-  </div>
-
-  <p id="verifyStatus" class="section-subtitle" style="margin-top:10px;">
-    Evidence is optional — but required to reach <strong>ALLOW</strong> for high-liability or numeric claims.
-  </p>
-<div id="gaugeContainer">
-  <div class="gauge-label">AI Reliability Score</div>
-  <svg id="gauge" width="220" height="120">
-    <path d="M20 100 A90 90 0 0 1 200 100"
-      stroke="#333"
-      stroke-width="10"
-      fill="none"
-      stroke-linecap="round" />
-    <path id="gaugeFill"
-      d="M20 100 A90 90 0 0 1 200 100"
-      stroke="#FFD700"
-      stroke-width="10"
-      fill="none"
-      stroke-linecap="round"
-      stroke-dasharray="260"
-      stroke-dashoffset="260" />
-  </svg>
-
-  <div id="scoreDisplay">--</div>
-  <div id="scoreVerdict">Score pending…</div>
-
-  <!-- NEW: Knowledge Volatility + Policy -->
-  <div id="volatilityLine" class="realtime-note" style="margin-top:6px;">
-    Volatile knowledge: <span id="volatilityValue">—</span>
-  </div>
-  <div id="policyLine" class="realtime-note" style="margin-top:4px;">
-    Policy: <span id="policyValue">—</span>
-  </div>
-
-  <div class="realtime-note" style="margin-top:6px;">
-    &lt;300ms real-time API decisioning
-  </div>
-</div>
-
-  <div class="decision-card">
-    <div class="decision-title">Decision Gate</div>
-    <div id="decisionAction" class="decision-action">—</div>
-    <div id="decisionReason" class="decision-reason">Awaiting verification…</div>
-    <div class="decision-subnote">
-      Policy decision issued for downstream system enforcement
-    </div>
-  </div>
-
-  <div class="result-wrapper">
-    <div class="result-label">Validation details, explanation &amp; references</div>
-    <pre id="result"></pre>
-  </div>
-</section>
-  
-<!-- WHY TRUCITE EXISTS -->
-<section id="why-exists" class="wins-section">
-  <h2 class="section-title">Why TruCite Exists</h2>
-  <div class="wins-grid">
-    <div class="win-card bright-card">
-      <h3>AI is producing decisions — without an accountability layer</h3>
-      <p>
-        Enterprises are deploying LLMs and agents into workflows where mistakes become liability.
-        Most AI stacks still lack a neutral verification step that can score reliability and gate output.
-      </p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>“Citations” are not verification</h3>
-      <p>
-        Retrieval can provide sources, but it doesn’t tell you whether the output is coherent,
-        consistent, or aligned with the evidence provided. TruCite is a verification layer, not a chatbot.
-      </p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Reliability must be enforceable</h3>
-      <p>
-        TruCite returns a score + a Decision Gate (ALLOW / REVIEW / BLOCK) so unsafe output can be stopped
-        before it reaches users, charts, contracts, or clinical decisions.
-      </p>
-    </div>
-  </div>
-</section>
-  <section class="wins-section">
   <h2 class="section-title">WHY AI SYSTEMS NOW REQUIRE A DECISION LAYER</h2>
   <div class="wins-grid">
-
     <div class="win-card bright-card">
       <h3>AI systems are now making operational decisions</h3>
-      <p>
-        Enterprises are deploying LLMs and agents into workflows that impact
-        customers, patients, financial outcomes, and legal exposure.
-        These outputs increasingly function as system decisions — yet lack a formal accountability layer.
-      </p>
+      <p>AI outputs now influence customers, patients, and legal exposure — but lack a formal accountability layer.</p>
     </div>
 
     <div class="win-card bright-card">
       <h3>Existing controls stop prompts — not outcomes</h3>
-      <p>
-        Guardrails and filters moderate inputs and responses, but they do not independently assess whether
-        a generated output is reliable enough to act on. Enterprises need a decision checkpoint after generation.
-      </p>
+      <p>Guardrails moderate inputs and responses, but they do not independently assess whether a generated output is reliable enough to act on.</p>
     </div>
 
     <div class="win-card bright-card">
       <h3>Risk shifts from model behavior to downstream impact</h3>
-      <p>
-        The primary enterprise risk is no longer “what the model says,” but “what the system does with it.”
-        Reliability scoring and policy gating are required before outputs reach automation pipelines or human decision-makers.
-      </p>
+      <p>Reliability scoring and policy gating are required before outputs reach automation pipelines or human decision-makers.</p>
     </div>
 
     <div class="win-card bright-card">
       <h3>Regulators expect auditable decision pathways</h3>
-      <p>
-        AI-generated decisions must become traceable. Enterprises need cryptographically anchored scoring,
-        policy enforcement, and review signals to demonstrate responsible AI deployment.
-      </p>
+      <p>AI-generated decisions must become traceable with policy enforcement and review signals.</p>
     </div>
-
   </div>
-  </section>
+</section>
+<section class="verify-section" id="verify">
+  <h2 class="section-title">VERIFY AI & AGENT OUTPUT</h2>
+  <p class="section-subtitle">Paste AI-generated text below and tap VERIFY.</p>
 
-<!-- HOW TRUCITE WORKS -->
+  <textarea id="inputText" placeholder="Paste AI-generated text here…"></textarea>
+  <textarea id="evidenceText" class="evidence-box" placeholder="Optional: Supporting evidence"></textarea>
+
+  <button class="primary-btn" onclick="scoreText()">VERIFY</button>
+
+  <div id="gaugeContainer">
+    <div class="gauge-label">AI Reliability Score</div>
+    <div id="scoreDisplay">--</div>
+    <div id="decisionAction">—</div>
+    <div id="decisionReason">Awaiting verification…</div>
+  </div>
+
+  <pre id="result"></pre>
+</section>
+
 <section id="how" class="blueprint-section">
   <h2 class="section-title">How TruCite Works</h2>
   <div class="blueprint-grid">
-
     <div class="bp-card bright-card">
       <div class="bp-label">1. Ingest</div>
       <p>TruCite receives AI output and optional supporting evidence.</p>
-      <div class="bp-diagram">
-        <span class="bp-node">AI / Agent</span>
-        <span class="bp-arrow">→</span>
-        <span class="bp-node">TruCite</span>
-      </div>
     </div>
-
     <div class="bp-card bright-card">
       <div class="bp-label">2. Analyze</div>
       <p>We inspect structure, certainty language, numeric risk, and evidence signals.</p>
-      <div class="bp-diagram">
-        <span class="bp-node">Structure</span>
-        <span class="bp-node">Signals</span>
-        <span class="bp-node">Risk</span>
-      </div>
     </div>
-
     <div class="bp-card bright-card">
-      <div class="bp-label">3. Score &amp; Gate</div>
-      <p>TruCite returns a Reliability Score, Decision Gate action, and audit-ready explanation.</p>
-      <div class="bp-diagram">
-        <span class="bp-node">Score</span>
-        <span class="bp-node">Gate</span>
-        <span class="bp-node">Audit</span>
-      </div>
+      <div class="bp-label">3. Score & Gate</div>
+      <p>Returns Reliability Score and ALLOW / REVIEW / BLOCK decision.</p>
     </div>
-
     <div class="bp-card bright-card">
       <div class="bp-label">4. Enforce Downstream</div>
-      <p>Enterprise systems consume TruCite decisions to allow, review, or block AI output before it reaches users.</p>
-      <div class="bp-diagram">
-        <span class="bp-node">TruCite</span>
-        <span class="bp-arrow">→</span>
-        <span class="bp-node">Enterprise Systems</span>
-      </div>
+      <p>Enterprise systems consume TruCite decisions before output reaches users.</p>
     </div>
-
   </div>
 </section>
-  <section class="blueprint-section">
-  <h2 class="section-title">A Missing Layer in the AI Stack</h2>
-
-  <div class="bp-card bright-card">
-    <p>
-      As AI systems become embedded into enterprise workflows, a new control layer
-      is emerging between model output and system action. TruCite represents this category:
-      independent reliability scoring and policy-based decision gating for AI-generated content.
-    </p>
-    <p>
-      This layer does not replace models, guardrails, or monitoring systems —
-      it governs whether AI output is sufficiently reliable to enter operational
-      or automated pathways. Similar to how security evolved from firewalls to runtime enforcement,
-      AI infrastructure now requires output-level control.
-    </p>
-    <p>
-      TruCite is designed as a model-agnostic, API-first infrastructure component
-      that integrates downstream of LLMs and agents, providing enterprise-grade scoring,
-      ALLOW / REVIEW / BLOCK decisions, and audit-ready output fingerprints.
-    </p>
-  </div>
-  </section>
-<!-- WHY TRUCITE WINS -->
 <section id="why" class="wins-section">
   <h2 class="section-title">Why TruCite Wins</h2>
   <div class="wins-grid">
-
     <div class="win-card bright-card">
-      <h3>Verification + Enforcement (Not Just Citations)</h3>
-      <p>Most tools stop at “here are sources.” TruCite adds a reliability score and enforceable gate action.</p>
+      <h3>Verification + Enforcement</h3>
+      <p>TruCite adds a reliability score and enforceable gate action.</p>
     </div>
-
     <div class="win-card bright-card">
-      <h3>Model &amp; Architecture Agnostic</h3>
-      <p>Works across LLMs, agent frameworks, and retrieval stacks without relying on vendor confidence scores.</p>
+      <h3>Model Agnostic</h3>
+      <p>Works across LLMs and agent frameworks.</p>
     </div>
-
     <div class="win-card bright-card">
-      <h3>Built for High-Liability Workflows</h3>
-      <p>Medical, legal, and financial claims are conservatively gated unless evidence is present.</p>
+      <h3>High-Liability Ready</h3>
+      <p>Designed for medical, legal, and financial risk containment.</p>
     </div>
-
     <div class="win-card bright-card">
-      <h3>Audit &amp; Drift Ready</h3>
-      <p>JSON output supports audit trails and future reliability drift analytics.</p>
+      <h3>Audit & Drift Ready</h3>
+      <p>Supports audit trails and reliability drift analytics.</p>
     </div>
-
   </div>
 </section>
-  <section class="wins-section">
-  <h2 class="section-title">How TruCite Differs</h2>
-  <div class="wins-grid">
 
-    <div class="win-card bright-card">
-      <h3>Model Evaluation</h3>
-      <p>
-        Evaluates model performance in testing environments. Measures accuracy, bias, and benchmark behavior.
-      </p>
-      <p><strong>Focus:</strong> Model quality</p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Guardrails & Filters</h3>
-      <p>
-        Constrain prompts and responses to reduce harmful or disallowed content.
-        Operate at the input and generation stages.
-      </p>
-      <p><strong>Focus:</strong> Content moderation</p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>TruCite</h3>
-      <p>
-        Independently scores the reliability of AI output after generation,
-        and applies policy-based ALLOW / REVIEW / BLOCK decisions before downstream action.
-      </p>
-      <p><strong>Focus:</strong> Decision governance</p>
-    </div>
-
-  </div>
-  </section>
-  <!-- NEW: DIFFERENTIATION vs DATA OBSERVABILITY / PIPELINE SECURITY -->
-<section id="differentiation" class="wins-section">
+<section class="wins-section">
   <h2 class="section-title">Why Secure Data In Still Needs TruCite</h2>
-
   <div class="wins-grid">
     <div class="win-card bright-card">
       <h3>Secure inputs do not guarantee safe outputs</h3>
-      <p>
-        Data governance and observability protect what enters the system. LLMs generate new text via probabilistic
-        transformation — introducing hallucinations, overconfidence, misapplied context, and reasoning errors even when
-        sources are clean.
-      </p>
+      <p>LLMs introduce hallucinations and reasoning errors even when data is clean.</p>
     </div>
-
     <div class="win-card bright-card">
-      <h3>TruCite protects the post-generation risk layer</h3>
-      <p>
-        TruCite evaluates output integrity and risk signals, then returns a machine-enforceable decision
-        (ALLOW / REVIEW / BLOCK) plus an audit fingerprint — enabling downstream enforcement and auditability.
-      </p>
+      <h3>TruCite protects post-generation risk</h3>
+      <p>Evaluates output integrity and returns enforceable decisions.</p>
     </div>
-
     <div class="win-card bright-card">
-      <h3>Complementary to RAG, governance, and observability</h3>
-      <p>
-        Retrieval can provide sources; governance can ensure lineage. TruCite determines whether the generated output is
-        safe enough to act on in high-liability workflows.
-      </p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Designed for enterprise liability containment</h3>
-      <p>
-        When AI output drives clinical, legal, financial, or operational actions, the risk is not just data integrity —
-        it’s output reliability. TruCite is the control layer between AI output and enterprise workflows.
-      </p>
+      <h3>Complementary to RAG & governance</h3>
+      <p>Determines whether generated output is safe enough to act on.</p>
     </div>
   </div>
 </section>
-  <!-- MULTILINGUAL / GLOBAL DEPLOYMENT -->
+
 <section id="multilingual" class="wins-section">
   <h2 class="section-title">Global + Multilingual Deployment</h2>
-
   <div class="wins-grid">
     <div class="win-card bright-card">
-      <h3>Language-Agnostic Risk Infrastructure</h3>
-      <p>
-        TruCite is designed as language-agnostic risk infrastructure. Early deployments emphasize English-first signal analysis,
-        with expansion to multilingual pipelines for global enterprise workflows.
-      </p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Regulated Markets Need Local-Language Safety</h3>
-      <p>
-        High-stakes AI is deployed globally — including India, EU, and emerging markets — where claims may arrive in regional languages.
-        TruCite’s roadmap supports multilingual risk scoring and policy gating to reduce unsafe ALLOW outcomes across languages.
-      </p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Two-Stage Approach</h3>
-      <p>
-        (1) Detect risk signals from structure, certainty, numerics, and volatility even when content is multilingual.
-        (2) Apply evidence requirements and policy gates consistently — independent of model vendor or language.
-      </p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Enterprise Roadmap</h3>
-      <p>
-        Planned: multilingual evidence parsing, language-aware volatility detection, and policy profiles tuned for country-specific
-        compliance and risk standards.
-      </p>
+      <h3>Language-Agnostic Infrastructure</h3>
+      <p>Designed to support multilingual risk scoring.</p>
     </div>
   </div>
 </section>
 
-<!-- POLICY NOTES -->
 <section class="wins-section">
   <h2 class="section-title">Policy Notes</h2>
   <div class="wins-grid">
-
-    <p>
-  TruCite is a <strong>runtime reliability control plane</strong> — designed for enforcement, auditability, and downstream workflow gating.
-    </p>
-
     <div class="win-card bright-card">
-      <h3>Heuristic Scoring (MVP)</h3>
-      <p>Current demo scoring uses structural and linguistic integrity signals. Production versions will incorporate evidence-backed validation.</p>
+      <h3>Runtime Reliability Control Plane</h3>
+      <p>Designed for enforcement, auditability, and workflow gating.</p>
     </div>
-
     <div class="win-card bright-card">
       <h3>Conservative Guardrails</h3>
-      <p>TruCite includes safeguards to prevent debunked or high-certainty claims from being approved without evidence.</p>
+      <p>Prevents high-certainty claims from being approved without evidence.</p>
     </div>
-
-    <div class="win-card bright-card">
-      <h3>Decision Support, Not Truth Engine</h3>
-      <p>TruCite does not replace domain experts. It acts as a reliability filter and enforcement gate.</p>
-    </div>
-    <div class="win-card bright-card">
-  <h3>Time-Sensitive & Evolving Knowledge Safeguards</h3>
-  <p>
-    TruCite applies conservative gating to claims that depend on rapidly changing real-world facts
-    (e.g., political leadership, executive roles, market conditions, and other time-sensitive data)
-    unless supporting evidence signals are provided.
-  </p>
-    </div>
-
   </div>
 </section>
-<!-- USE CASES -->
+
 <section id="usecases" class="wins-section">
   <h2 class="section-title">Use Cases</h2>
   <div class="wins-grid">
-
-    <div class="win-card bright-card">
-      <h3>Legal</h3>
-      <p>Gate unsafe legal summaries, fabricated citations, and hallucinated precedents before client delivery.</p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Healthcare</h3>
-      <p>Flag risky clinical statements, dosage claims, and guideline assertions unless evidence signals are present.</p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Enterprise Knowledge</h3>
-      <p>Detect drift, inconsistency, and overconfident language in internal copilots and AI agents.</p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Finance</h3>
-      <p>Conservatively gate numeric claims and market assertions unless references are provided.</p>
-    </div>
-
+    <div class="win-card bright-card"><h3>Legal</h3></div>
+    <div class="win-card bright-card"><h3>Healthcare</h3></div>
+    <div class="win-card bright-card"><h3>Finance</h3></div>
   </div>
 </section>
+
+</main>
+</body>
+</html>
 
 <!-- FAQ -->
 <section id="faq" class="faq-section">
@@ -601,15 +284,15 @@
     </details>
 
     <details>
-  <summary>If our data pipeline is secure and governed, why do we still need TruCite?</summary>
-  <div class="acc-body">
-    Secure data and governance ensure trusted inputs. But LLMs and agents transform that data into newly generated output,
-    and that generation step introduces risk: hallucinated facts, overconfident language, misapplied guidelines, and
-    reasoning errors — even with perfect source documents.
-    <br /><br />
-    TruCite covers the post-generation risk layer by scoring output reliability and issuing a machine-enforceable decision
-    (ALLOW / REVIEW / BLOCK) plus an audit fingerprint for compliance, logging, and downstream enforcement.
-  </div>
+      <summary>If our data pipeline is secure and governed, why do we still need TruCite?</summary>
+      <div class="acc-body">
+        Secure data and governance ensure trusted inputs. But LLMs and agents transform that data into newly generated output,
+        and that generation step introduces risk: hallucinated facts, overconfident language, misapplied guidelines, and
+        reasoning errors — even with perfect source documents.
+        <br /><br />
+        TruCite covers the post-generation risk layer by scoring output reliability and issuing a machine-enforceable decision
+        (ALLOW / REVIEW / BLOCK) plus an audit fingerprint for compliance, logging, and downstream enforcement.
+      </div>
     </details>
 
     <details>
@@ -629,16 +312,15 @@
     </details>
 
     <details>
-  <summary>Does TruCite support non-English or regional languages?</summary>
-  <div class="acc-body">
-    TruCite is designed as language-agnostic risk infrastructure. Early deployments emphasize English-first signal analysis,
-    with multilingual expansion planned for global enterprise workflows.
-    <br /><br />
-    Even in multilingual scenarios, TruCite’s policy gating remains consistent. Structural risk signals,
-    certainty vs uncertainty patterns, numeric claim handling, and volatility detection are evaluated
-    independent of model vendor or language. This ensures enterprise systems can apply enforceable
-    reliability decisions across global and regional-language deployments.
-  </div>
+      <summary>Does TruCite support non-English or regional languages?</summary>
+      <div class="acc-body">
+        TruCite is designed as language-agnostic risk infrastructure. Early deployments emphasize English-first signal analysis,
+        with multilingual expansion planned for global enterprise workflows.
+        <br /><br />
+        Even in multilingual scenarios, TruCite’s policy gating remains consistent. Structural risk signals,
+        certainty vs uncertainty patterns, numeric claim handling, and volatility detection are evaluated
+        independent of model vendor or language.
+      </div>
     </details>
 
     <details>
@@ -649,11 +331,7 @@
     </details>
 
     <p class="faq-more">
-      <a
-        href="https://docs.google.com/document/d/1QwELbvx2svEJtAm_HtV-oDCEjW6rJq1w/edit?usp=drivesdk&ouid=108988599110615601606&rtpof=true&sd=true"
-        target="_blank"
-        rel="noopener"
-      >
+      <a href="https://docs.google.com/document/d/1oHfzoXv-t0LZNdFwfMUjQKfy8tv9RQJo--HhLYRkPto/edit?usp=drivesdk" target="_blank" rel="noopener">
         See full FAQ list 👉
       </a>
     </p>
@@ -694,7 +372,7 @@
 
 <!-- LEGAL / NOTICES -->
 <section id="legal" class="legal-section">
-  <h2 class="section-title">Legal &amp; Notices</h2>
+  <h2 class="section-title">Legal & Notices</h2>
 
   <div class="accordion">
 
@@ -709,73 +387,37 @@
     <details>
       <summary>Disclaimer</summary>
       <div class="acc-body">
-        TruCite provides automated reliability scoring and policy signals intended to support enterprise risk management workflows. TruCite outputs are not legal, medical, financial, or professional advice and must not be used as a substitute for qualified human judgment. Organizations remain responsible for downstream decisions and compliance with applicable laws and regulations. 
-        TruCite outputs should not be used as the sole basis for legal, clinical, or financial decisions
+        TruCite provides automated reliability scoring and policy signals intended to support enterprise risk management workflows.
+        TruCite outputs are not legal, medical, financial, or professional advice and must not be used as a substitute for qualified human judgment.
+        Organizations remain responsible for downstream decisions and compliance with applicable laws and regulations.
+        TruCite outputs should not be used as the sole basis for legal, clinical, or financial decisions.
       </div>
     </details>
+
     <details>
-  <summary>Use of Service</summary>
-  <div class="acc-body">
+      <summary>Use of Service / Service Scope</summary>
+      <div class="acc-body">
         TruCite is designed as a decision-support and risk-intelligence layer within AI-driven systems.
         It is not a content generator and does not determine factual truth.
         TruCite provides structured signals to assist human and system-level oversight.
         Final responsibility for actions taken based on TruCite outputs rests with the deploying organization.
-  </div>
+      </div>
     </details>
 
     <p class="faq-more">
       Legal docs:
-      <a
-        href="https://docs.google.com/document/d/1IQM-Qe-SARh9zOm6HT7YYhYxfO4Q2GEVDTt9ZavyA5E/edit?usp=drivesdk"
-        target="_blank"
-        rel="noopener"
-      >
+      <a href="https://docs.google.com/document/d/1IQM-Qe-SARh9zOm6HT7YYhYxfO4Q2GEVDTt9ZavyA5E/edit?usp=drivesdk" target="_blank" rel="noopener">
         Terms of Service
       </a>
       &nbsp;•&nbsp;
-      <a
-        href="https://docs.google.com/document/d/1ZBRksw_MOzfvP4cqxxnQp54cz-aqXF5j-jsur-EdL3E/edit?usp=drivesdk"
-        target="_blank"
-        rel="noopener"
-      >
+      <a href="https://docs.google.com/document/d/1ZBRksw_MOzfvP4cqxxnQp54cz-aqXF5j-jsur-EdL3E/edit?usp=drivesdk" target="_blank" rel="noopener">
         Privacy Policy
       </a>
     </p>
 
   </div>
+
   <p class="legal-infra-note">
-  TruCite is provided as a risk intelligence infrastructure component. Enterprise deployments may include configurable policy controls, audit trails, and governance features subject to customer agreement.
+    TruCite is provided as a risk intelligence infrastructure component. Enterprise deployments may include configurable policy controls, audit trails, and governance features subject to customer agreement.
   </p>
 </section>
-</main>
-
-  <!-- FOOTER -->
-  <footer class="site-footer" id="feedback">
-    <p class="footer-links">
-      <a
-        href="https://docs.google.com/document/d/1oHfzoXv-t0LZNdFwfMUjQKfy8tv9RQJo--HhLYRkPto/edit?usp=drivesdk"
-        target="_blank"
-        rel="noopener"
-      >FAQ</a>
-      •
-      <a
-        href="https://docs.google.com/document/d/1IQM-Qe-SARh9zOm6HT7YYhYxfO4Q2GEVDTt9ZavyA5E/edit?usp=drivesdk"
-        target="_blank"
-        rel="noopener"
-      >Legal</a>
-      •
-      <a
-        href="https://forms.gle/jyb9pZE22Xen6uBY7"
-        target="_blank"
-        rel="noopener"
-      >Suggestions / Feedback</a>
-    </p>
-
-    <p class="footer-note">
-      © 2026 TruCite.ai — AI Output Risk Infrastructure &amp; Decision Gate
-    </p>
-  </footer>
-
-  <script src="/static/script.js?v=1103"></script>
-</body>
-</html>
