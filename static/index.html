@@ -73,6 +73,10 @@
   <p class="hero-subtitle hero-subtitle-tight">
     Designed for global enterprise deployment, including multilingual and regional-language AI workflows.
   </p>
+
+  <p class="hero-subtitle hero-subtitle-tight">
+  TruCite provides the reliability decision signal that downstream execution and orchestration systems use to enforce AI-driven actions.
+  </p>
 </header>
 
 <main>
@@ -274,6 +278,47 @@
     </div>
   </section>
 
+  <section class="wins-section">
+  <h2 class="section-title">Why Enterprises Will Require a Reliability Decision Layer</h2>
+
+  <div class="wins-grid">
+    <div class="win-card bright-card">
+      <h3>AI systems now trigger real-world actions</h3>
+      <p>
+        AI outputs increasingly drive operational workflows, customer interactions,
+        financial transactions, and clinical or legal recommendations.
+        Enterprises need a structured decision checkpoint before those outputs influence action.
+      </p>
+    </div>
+
+    <div class="win-card bright-card">
+      <h3>Execution governance depends on upstream signals</h3>
+      <p>
+        Identity, authorization, and workflow systems can only enforce action-level governance
+        if they receive a clear reliability decision signal. TruCite provides that upstream signal.
+      </p>
+    </div>
+
+    <div class="win-card bright-card">
+      <h3>Decision governance enables execution governance</h3>
+      <p>
+        TruCite evaluates whether AI output is safe to act on.
+        Downstream execution systems use TruCite’s decision to bind identity,
+        authorization, and accountability at the moment of action.
+      </p>
+    </div>
+
+    <div class="win-card bright-card">
+      <h3>Designed as a foundational control layer</h3>
+      <p>
+        TruCite does not replace workflow or identity systems.
+        It provides the independent reliability decision that those systems depend on
+        to enforce AI-driven actions in regulated environments.
+      </p>
+    </div>
+  </div>
+  </section>
+
   <!-- ⭐ WHY ENTERPRISES WILL REQUIRE THIS -->
   <section id="why-enterprise" class="wins-section">
     <h2 class="section-title">Why Enterprises Will Require This</h2>
@@ -363,18 +408,19 @@
   <section id="missing-layer" class="blueprint-section">
     <h2 class="section-title">A Missing Layer in the AI Stack</h2>
     <div class="bp-card bright-card">
-      <p>
-        As AI systems become embedded into enterprise workflows, a new control layer is emerging between model output and system action:
-        <strong>independent reliability scoring + policy-based decision gating</strong>.
-      </p>
-      <p>
-        This layer does not replace models, guardrails, or monitoring — it governs whether AI output is sufficiently reliable to enter
-        operational or automated pathways.
-      </p>
-      <p>
-        TruCite is designed as a model-agnostic, API-first infrastructure component that integrates downstream of LLMs and agents,
-        providing <strong>ALLOW / REVIEW / BLOCK</strong> decisions plus audit-grade fingerprints.
-      </p>
+    <p>
+  As AI systems become embedded into enterprise workflows, a new control layer is emerging between model output and system action.
+  TruCite represents this category: <strong>independent reliability scoring and policy-based decision gating for AI-generated content.</strong>
+</p>
+
+<p>
+  This layer does not replace models, guardrails, or monitoring systems — it determines whether AI output is sufficiently reliable to enter operational or automated pathways.
+  Downstream execution and identity systems then use TruCite’s decision signal to bind authorization and accountability.
+</p>
+
+<p>
+  TruCite is designed as a model-agnostic, API-first infrastructure component that integrates downstream of LLMs and agents, providing enterprise-grade scoring, <strong>ALLOW / REVIEW / BLOCK</strong> decisions, and audit-ready output fingerprints.
+</p>
     </div>
   </section>
 
@@ -427,6 +473,18 @@
         <h3>TruCite</h3>
         <p>Scores output reliability after generation and returns enforceable policy decisions before downstream action.</p>
         <p><strong>Focus:</strong> Decision governance</p>
+      </div>
+
+      <div class="win-card bright-card">
+  <h3>Execution Governance Systems</h3>
+  <p>
+    Execution and orchestration platforms bind identity, authorization,
+    and action logging at the moment of execution.
+  </p>
+  <p><strong>Focus:</strong> Action control</p>
+  <p>
+    TruCite provides the upstream reliability decision signal those systems depend on.
+  </p>
       </div>
 
     </div>
@@ -546,6 +604,18 @@
           TruCite covers the post-generation risk layer by scoring output reliability and issuing a machine-enforceable decision
           (ALLOW / REVIEW / BLOCK) plus an audit fingerprint for compliance, logging, and downstream enforcement.
         </div>
+      </details>
+
+      <details>
+  <summary>Does TruCite handle execution governance or authorization?</summary>
+  <div class="acc-body">
+    TruCite focuses on output reliability and decision governance.
+    It determines whether AI-generated output is safe to act on and returns
+    a machine-enforceable decision signal.
+    <br /><br />
+    Execution governance — including identity binding, authorization, and workflow control —
+    is handled by downstream orchestration or enterprise systems that consume TruCite’s decision output.
+  </div>
       </details>
 
       <details>
@@ -722,7 +792,7 @@
   </p>
 
   <p class="footer-note">
-    © 2026 TruCite.ai — AI Output Risk Infrastructure &amp; Decision Gate
+    © 2026 TruCite.ai — Runtime Reliability Control Layer for AI-Driven Systems
   </p>
 </footer>
 
