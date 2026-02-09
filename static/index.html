@@ -72,6 +72,14 @@
         <p>Enterprise systems consume TruCite decisions to allow, review, or block AI output before it reaches users, records, or customers.</p>
       </div>
 
+      <div class="bp-card bright-card">
+  <div class="bp-label">Execution Governance Signal</div>
+  <p>
+    Workflow orchestration, identity, and automation systems can only enforce safe actions if they receive a runtime
+    reliability decision signal. TruCite provides that signal to bind accountability at execution time.
+  </p>
+      </div>
+
     </div>
   </section>
 
@@ -218,36 +226,39 @@
     </div>
   </section>
   <!-- WHY TRUCITE EXISTS -->
-  <section id="why-exists" class="wins-section">
-    <h2 class="section-title">Why TruCite Exists</h2>
-    <div class="wins-grid">
+<section id="why-exists" class="problem-section">
+  <h2 class="section-title">Why TruCite Exists</h2>
 
-      <div class="win-card bright-card">
-        <h3>AI is producing decisions — without an accountability layer</h3>
-        <p>
-          Enterprises are deploying LLMs and agents into workflows where mistakes become liability.
-          Most AI stacks still lack a neutral verification step that can score reliability and gate output.
-        </p>
-      </div>
+  <div class="problem-grid">
 
-      <div class="win-card bright-card">
-        <h3>“Citations” are not verification</h3>
-        <p>
-          Retrieval can provide sources, but it doesn’t tell you whether the output is coherent,
-          consistent, or aligned with the evidence provided. TruCite is a verification layer, not a chatbot.
-        </p>
-      </div>
-
-      <div class="win-card bright-card">
-        <h3>Reliability must be enforceable</h3>
-        <p>
-          TruCite returns a score + a Decision Gate (ALLOW / REVIEW / BLOCK) so unsafe output can be stopped
-          before it reaches users, charts, contracts, or clinical decisions.
-        </p>
-      </div>
-
+    <div class="problem-card">
+      <h3>AI output is now operational</h3>
+      <p>
+        AI systems increasingly influence real workflows — legal guidance, clinical insights,
+        financial analysis, and automated decisions. Risk is no longer theoretical; it becomes
+        enterprise liability when output drives action.
+      </p>
     </div>
-  </section>
+
+    <div class="problem-card">
+      <h3>Current controls stop prompts — not outcomes</h3>
+      <p>
+        Guardrails and retrieval improve behavior and grounding, but they do not provide an
+        independent reliability decision on the final generated output at runtime.
+      </p>
+    </div>
+
+    <div class="problem-card">
+      <h3>Enterprises need an enforceable decision checkpoint</h3>
+      <p>
+        Before AI output enters downstream systems, enterprises need a neutral control layer
+        that determines whether that output is safe to act on and produces an auditable signal
+        for enforcement and compliance.
+      </p>
+    </div>
+
+  </div>
+</section>
 
   <section class="wins-section">
   <h2 class="section-title">Why Enterprises Will Require a Reliability Decision Layer</h2>
@@ -289,6 +300,48 @@
     </div>
   </div>
   </section>
+
+  <!-- WHY ENTERPRISES WILL REQUIRE A RUNTIME DECISION LAYER -->
+<section id="why-required" class="wins-section">
+  <h2 class="section-title">Why Enterprises Will Require a Runtime Decision Layer</h2>
+
+  <div class="wins-grid">
+
+    <div class="win-card bright-card">
+      <h3>AI output is now operational</h3>
+      <p>
+        AI systems increasingly drive real workflows — customer interactions, financial actions,
+        clinical recommendations, and legal reasoning. The risk is no longer “what the model says,”
+        but “what the system does with it.”
+      </p>
+    </div>
+
+    <div class="win-card bright-card">
+      <h3>Existing controls stop prompts — not outcomes</h3>
+      <p>
+        Guardrails and filters shape content, but they don’t independently determine whether a final
+        output is reliable enough to act on. Enterprises need a post-generation checkpoint.
+      </p>
+    </div>
+
+    <div class="win-card bright-card">
+      <h3>Execution governance depends on reliability signals</h3>
+      <p>
+        Identity, authorization, and orchestration systems can only enforce safe actions if they receive
+        an upstream reliability decision signal. TruCite provides that runtime decision.
+      </p>
+    </div>
+
+    <div class="win-card bright-card">
+      <h3>Regulators expect auditable decision pathways</h3>
+      <p>
+        Enterprises need scoring + enforceable policy decisions + audit fingerprints to reconstruct what was
+        approved, when, and under which policy — especially in regulated environments.
+      </p>
+    </div>
+
+  </div>
+</section>
 
 
   <!-- HOW TRUCITE WORKS -->
@@ -387,43 +440,6 @@
     </div>
   </section>
 
-  <!-- ⭐ HOW TRUCITE DIFFERS -->
-  <section id="how-differs" class="wins-section">
-    <h2 class="section-title">How TruCite Differs</h2>
-    <div class="wins-grid">
-
-      <div class="win-card bright-card">
-        <h3>Model Evaluation</h3>
-        <p>Benchmarks model performance in test environments.</p>
-        <p><strong>Focus:</strong> Model quality</p>
-      </div>
-
-      <div class="win-card bright-card">
-        <h3>Guardrails &amp; Filters</h3>
-        <p>Constrain prompts/responses to reduce disallowed content.</p>
-        <p><strong>Focus:</strong> Moderation</p>
-      </div>
-
-      <div class="win-card bright-card">
-        <h3>TruCite</h3>
-        <p>Scores output reliability after generation and returns enforceable policy decisions before downstream action.</p>
-        <p><strong>Focus:</strong> Decision governance</p>
-      </div>
-
-      <div class="win-card bright-card">
-  <h3>Execution Governance Systems</h3>
-  <p>
-    Execution and orchestration platforms bind identity, authorization,
-    and action logging at the moment of execution.
-  </p>
-  <p><strong>Focus:</strong> Action control</p>
-  <p>
-    TruCite provides the upstream reliability decision signal those systems depend on.
-  </p>
-      </div>
-
-    </div>
-  </section>
 
   <!-- POLICY NOTES -->
   <section class="wins-section" id="policy">
