@@ -28,27 +28,27 @@
   </div>
 </header>
 <!-- HERO -->
-<header class="hero" aria-label="Hero">
+  <header class="hero" aria-label="Hero">
   <img src="/static/logo.jpg?v=2" alt="TruCite Logo" class="logo" />
   <h1>TruCite.ai<sup class="tm">™</sup></h1>
   <p class="hero-tagline">Runtime Execution Reliability Control Plane for AI Systems</p>
 
   <p class="hero-subtitle hero-subtitle-tight">
-    TruCite is a <strong>model-agnostic runtime execution reliability layer</strong> that evaluates AI output before it triggers downstream action — issuing a machine-enforceable <strong>ALLOW / REVIEW / BLOCK</strong> decision and an audit-grade fingerprint.
+    TruCite is a <strong>model-agnostic runtime execution reliability control plane</strong> that assigns a deterministic risk score to AI output before it triggers downstream action — issuing a machine-enforceable <strong>ALLOW / REVIEW / BLOCK</strong> decision with an execution-bound audit fingerprint.
   </p>
 
   <p class="hero-subtitle hero-subtitle-tight">
-    Independent of model vendors, orchestration layers, and security gateways, TruCite provides a neutral reliability signal across heterogeneous AI stacks.
+    Architecturally independent of model vendors, orchestration layers, and security gateways, TruCite provides a neutral reliability signal across heterogeneous AI stacks.
   </p>
 
   <p class="hero-subtitle hero-subtitle-tight">
-    As AI systems gain the ability to trigger real-world action, a runtime execution reliability checkpoint becomes <strong>mandatory infrastructure</strong> — not optional tooling.
+    As AI systems transition from generating content to initiating real-world actions, a runtime execution reliability boundary becomes foundational infrastructure.
   </p>
 
   <p class="hero-subtitle hero-subtitle-tight">
-    Designed for high-liability workflows (healthcare, legal, finance, government): evidence is required to reach <strong>ALLOW</strong> for numeric, volatile, or high-impact assertions.
+    Built for high-liability workflows (healthcare, legal, finance, government): evidence is required to reach <strong>ALLOW</strong> for numeric, volatile, or high-impact assertions.
   </p>
-</header>
+  </header>
 
 <main>
 
@@ -376,6 +376,36 @@
     </p>
   </div>
 </section>
+
+  <section class="independence-section">
+  <h2>Why the Runtime Reliability Layer Must Be Independent</h2>
+
+  <p>
+    Reliability scoring cannot reside inside the model, the orchestrator, or the security gateway without structural conflicts.
+  </p>
+
+  <ul class="independence-points">
+    <li>
+      <strong>Not the model:</strong> A model cannot self-certify its own output risk without introducing circular validation.
+    </li>
+    <li>
+      <strong>Not the orchestrator:</strong> Orchestration layers optimize workflow efficiency, not reliability neutrality. Embedding scoring internally creates incentive misalignment.
+    </li>
+    <li>
+      <strong>Not the security gateway:</strong> Security systems protect systems from attack. TruCite protects enterprises from unreliable execution.
+    </li>
+  </ul>
+
+  <p>
+    TruCite operates as an independent runtime enforcement boundary —
+    scoring output deterministically and issuing a machine-enforceable decision
+    before enterprise systems execute.
+  </p>
+
+  <p>
+    Independence is not a feature. It is the architectural requirement for trust.
+  </p>
+  </section>
   
 <!-- WHY TRUCITE WINS (INFRASTRUCTURE POSITIONING) -->
 <section id="why-wins" class="wins-section">
@@ -410,6 +440,10 @@
         Over time, TruCite builds a structured corpus of execution decisions, strengthening reliability calibration and policy enforcement across verticals.
       </p>
     </div>
+    <p>
+  TruCite defines a standardized execution-bound audit schema —
+  enabling consistent reliability enforcement across models, agents, and orchestration systems.
+    </p>
 
   </div>
 </section>
