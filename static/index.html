@@ -42,6 +42,10 @@
     TruCite operates as a <strong>runtime decision boundary</strong> between AI generation and enterprise execution — before downstream systems act.
   </p>
 
+  <p class="hero-missing-layer">
+  The liability surface begins when AI output influences action — TruCite governs that boundary.
+  </p>
+
   <p class="hero-subtitle hero-subtitle-tight">
     Built for high-liability workflows (health, legal, finance, government): evidence is optional for low-risk claims, but required to reach
     <strong>ALLOW</strong> for numeric, volatile, or high-impact assertions.
@@ -55,35 +59,47 @@
 <main>
 
   <!-- WHERE TRUCITE FITS -->
-  <section class="blueprint-section" id="where">
-    <h2 class="section-title">Where TruCite Fits</h2>
-    <div class="blueprint-grid">
+<section id="fits" class="blueprint-section">
+  <h2 class="section-title">Where TruCite Fits</h2>
 
-      <div class="bp-card bright-card">
-        <div class="bp-label">Upstream AI Systems</div>
-        <p>LLMs, RAG pipelines, and AI agents generate output for enterprise workflows.</p>
-      </div>
+  <div class="bp-grid">
 
-      <div class="bp-card bright-card">
-        <div class="bp-label">TruCite Control Layer</div>
-        <p>TruCite evaluates structural integrity, risk signals, and evidence presence — issuing a reliability score and policy decision.</p>
-      </div>
-
-      <div class="bp-card bright-card">
-        <div class="bp-label">Downstream Enforcement</div>
-        <p>Enterprise systems consume TruCite decisions to allow, review, or block AI output before it reaches users, records, or customers.</p>
-      </div>
-
-      <div class="bp-card bright-card">
-  <div class="bp-label">Execution Governance Signal</div>
-  <p>
-    Workflow orchestration, identity, and automation systems can only enforce safe actions if they receive a runtime
-    reliability decision signal. TruCite provides that signal to bind accountability at execution time.
-  </p>
-      </div>
-
+    <div class="bp-card bright-card">
+      <h3>Upstream AI Systems</h3>
+      <p>
+        LLMs, RAG pipelines, and AI agents generate recommendations, analyses, and actions for enterprise workflows.
+      </p>
+      <p class="bp-note">
+        The risk isn’t “what the model says.” The risk begins when that output is used to trigger decisions.
+      </p>
     </div>
-  </section>
+
+    <div class="bp-card bright-card">
+      <h3>TruCite Runtime Decision Boundary</h3>
+      <p>
+        TruCite evaluates <strong>output reliability at runtime</strong> using structural integrity, volatility signals,
+        numeric risk patterns, and evidence presence — then returns a
+        machine-enforceable <strong>ALLOW / REVIEW / BLOCK</strong> decision plus an audit-grade fingerprint.
+      </p>
+      <p class="bp-note">
+        This is the control point between generation and execution — where liability can be prevented.
+      </p>
+    </div>
+
+    <div class="bp-card bright-card">
+      <h3>Downstream Execution &amp; Enforcement</h3>
+      <p>
+        Orchestration, workflow, identity, and enterprise systems consume TruCite’s decision signal to determine
+        whether output can enter <strong>automation</strong>, <strong>records</strong>, <strong>customer-facing actions</strong>, or
+        <strong>regulated decisions</strong>.
+      </p>
+      <p class="bp-note">
+        Governance is defined at the moment output influences action.
+      </p>
+    </div>
+
+  </div>
+</section>
   
 <!-- ⭐ RUNTIME BOUNDARY: WHAT TRUCITE IS (AND IS NOT) -->
 <section class="wins-section" id="runtime-boundary">
@@ -311,26 +327,37 @@
   </div>
 
 </section>
+  
+<!-- ⭐ A MISSING LAYER IN THE AI STACK -->
+<section id="missing-layer" class="blueprint-section">
+  <h2 class="section-title">A Missing Layer in the AI Stack</h2>
 
-  <!-- ⭐ A MISSING LAYER IN THE AI STACK -->
-  <section id="missing-layer" class="blueprint-section">
-    <h2 class="section-title">A Missing Layer in the AI Stack</h2>
-    <div class="bp-card bright-card">
+  <div class="bp-card bright-card">
     <p>
-  As AI systems become embedded into enterprise workflows, a new control layer is emerging between model output and system action.
-  TruCite represents this category: <strong>independent reliability scoring and policy-based decision gating for AI-generated content.</strong>
-</p>
+      Enterprises have model providers, RAG, guardrails, monitoring, and agent orchestration —
+      but most stacks still lack a <strong>runtime decision legitimacy layer</strong> that determines whether
+      a specific piece of generated output is safe enough to enter execution paths.
+    </p>
 
-<p>
-  This layer does not replace models, guardrails, or monitoring systems — it determines whether AI output is sufficiently reliable to enter operational or automated pathways.
-  Downstream execution and identity systems then use TruCite’s decision signal to bind authorization and accountability.
-</p>
+    <p>
+      TruCite is built to provide the missing control signal:
+      a <strong>model-agnostic reliability decision</strong> returned as an enforceable gate
+      (<strong>ALLOW / REVIEW / BLOCK</strong>) plus an audit-grade fingerprint.
+    </p>
 
-<p>
-  TruCite is designed as a model-agnostic, API-first infrastructure component that integrates downstream of LLMs and agents, providing enterprise-grade scoring, <strong>ALLOW / REVIEW / BLOCK</strong> decisions, and audit-ready output fingerprints.
-</p>
-    </div>
-  </section>
+    <p>
+      This is a distinct layer from orchestration and access control:
+      orchestration decides <em>what happens next</em>;
+      IAM decides <em>who can do it</em>;
+      TruCite decides whether the <em>output itself</em> is sufficiently reliable to be acted on.
+    </p>
+
+    <p class="bp-note">
+      Moat framing: TruCite becomes the standard “decision output” that downstream systems integrate against —
+      independent of model vendor, RAG toolchain, or orchestration stack.
+    </p>
+  </div>
+</section>
 <!-- WHY TRUCITE WINS (INFRASTRUCTURE POSITIONING) -->
 <section id="why-wins" class="wins-section">
   <h2 class="section-title">Why TruCite Wins</h2>
