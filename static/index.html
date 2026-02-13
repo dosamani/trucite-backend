@@ -31,31 +31,24 @@
 <header class="hero" aria-label="Hero">
   <img src="/static/logo.jpg?v=1" alt="TruCite Logo" class="logo" />
   <h1>TruCite.ai<sup class="tm">™</sup></h1>
-
-  <p class="hero-tagline">AI Execution Control Plane</p>
-
-  <p class="hero-subtitle">
-    AI output becomes enterprise risk at the moment it influences action.
-  </p>
-<p class="hero-subtitle hero-subtitle-tight">
-  TruCite is a <strong>runtime execution reliability control plane</strong> that sits between AI generation and enterprise action — issuing a machine-enforceable <strong>ALLOW / REVIEW / BLOCK</strong> decision signal independent of agent governance and orchestration systems.
-</p>
+  <p class="hero-tagline">AI Output Risk Infrastructure &amp; Decision Gate</p>
 
   <p class="hero-subtitle hero-subtitle-tight">
-    Designed to integrate <strong>downstream of LLMs, RAG, and AI agents</strong> as a model-agnostic control layer:
-    <strong>Reliability Score + policy decision + audit-grade fingerprint</strong>.
-  </p>
-
-  <p class="hero-missing-layer">
-    Not “citations.” Not “guardrails.” TruCite governs whether AI output is safe to execute.
+    TruCite is a <strong>model-agnostic runtime reliability decision layer</strong> that scores AI output risk in real time and returns a
+    machine-enforceable <strong>ALLOW / REVIEW / BLOCK</strong> signal plus an audit-grade fingerprint.
   </p>
 
   <p class="hero-subtitle hero-subtitle-tight">
-    Built for high-liability workflows: legal, healthcare, finance, and regulated enterprise automation.
+    TruCite operates as a <strong>runtime decision boundary</strong> between AI generation and enterprise execution — before downstream systems act.
   </p>
 
   <p class="hero-subtitle hero-subtitle-tight">
-    Global-ready: language-agnostic risk infrastructure with modular multilingual signal libraries for regulated markets.
+    Built for high-liability workflows (health, legal, finance, government): evidence is optional for low-risk claims, but required to reach
+    <strong>ALLOW</strong> for numeric, volatile, or high-impact assertions.
+  </p>
+
+  <p class="hero-subtitle hero-subtitle-tight">
+    Designed for global enterprise deployment: language-agnostic risk infrastructure with modular multilingual signal libraries for regulated markets.
   </p>
 </header>
 
@@ -93,43 +86,40 @@
   </section>
   
 <!-- ⭐ RUNTIME BOUNDARY: WHAT TRUCITE IS (AND IS NOT) -->
-<section id="runtime-boundary" class="wins-section">
-  <h2 class="section-title">Runtime Boundary: Execution Reliability vs. Governance</h2>
+<section class="wins-section" id="runtime-boundary">
+  <h2 class="section-title">Runtime Decision Boundary</h2>
 
   <div class="wins-grid">
 
     <div class="win-card bright-card">
-      <h3>TruCite’s Job</h3>
+      <h3>AI output becomes enterprise risk at the moment of action</h3>
       <p>
-        TruCite operates at the moment AI output is about to enter an enterprise workflow.
-        It returns a <strong>runtime reliability decision</strong> — <strong>ALLOW / REVIEW / BLOCK</strong> —
-        so downstream systems can enforce safe execution.
+        The liability surface is not “generation” — it’s when AI output enters workflows, automation, customer delivery, clinical guidance, or legal reasoning.
+        TruCite gates that transition.
       </p>
     </div>
 
     <div class="win-card bright-card">
-      <h3>What TruCite Is Not</h3>
+      <h3>Retrieval + guardrails still don’t produce an enforceable decision</h3>
       <p>
-        TruCite is <strong>not</strong> an agent governance platform, workflow orchestrator, audit dashboard,
-        or lifecycle manager. It does not run your agents — it supplies the <strong>execution reliability signal</strong>
-        your orchestration and governance layers can consume.
+        RAG can add sources and guardrails can restrict content — but enterprises still need a neutral runtime checkpoint that answers:
+        <strong>“Is this output safe to act on?”</strong>
       </p>
     </div>
 
     <div class="win-card bright-card">
-      <h3>Why This Boundary Matters</h3>
+      <h3>TruCite emits the signal execution systems depend on</h3>
       <p>
-        The market is full of “AI governance” narratives. TruCite is a <strong>control plane</strong> for
-        <strong>runtime execution safety</strong> — independent of model vendor, agent framework, or orchestration stack.
+        Orchestration, identity, authorization, and workflow systems can only enforce safe action if they receive a clear reliability decision.
+        TruCite provides that <strong>ALLOW / REVIEW / BLOCK</strong> decision plus an audit fingerprint.
       </p>
     </div>
 
     <div class="win-card bright-card">
-      <h3>Integration Pattern</h3>
+      <h3>Independent control plane — not agent governance</h3>
       <p>
-        <strong>AI output → TruCite decision gate → enterprise action</strong>.
-        Governance/orchestration systems enforce identity, authorization, and auditability using TruCite’s
-        decision signal at execution time.
+        TruCite is independent of agent frameworks and governance stacks. It does not orchestrate execution —
+        it provides the <strong>runtime reliability decision</strong> that downstream systems use to bind accountability at execution time.
       </p>
     </div>
 
@@ -282,85 +272,7 @@
       <pre id="result"></pre>
     </div>
   </section>
-  <!-- WHY TRUCITE EXISTS -->
-<section id="why-exists" class="problem-section">
-  <h2 class="section-title">Why TruCite Exists</h2>
 
-  <div class="problem-grid">
-
-    <div class="problem-card">
-      <h3>AI output is now operational</h3>
-      <p>
-        AI systems increasingly influence real workflows — legal guidance, clinical insights,
-        financial analysis, and automated decisions. Risk is no longer theoretical; it becomes
-        enterprise liability when output drives action.
-      </p>
-    </div>
-
-    <div class="problem-card">
-      <h3>Current controls stop prompts — not outcomes</h3>
-      <p>
-        Guardrails and retrieval improve behavior and grounding, but they do not provide an
-        independent reliability decision on the final generated output at runtime.
-      </p>
-    </div>
-
-    <div class="problem-card">
-      <h3>Enterprises need an enforceable decision checkpoint</h3>
-      <p>
-        Before AI output enters downstream systems, enterprises need a neutral control layer
-        that determines whether that output is safe to act on and produces an auditable signal
-        for enforcement and compliance.
-      </p>
-    </div>
-
-  </div>
-</section>
-
-<!-- WHY ENTERPRISES WILL REQUIRE THIS -->
-<section id="enterprise-need" class="wins-section">
-  <h2 class="section-title">Why Enterprises Will Require This</h2>
-
-  <div class="wins-grid">
-
-    <div class="win-card bright-card">
-      <h3>AI Output Now Triggers Real-World Action</h3>
-      <p>
-        AI systems increasingly drive operational workflows, customer interactions, financial decisions,
-        and clinical or legal recommendations. The risk is no longer “what the model says,” but “what the system does with it.”
-        Enterprises need a structured decision checkpoint before generated output influences action.
-      </p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Existing Controls Stop Prompts — Not Outcomes</h3>
-      <p>
-        Guardrails and retrieval improve behavior and grounding, but they do not provide an independent
-        reliability decision on the final generated output at runtime. Enterprises need a post-generation
-        control layer that evaluates whether output is safe to act on.
-      </p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Execution Governance Depends on Upstream Reliability Signals</h3>
-      <p>
-        Identity, authorization, workflow orchestration, and automation systems can only enforce safe actions
-        if they receive a clear reliability decision signal. TruCite provides that upstream signal,
-        enabling accountability at the moment AI output influences real-world execution.
-      </p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Regulators Expect Auditable Decision Pathways</h3>
-      <p>
-        Enterprises must be able to reconstruct what was approved, when, and under which policy —
-        especially in regulated environments. Scoring, enforceable decision signals, and cryptographic
-        fingerprints make AI-driven decisions auditable and defensible.
-      </p>
-    </div>
-
-  </div>
-</section>
 
 <!-- HOW TRUCITE WORKS (CONTROL-PLANE ARCHITECTURE) -->
 <section id="how-it-works" class="blueprint-section">
