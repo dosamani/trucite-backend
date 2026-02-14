@@ -249,6 +249,45 @@
 
   </div>
   </section>
+
+  
+<!-- HOW TRUCITE WORKS (CONTROL-PLANE ARCHITECTURE) -->
+<section id="how-it-works" class="blueprint-section">
+  <h2 class="section-title">How TruCite Works</h2>
+
+  <div class="bp-card bright-card">
+    <h3>1. Output Interception</h3>
+    <p>
+      TruCite integrates downstream of LLMs, RAG systems, and AI agents,
+      evaluating generated output before it enters enterprise workflows.
+    </p>
+  </div>
+
+  <div class="bp-card bright-card">
+    <h3>2. Structural Reliability Analysis</h3>
+    <p>
+      TruCite analyzes linguistic certainty, numeric claims, volatility signals,
+      internal consistency, and evidence presence to assess structural reliability.
+    </p>
+  </div>
+
+  <div class="bp-card bright-card">
+    <h3>3. Policy-Based Decisioning</h3>
+    <p>
+      Reliability signals are evaluated against enterprise policy rules to produce
+      a machine-enforceable decision: <strong>ALLOW / REVIEW / BLOCK</strong>.
+    </p>
+  </div>
+
+  <div class="bp-card bright-card">
+    <h3>4. Enforcement Signal + Audit Fingerprint</h3>
+    <p>
+      TruCite returns both a structured decision signal for downstream systems
+      and an immutable cryptographic fingerprint for audit, compliance, and governance tracking.
+    </p>
+  </div>
+
+</section>
   
   <!-- VERIFY -->
   <section class="verify-section" id="verify">
@@ -328,43 +367,6 @@
   </section>
 
 
-<!-- HOW TRUCITE WORKS (CONTROL-PLANE ARCHITECTURE) -->
-<section id="how-it-works" class="blueprint-section">
-  <h2 class="section-title">How TruCite Works</h2>
-
-  <div class="bp-card bright-card">
-    <h3>1. Output Interception</h3>
-    <p>
-      TruCite integrates downstream of LLMs, RAG systems, and AI agents,
-      evaluating generated output before it enters enterprise workflows.
-    </p>
-  </div>
-
-  <div class="bp-card bright-card">
-    <h3>2. Structural Reliability Analysis</h3>
-    <p>
-      TruCite analyzes linguistic certainty, numeric claims, volatility signals,
-      internal consistency, and evidence presence to assess structural reliability.
-    </p>
-  </div>
-
-  <div class="bp-card bright-card">
-    <h3>3. Policy-Based Decisioning</h3>
-    <p>
-      Reliability signals are evaluated against enterprise policy rules to produce
-      a machine-enforceable decision: <strong>ALLOW / REVIEW / BLOCK</strong>.
-    </p>
-  </div>
-
-  <div class="bp-card bright-card">
-    <h3>4. Enforcement Signal + Audit Fingerprint</h3>
-    <p>
-      TruCite returns both a structured decision signal for downstream systems
-      and an immutable cryptographic fingerprint for audit, compliance, and governance tracking.
-    </p>
-  </div>
-
-</section>
 
   <section class="clarification-block" aria-label="Not a Security Tool">
   <h3>TruCite Is Not a Security Gateway</h3>
@@ -393,108 +395,154 @@
   </section>
   
 <!-- ⭐ A MISSING LAYER IN THE AI STACK -->
-<section id="missing-layer" class="blueprint-section">
-  <h2 class="section-title">The Missing Execution Reliability Layer</h2>
+<section class="section-block">
+  <h2 class="section-title">
+    AI Systems Have a Generation Layer.<br>
+    They Lack an Execution Accountability Layer.
+  </h2>
 
-  <div class="bp-card bright-card">
+  <div class="card">
     <p>
-      Guardrails shape prompts. Retrieval improves grounding. Model evals benchmark performance.
+      Guardrails shape prompts. Retrieval improves grounding.
+      Model evaluations benchmark performance.
     </p>
 
     <p>
-      None provide an independent, runtime decision on whether AI output is safe to execute.
+      None provide an independent, runtime decision on whether AI output
+      is safe to execute inside enterprise systems.
     </p>
 
     <p>
-      As AI systems transition from generating content to triggering actions, enterprises require a 
-      <strong>deterministic execution checkpoint</strong> that evaluates reliability before liability is incurred.
+      As AI systems transition from generating content to triggering
+      real-world actions, enterprises require a deterministic execution
+      checkpoint before liability is incurred.
     </p>
 
     <p>
-      TruCite defines this new infrastructure layer: 
-      <strong>runtime execution reliability control.</strong>
+      TruCite defines this missing infrastructure layer:
+      <strong>Runtime Execution Accountability.</strong>
+    </p>
+  </div>
+</section>
+<section class="section-block">
+  <h2 class="section-title">
+    Reliability Must Be Independent.
+  </h2>
+
+  <div class="card">
+    <p>
+      Embedding reliability scoring inside the model, orchestrator,
+      or security gateway introduces structural conflicts.
+    </p>
+
+    <ul>
+      <li><strong>Not the model:</strong> A model cannot self-certify its own risk without circular validation.</li>
+      <li><strong>Not the orchestrator:</strong> Workflow layers optimize throughput, not reliability neutrality.</li>
+      <li><strong>Not the security gateway:</strong> Security protects from attack. TruCite protects from unreliable execution.</li>
+    </ul>
+
+    <p>
+      TruCite operates as an independent runtime enforcement boundary —
+      issuing a machine-enforceable decision before downstream systems execute.
     </p>
 
     <p>
-      Every AI system that influences real-world workflows will require an independent reliability signal 
-      prior to execution.
+      Independence is not a feature.<br>
+      It is the architectural requirement for trust.
     </p>
   </div>
 </section>
 
-  <section class="independence-section">
-  <h2>Why the Runtime Reliability Layer Must Be Independent</h2>
+  <section class="section-block">
+  <h2 class="section-title">
+    What This Looks Like In Practice
+  </h2>
 
-  <p>
-    Reliability scoring cannot reside inside the model, the orchestrator, or the security gateway without structural conflicts.
-  </p>
+  <div class="card">
+    <p><strong>Healthcare:</strong></p>
+    <p>
+      An AI agent recommends a medication adjustment.
+      TruCite detects missing evidence support and issues <strong>REVIEW</strong>
+      before the order enters the EHR workflow.
+    </p>
 
-  <ul class="independence-points">
-    <li>
-      <strong>Not the model:</strong> A model cannot self-certify its own output risk without introducing circular validation.
-    </li>
-    <li>
-      <strong>Not the orchestrator:</strong> Orchestration layers optimize workflow efficiency, not reliability neutrality. Embedding scoring internally creates incentive misalignment.
-    </li>
-    <li>
-      <strong>Not the security gateway:</strong> Security systems protect systems from attack. TruCite protects enterprises from unreliable execution.
-    </li>
-  </ul>
+    <hr>
 
-  <p>
-    TruCite operates as an independent runtime enforcement boundary —
-    scoring output deterministically and issuing a machine-enforceable decision
-    before enterprise systems execute.
-  </p>
+    <p><strong>Finance:</strong></p>
+    <p>
+      An AI assistant generates an earnings interpretation with numeric claims.
+      TruCite flags volatility and unverifiable data, issuing <strong>BLOCK</strong>
+      before publication.
+    </p>
 
-  <p>
-    Independence is not a feature. It is the architectural requirement for trust.
-  </p>
-    <p><strong>TruCite is designed to be the neutral referee — not a participant — in the agent execution stack.</strong></p>
+    <hr>
 
-    
+    <p><strong>Legal:</strong></p>
+    <p>
+      An AI system drafts a citation-backed filing.
+      TruCite detects structural inconsistency and missing primary references,
+      issuing <strong>REVIEW</strong> prior to submission.
+    </p>
+  </div>
   </section>
   
 <!-- WHY TRUCITE WINS (INFRASTRUCTURE POSITIONING) -->
-<section id="why-wins" class="wins-section">
-  <h2 class="section-title">Why TruCite Is Defensible</h2>
+<section class="section-block">
+  <h2 class="section-title">
+    Why TruCite Becomes Infrastructure
+  </h2>
 
-  <div class="wins-grid">
-
-    <div class="win-card bright-card">
-      <h3>Model-Agnostic by Design</h3>
-      <p>
-        TruCite operates independently of model vendors, ensuring neutrality across multi-model enterprise stacks.
-      </p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Execution-Level Decisioning</h3>
-      <p>
-        TruCite evaluates reliability at the moment of action — not during prompt filtering or model evaluation.
-      </p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Policy-Tuned Risk Signals</h3>
-      <p>
-        Modular signal libraries adapt to regulated environments and high-liability domains.
-      </p>
-    </div>
-
-    <div class="win-card bright-card">
-      <h3>Audit Corpus & Decision Normalization</h3>
-      <p>
-        Over time, TruCite builds a structured corpus of execution decisions, strengthening reliability calibration and policy enforcement across verticals.
-      </p>
-    </div>
+  <div class="card">
+    <h3>Model-Agnostic by Design</h3>
     <p>
-  TruCite defines a standardized execution-bound audit schema —
-  enabling consistent reliability enforcement across models, agents, and orchestration systems.
+      TruCite operates independently of model vendors,
+      ensuring neutrality across multi-model enterprise stacks.
     </p>
 
+    <h3>Execution-Level Decisioning</h3>
+    <p>
+      Reliability is evaluated at the moment of action —
+      not during prompt filtering or offline model evaluation.
+    </p>
+
+    <h3>Policy-Tuned Risk Signals</h3>
+    <p>
+      Modular signal libraries adapt to regulated environments
+      and high-liability domains.
+    </p>
+
+    <h3>Accumulating Decision Corpus</h3>
+    <p>
+      Over time, TruCite builds a structured corpus of execution decisions,
+      strengthening threshold calibration and policy enforcement.
+    </p>
+
+    <h3>Standardized Execution Audit Schema</h3>
+    <p>
+      TruCite defines a normalized, execution-bound audit schema —
+      enabling consistent enforcement across models, agents,
+      and orchestration systems.
+    </p>
   </div>
 </section>
+  <section class="section-block">
+  <div class="card">
+    <h2 class="section-title">
+      AI Must Transition From Probabilistic Generation
+      To Enforceable Execution Governance.
+    </h2>
+
+    <p>
+      TruCite shifts AI systems from confidence-based output
+      to deterministic execution accountability.
+    </p>
+
+    <p>
+      Every enterprise system influenced by AI will require
+      an independent reliability signal before execution.
+    </p>
+  </div>
+  </section>
 
 <!-- POLICY NOTES -->
 <section class="wins-section" id="policy">
