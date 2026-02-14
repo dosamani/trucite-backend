@@ -506,3 +506,34 @@ details[open] summary::after { content: "▲"; }
 #gaugeFill {
   transition: stroke-dashoffset 0.9s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.positioning-armor {
+  max-width: 900px;
+  margin: 80px auto;
+  padding: 40px 20px;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.positioning-armor h2 {
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+.armor-highlight {
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+.clarification-block {
+  max-width: 800px;
+  margin: 60px auto;
+  padding: 30px 20px;
+  background-color: #f9fafb;
+  border-radius: 12px;
+}
+
+.clarification-block h3 {
+  margin-bottom: 20px;
+  font-size: 22px;
+}
