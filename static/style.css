@@ -533,7 +533,4 @@ details[open] summary::after { content: "▲"; }
   border-radius: 12px;
 }
 
-.clarification-block h3 {
-  margin-bottom: 20px;
-  font-size: 22px;
-}
+
