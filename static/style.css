@@ -525,12 +525,6 @@ details[open] summary::after { content: "▲"; }
   margin-bottom: 20px;
 }
 
-.clarification-block {
-  max-width: 800px;
-  margin: 60px auto;
-  padding: 30px 20px;
-  background-color: #f9fafb;
-  border-radius: 12px;
-}
+
 
 
