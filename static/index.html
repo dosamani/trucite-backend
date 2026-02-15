@@ -290,81 +290,90 @@
 </section>
   
   <!-- VERIFY -->
-  <section class="verify-section" id="verify">
-    <h2 class="section-title">VERIFY AI &amp; AGENT OUTPUT</h2>
-    <p class="section-subtitle">
-      Paste AI- or agent-generated text below and tap <strong>VERIFY</strong>.
-      TruCite returns a demo <strong>Reliability Score</strong> + an enforceable <strong>Decision Gate</strong>.
-    </p>
+<section class="verify-section" id="verify">
+  <h2 class="section-title">VERIFY AI &amp; AGENT OUTPUT</h2>
+  <p class="section-subtitle">
+    Paste AI- or agent-generated text below and tap <strong>VERIFY</strong>.
+    TruCite returns a demo <strong>Reliability Score</strong> + an enforceable <strong>Decision Gate</strong>.
+  </p>
 
-    <textarea id="inputText" placeholder="Paste AI- or agent-generated text here…"></textarea>
+  <textarea id="inputText" placeholder="Paste AI- or agent-generated text here…"></textarea>
 
-    <textarea
-      id="evidenceText"
-      class="evidence-box"
-      placeholder="Optional: Paste supporting evidence (URLs / DOI / PMID)."
-    ></textarea>
+  <textarea
+    id="evidenceText"
+    class="evidence-box"
+    placeholder="Optional: Paste supporting evidence (URLs / DOI / PMID)."
+  ></textarea>
 
-    <button class="primary-btn" onclick="scoreText()">VERIFY</button>
+  <button class="primary-btn" onclick="scoreText()">VERIFY</button>
 
-    <div class="copy-row">
-      <button class="copy-btn" onclick="copyJSONPayload()">Copy JSON payload</button>
-      <button class="copy-btn" onclick="copyCurl()">Copy curl</button>
-      <button class="copy-btn" onclick="copyResponse()">Copy response</button>
+  <div class="copy-row">
+    <button class="copy-btn" onclick="copyJSONPayload()">Copy JSON payload</button>
+    <button class="copy-btn" onclick="copyCurl()">Copy curl</button>
+    <button class="copy-btn" onclick="copyResponse()">Copy response</button>
+  </div>
+
+  <p id="verifyStatus" class="section-subtitle" style="margin-top:10px;">
+    Evidence is optional — but required to reach <strong>ALLOW</strong> for high-liability, numeric, or volatile claims.
+  </p>
+
+  <div id="gaugeContainer">
+    <div class="gauge-label">AI Reliability Score</div>
+
+    <svg id="gauge" width="220" height="120">
+      <path d="M20 100 A90 90 0 0 1 200 100"
+        stroke="#333"
+        stroke-width="10"
+        fill="none"
+        stroke-linecap="round" />
+      <path id="gaugeFill"
+        d="M20 100 A90 90 0 0 1 200 100"
+        stroke="#FFD700"
+        stroke-width="10"
+        fill="none"
+        stroke-linecap="round"
+        stroke-dasharray="260"
+        stroke-dashoffset="260" />
+    </svg>
+
+    <div id="scoreDisplay">--</div>
+    <div id="scoreVerdict">Score pending…</div>
+
+    <div id="volatilityLine" class="realtime-note" style="margin-top:6px;">
+      Volatile knowledge: <span id="volatilityValue">—</span>
+    </div>
+    <div id="policyLine" class="realtime-note" style="margin-top:4px;">
+      Policy: <span id="policyValue">—</span>
     </div>
 
-    <p id="verifyStatus" class="section-subtitle" style="margin-top:10px;">
-      Evidence is optional — but required to reach <strong>ALLOW</strong> for high-liability, numeric, or volatile claims.
-    </p>
-
-    <div id="gaugeContainer">
-      <div class="gauge-label">AI Reliability Score</div>
-
-      <svg id="gauge" width="220" height="120">
-        <path d="M20 100 A90 90 0 0 1 200 100"
-          stroke="#333"
-          stroke-width="10"
-          fill="none"
-          stroke-linecap="round" />
-        <path id="gaugeFill"
-          d="M20 100 A90 90 0 0 1 200 100"
-          stroke="#FFD700"
-          stroke-width="10"
-          fill="none"
-          stroke-linecap="round"
-          stroke-dasharray="260"
-          stroke-dashoffset="260" />
-      </svg>
-
-      <div id="scoreDisplay">--</div>
-      <div id="scoreVerdict">Score pending…</div>
-
-      <div id="volatilityLine" class="realtime-note" style="margin-top:6px;">
-        Volatile knowledge: <span id="volatilityValue">—</span>
-      </div>
-      <div id="policyLine" class="realtime-note" style="margin-top:4px;">
-        Policy: <span id="policyValue">—</span>
-      </div>
-
-      <div class="realtime-note" style="margin-top:6px;">
-        &lt;300ms real-time API decisioning
-      </div>
+    <div class="realtime-note" style="margin-top:6px;">
+      &lt;300ms real-time API decisioning
     </div>
+  </div>
 
-    <div class="decision-card">
-      <div class="decision-title">Decision Gate</div>
-      <div id="decisionAction" class="decision-action">—</div>
-      <div id="decisionReason" class="decision-reason">Awaiting verification…</div>
-      <div class="decision-subnote">
-        Policy decision issued for downstream system enforcement
-      </div>
+  <div class="decision-card">
+    <div class="decision-title">Decision Gate</div>
+    <div id="decisionAction" class="decision-action">—</div>
+    <div id="decisionReason" class="decision-reason">Awaiting verification…</div>
+    <div class="decision-subnote">
+      Policy decision issued for downstream system enforcement
     </div>
+  </div>
 
-    <div class="result-wrapper">
-      <div class="result-label">Validation details, explanation &amp; references</div>
-      <pre id="result"></pre>
+  <!-- Level-2 Decision Payload (live) -->
+  <div class="json-panel">
+    <div class="json-panel-header">
+      <span>Decision Payload (live)</span>
+      <span id="tcLatency" class="json-meta">—</span>
     </div>
-  </section>
+    <pre id="tcJsonOutput" class="json-pre">{}</pre>
+  </div>
+
+  <div class="result-wrapper">
+    <div class="result-label">Validation details, explanation &amp; references</div>
+    <pre id="result"></pre>
+  </div>
+</section>
 
 
 
