@@ -580,7 +580,7 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = DEFAULT_PO
 
     # --- Core feature extraction ---
     has_digit = has_any_digit(t)
-    tier = liability_tier(t)
+    tier = liability_tier(t, policy_mode=policy_mode)
     volatility = volatility_level(t)
     evidence_required_for_allow = (tier == "high")
 
