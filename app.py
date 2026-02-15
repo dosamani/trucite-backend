@@ -320,8 +320,8 @@ def decision_gate(score: int, signals: dict):
         if score >= 70:
             return "REVIEW", "Likely plausible, but no evidence provided. Policy requires verification for high-liability/volatile."
         return "REVIEW", "No evidence provided for high-liability/volatile claim. Human verification recommended."
-
-if liability == "low":
+    
+    if liability == "low":
     if score >= 70:
         # If volatile fact, require evidence clarity in decision language
         if signals.get("volatility") == "VOLATILE":
