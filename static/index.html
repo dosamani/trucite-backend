@@ -320,20 +320,25 @@
     <div id="gaugeContainer">
       <div class="gauge-label">AI Reliability Score</div>
 
+      <!-- Keep your existing SVG gauge + stroke-dashoffset animation -->
       <svg id="gauge" width="220" height="120">
-        <path d="M20 100 A90 90 0 0 1 200 100"
+        <path
+          d="M20 100 A90 90 0 0 1 200 100"
           stroke="#333"
           stroke-width="10"
           fill="none"
-          stroke-linecap="round" />
-        <path id="gaugeFill"
+          stroke-linecap="round"
+        />
+        <path
+          id="gaugeFill"
           d="M20 100 A90 90 0 0 1 200 100"
           stroke="#FFD700"
           stroke-width="10"
           fill="none"
           stroke-linecap="round"
           stroke-dasharray="260"
-          stroke-dashoffset="260" />
+          stroke-dashoffset="260"
+        />
       </svg>
 
       <div id="scoreDisplay">--</div>
@@ -346,6 +351,7 @@
         Policy: <span id="policyValue">—</span>
       </div>
 
+      <!-- NEW: API meta line used by updated JS -->
       <div id="apiMeta" class="realtime-note" style="margin-top:6px;">
         server —ms · /api/score
       </div>
@@ -365,7 +371,6 @@
       <pre id="result"></pre>
     </div>
   </section>
-
 
   <section class="clarification-block" aria-label="Not a Security Tool">
   <h3>TruCite Is Not a Security Gateway</h3>
