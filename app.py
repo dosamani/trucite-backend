@@ -74,57 +74,98 @@ def openapi_spec():
 # -------------------------
 @app.route("/api/score", methods=["POST", "OPTIONS"])
 def api_score():
-    if request.method == "OPTIONS":
-        return ("", 204)
+    # Always respond with JSON (even on errors) so frontend doesn't choke
+    try:
+        if request.method == "OPTIONS":
+            return ("", 204)
 
-    payload = request.get_json(silent=True) or {}
-    text = (payload.get("text") or "").strip()
-    evidence = (payload.get("evidence") or "").strip()
-    policy_mode = (payload.get("policy_mode") or DEFAULT_POLICY_MODE).strip()
+        start = time.time()
 
-    if not text:
-        return jsonify({"error": "Missing 'text' in request body"}), 400
+        payload = request.get_json(silent=True) or {}
+        text = (payload.get("text") or "").strip()
+        evidence = (payload.get("evidence") or "").strip()
+        policy_mode = (payload.get("policy_mode") or "enterprise").strip()  # safe default
 
-    # Fingerprint / Event ID
-    sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
-    event_id = sha[:12]
-    ts = datetime.now(timezone.utc).isoformat()
+        if not text:
+            return jsonify({
+                "error_code": "MISSING_TEXT",
+                "message": "Missing 'text' in request body"
+            }), 400
 
-    # Minimal claims (keeps demo stable even if optional modules missing)
-    claims = [{"text": text}]
+        # Safe fallbacks if globals are missing
+        policy_version = globals().get("POLICY_VERSION", "2026.01")
+        schema_version = globals().get("SCHEMA_VERSION", "2.0")
 
-    # Heuristic scoring (uses your existing heuristic_score)
-    score, verdict, explanation, signals, references = heuristic_score(text, evidence)
+        # policy_hash fallback if function missing
+        if "policy_hash" in globals() and callable(globals()["policy_hash"]):
+            ph = globals()["policy_hash"](policy_mode)
+        else:
+            base = f"{policy_version}:{policy_mode.strip().lower()}"
+            ph = hashlib.sha256(base.encode("utf-8")).hexdigest()[:12]
 
-    # Volatility label for UI (simple mapping from guardrail)
-    volatility = "VOLATILE" if signals.get("guardrail") == "volatile_current_fact_no_evidence" else "LOW"
-    signals["volatility"] = volatility
+        sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        event_id = sha[:12]
+        ts = datetime.now(timezone.utc).isoformat()
 
-    action, reason = decision_gate(int(score), signals)
+        # Use your existing heuristic_score if present; otherwise minimal safe scoring
+        if "heuristic_score" in globals() and callable(globals()["heuristic_score"]):
+            score, verdict, explanation, signals, references = globals()["heuristic_score"](text, evidence)
+        else:
+            score = 55
+            verdict = "Unclear / needs verification"
+            explanation = "Fallback scoring (heuristic_score not found)."
+            signals = {"has_references": bool(evidence.strip()), "risk_flags": ["fallback_scoring"]}
+            references = [{"type": "evidence", "value": evidence[:240]}] if evidence.strip() else []
 
-    resp_obj = {
-        "schema_version": SCHEMA_VERSION,
-        "request_id": event_id,
-        "latency_ms": 0,
+        # Ensure volatility exists for UI
+        if isinstance(signals, dict):
+            if "volatility" not in signals:
+                guardrail = (signals.get("guardrail") or "").strip().lower()
+                signals["volatility"] = "VOLATILE" if "volatile" in guardrail else "LOW"
+        else:
+            signals = {"volatility": "LOW"}
 
-        "verdict": verdict,
-        "score": int(score),
-        "decision": {"action": action, "reason": reason},
+        # Use your decision_gate if present; else safe default
+        if "decision_gate" in globals() and callable(globals()["decision_gate"]):
+            action, reason = globals()["decision_gate"](int(score), signals)
+        else:
+            action = "REVIEW"
+            reason = "Fallback decisioning (decision_gate not found)."
 
-        "event_id": event_id,
-        "policy_mode": policy_mode,
-        "policy_version": POLICY_VERSION,
-        "policy_hash": policy_hash(policy_mode),
+        latency_ms = int((time.time() - start) * 1000)
 
-        "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+        resp_obj = {
+            "schema_version": schema_version,
+            "request_id": event_id,
+            "latency_ms": latency_ms,
 
-        "claims": claims,
-        "references": references,
-        "signals": signals,
-        "explanation": explanation,
-    }
+            "verdict": verdict,
+            "score": int(score),
 
-    return jsonify(resp_obj), 200
+            "decision": {"action": action, "reason": reason},
+
+            "event_id": event_id,
+            "policy_mode": policy_mode,
+            "policy_version": policy_version,
+            "policy_hash": ph,
+
+            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+
+            "claims": [{"text": text}],
+            "references": references,
+            "signals": signals,
+            "explanation": explanation,
+        }
+
+        return jsonify(resp_obj), 200
+
+    except Exception as e:
+        # Return JSON error (so you can see WHAT broke on mobile)
+        return jsonify({
+            "error_code": "SERVER_EXCEPTION",
+            "message": str(e),
+            "hint": "Likely missing symbol (POLICY_VERSION / SCHEMA_VERSION / heuristic_score / decision_gate) or indentation paste error."
+        }), 500
 
 # -------------------------
 # Config (Phase 1.1 polish)
