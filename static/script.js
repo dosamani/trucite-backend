@@ -6,8 +6,8 @@
 
   // ---------- CONFIG ----------
   const CONFIG = {
-    // If frontend is served from same host as backend, leave "".
-    // If split domains later: "https://YOUR-BACKEND.onrender.com"
+    // If frontend is served from the same host as backend, leave "".
+    // If you ever split domains, set: "https://YOUR-BACKEND.onrender.com"
     API_BASE: "",
 
     // Demo runs enterprise-style policy by default
@@ -21,7 +21,7 @@
     FALLBACK_ENDPOINT: "/verify",
 
     // Client-side failsafe:
-    // If backend flags VOLATILE knowledge (time-sensitive fact), do not ALLOW unless evidence is present.
+    // If backend flags VOLATILE knowledge, do not ALLOW unless evidence is present.
     VOLATILE_REQUIRES_EVIDENCE_FOR_ALLOW: true
   };
 
@@ -77,7 +77,6 @@
   function hasEvidence(payload, data) {
     const ev = (payload?.evidence || "").trim();
     if (ev.length >= 3) return true;
-    // backend may send signals.has_references
     if (data?.signals?.has_references) return true;
     if (data?.references && Array.isArray(data.references) && data.references.length > 0) return true;
     return false;
@@ -100,9 +99,13 @@
   const decisionReason = pick("decisionReason", "#decisionReason");
   const resultPre = pick("result", "#result");
 
-  // Optional fields (only populate if present in HTML)
+  // Optional fields
   const volatilityValue = pick("volatilityValue", "#volatilityValue");
   const policyValue = pick("policyValue", "#policyValue");
+
+  // Level-2 panel (optional, but supported)
+  const tcJsonOutput = pick("tcJsonOutput", "#tcJsonOutput");
+  const tcLatency = pick("tcLatency", "#tcLatency");
 
   let lastPayload = null;
   let lastResponse = null;
@@ -143,10 +146,13 @@
     setText(decisionAction, "—");
     setText(decisionReason, "Awaiting verification…");
     updateGauge(0);
-    if (resultPre) resultPre.textContent = "";
 
     setText(volatilityValue, "—");
     setText(policyValue, "—");
+
+    if (tcLatency) setText(tcLatency, "—");
+    if (tcJsonOutput) tcJsonOutput.textContent = "{}";
+    if (resultPre) resultPre.textContent = "";
   }
 
   function setErrorUI(userMsg, debugText) {
@@ -156,8 +162,14 @@
     setText(decisionAction, "REVIEW");
     applyDecisionColor("REVIEW");
     setText(decisionReason, userMsg || "Backend error.");
+
+    if (tcLatency) setText(tcLatency, "—");
+    if (tcJsonOutput) tcJsonOutput.textContent = safeJson({ error: userMsg || "Backend error." });
+
     if (resultPre) {
-      resultPre.textContent = debugText ? `Backend error:\n${debugText}` : (userMsg || "Backend error.");
+      resultPre.textContent = debugText
+        ? `Backend error:\n${debugText}`
+        : (userMsg || "Backend error.");
     }
   }
 
@@ -202,6 +214,31 @@
     return data;
   }
 
+  function buildDecisionPayload(data) {
+    const payload = {
+      schema_version: data?.schema_version,
+      decision: data?.decision?.action,
+      score: data?.score,
+      verdict: data?.verdict,
+      policy_mode: data?.policy_mode,
+      policy_version: data?.policy_version,
+      policy_hash: data?.policy_hash,
+      event_id: data?.event_id,
+      audit_fingerprint_sha256: data?.audit_fingerprint?.sha256,
+      latency_ms: data?.latency_ms,
+      volatility: deriveVolatility(data),
+      risk_flags: data?.signals?.risk_flags || [],
+      guardrail: data?.signals?.guardrail || null
+    };
+
+    // Remove undefined keys for cleanliness
+    Object.keys(payload).forEach((k) => {
+      if (payload[k] === undefined) delete payload[k];
+    });
+
+    return payload;
+  }
+
   function renderResponse(data) {
     lastResponse = data;
 
@@ -232,13 +269,22 @@
     applyDecisionColor(action);
     setText(decisionReason, reason);
 
-    // Display JSON
+    // Level-2 panel population (if present)
+    const decisionPayload = buildDecisionPayload(data);
+    if (tcJsonOutput) tcJsonOutput.textContent = safeJson(decisionPayload);
+    if (tcLatency) {
+      const server = (typeof data?.latency_ms === "number") ? `${data.latency_ms}ms` : "—";
+      const endpoint = lastEndpointUsed || CONFIG.PRIMARY_ENDPOINT;
+      setText(tcLatency, `server ${server} · ${endpoint}`);
+    }
+
+    // Full details output stays in the original details block
     if (resultPre) resultPre.textContent = safeJson(data);
   }
 
   async function postToEndpoint(endpoint, payload) {
     const url = `${CONFIG.API_BASE}${endpoint}`;
-    const res = await fetchWithTimeout(url, {
+    return await fetchWithTimeout(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -247,8 +293,6 @@
       },
       body: JSON.stringify(payload)
     }, CONFIG.TIMEOUT_MS);
-
-    return res;
   }
 
   async function onVerify() {
@@ -301,7 +345,7 @@
   if (verifyButton) verifyButton.addEventListener("click", onVerify);
   else console.warn("VERIFY button not found. Check id/class.");
 
-  // Inline onclick compatibility shim (your HTML uses onclick="scoreText()")
+  // Inline onclick compatibility shim
   window.scoreText = function () {
     if (verifyButton) verifyButton.click();
     else onVerify();
@@ -315,18 +359,22 @@
 
   window.copyResponse = function () {
     if (!lastResponse) return alert("Run a verification first.");
-    copyToClipboard(safeJson(lastResponse));
+    // Copy the infra-grade decision payload if present, else full response
+    const toCopy = tcJsonOutput ? (tcJsonOutput.textContent || safeJson(lastResponse)) : safeJson(lastResponse);
+    copyToClipboard(toCopy);
   };
 
   window.copyCurl = function () {
     if (!lastPayload) return alert("Run a verification first.");
     const endpoint = lastEndpointUsed || CONFIG.PRIMARY_ENDPOINT;
     const base = CONFIG.API_BASE ? CONFIG.API_BASE : location.origin;
+
     const curl =
       `curl -X POST "${base}${endpoint}" ` +
       `-H "Content-Type: application/json" ` +
       `-H "X-TruCite-Policy-Mode: ${CONFIG.POLICY_MODE}" ` +
       `-d '${JSON.stringify(lastPayload)}'`;
+
     copyToClipboard(curl);
   };
 
@@ -339,7 +387,7 @@
     elements: {
       verifyButton, claimBox, evidenceBox, scoreDisplay, scoreVerdict,
       gaugeFill, decisionCard, decisionAction, decisionReason, resultPre,
-      volatilityValue, policyValue
+      volatilityValue, policyValue, tcJsonOutput, tcLatency
     },
     lastPayload: () => lastPayload,
     lastResponse: () => lastResponse,
