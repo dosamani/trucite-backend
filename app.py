@@ -23,13 +23,12 @@ app = Flask(__name__, static_folder="static", static_url_path="/static")
 CORS(app)
 
 # -------------------------
-# Config (Phase 1 polish)
+# Config
 # -------------------------
 POLICY_VERSION = "2026.01"
 DEFAULT_POLICY_MODE = "enterprise"
-SCHEMA_VERSION = "2.0"  # Level-2 JSON (adds latency_ms + schema_version)
+SCHEMA_VERSION = "2.0"  # Canonical Level-2 JSON
 
-# Basic API hardening signals (acquirer-friendly)
 DEFAULT_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
@@ -74,7 +73,6 @@ HIGH_LIABILITY_KEYWORDS = [
     "valuation", "tax", "irs"
 ]
 
-# Volatile fact patterns (current roles/events/titles)
 VOLATILE_FACT_PATTERNS = [
     r"\bprime\s+minister\b",
     r"\bpresident\b",
@@ -162,22 +160,15 @@ def liability_tier(text: str) -> str:
 
 
 # -------------------------
-# MVP heuristic scoring + guardrails
+# Heuristic scoring + guardrails (MVP)
 # -------------------------
 def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
-    """
-    MVP heuristic scoring (0-100) + conservative guardrails.
-    Adds:
-      - Known-false guardrail
-      - Unsupported universal certainty guardrail
-      - Volatile current-fact guardrail (prevents stale ALLOWs without evidence)
-    """
     raw = (text or "")
     t = raw.strip()
     tl = normalize_text(t)
     ev = (evidence or "").strip()
 
-    # References extraction (demo only)
+    # demo refs extraction
     references = []
     for u in extract_urls(ev):
         references.append({"type": "url", "value": u})
@@ -188,7 +179,6 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     has_digit = has_any_digit(t)
 
     tier = liability_tier(t)
-    evidence_required_for_allow = (tier == "high")
 
     risky_terms = ["always", "never", "guaranteed", "cure", "100%", "proof", "definitely", "no doubt"]
     hedges = ["may", "might", "could", "likely", "possibly", "suggests", "uncertain"]
@@ -198,7 +188,7 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
     score = int(seed_score)
     guardrail = None
 
-    # certainty / hedging signals
+    # language cues
     if any(w in tl for w in risky_terms):
         score -= 15
         risk_flags.append("high_certainty_language")
@@ -214,7 +204,7 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         risk_flags.append("very_long_output")
         rules_fired.append("very_long_output_penalty")
 
-    # Numeric / liability: penalize unless evidence
+    # numeric handling
     if has_digit and not has_refs:
         score -= 18
         risk_flags.append("numeric_without_evidence")
@@ -231,39 +221,33 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         score += 18
         rules_fired.append("short_declarative_bonus")
 
-    # Guardrail #1: Known false categories
+    # guardrails
+    is_volatile = matches_volatile_current_fact(t)
+
     if matches_known_false(t) and not has_refs:
         score = min(score, 45)
         risk_flags.append("known_false_category_no_evidence")
         rules_fired.append("known_false_category_cap")
         guardrail = "known_false_claim_no_evidence"
 
-    # Guardrail #2: Unsupported universal certainty w/out evidence
     if (short_decl and contains_universal_certainty(t)) and not has_refs and guardrail is None:
         score = min(score, 60)
         risk_flags.append("unsupported_universal_claim_no_evidence")
         rules_fired.append("unsupported_universal_claim_cap")
         guardrail = "unsupported_universal_claim_no_evidence"
 
-    # Guardrail #3: Volatile current facts (leaders, titles, etc.)
-    is_volatile = matches_volatile_current_fact(t)
     if is_volatile and not has_refs and guardrail is None:
-        score = min(score, 65)  # prevents easy ALLOW
+        score = min(score, 65)
         risk_flags.append("volatile_current_fact_no_evidence")
         rules_fired.append("volatile_current_fact_cap")
         guardrail = "volatile_current_fact_no_evidence"
 
-    # ✅ Enterprise behavior: volatile facts should require evidence to ALLOW
-    if is_volatile:
-        evidence_required_for_allow = True
-
-    # Evidence helps but does not guarantee ALLOW
     if has_refs:
         score += 5
         risk_flags.append("evidence_present")
         rules_fired.append("evidence_present_bonus")
 
-    # Conservative cap for high-liability without evidence
+    # caps
     if tier == "high" and not has_refs:
         score = min(score, 73)
         risk_flags.append("high_liability_without_evidence_cap")
@@ -286,17 +270,18 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         "Replace with evidence-backed verification in production."
     )
 
+    # ✅ Canonical signals (single source of truth for flags/volatility)
     signals = {
         "liability_tier": tier,
-        "evidence_required_for_allow": bool(evidence_required_for_allow),
         "has_digit": bool(has_digit),
         "has_references": bool(has_refs),
         "reference_count": len(references),
         "risk_flags": risk_flags,
         "rules_fired": rules_fired,
         "guardrail": guardrail,
-        # ✅ NEW: explicit volatility label (used by UI)
         "volatility": "VOLATILE" if is_volatile else "LOW",
+        # ✅ enterprise requirement: evidence required for high-liability OR volatile
+        "evidence_required_for_allow": bool(tier == "high" or is_volatile),
     }
 
     return score, verdict, explanation, signals, references
@@ -313,7 +298,7 @@ def enrich_with_guardrails(text: str, evidence: str, score: int, verdict: str, e
 
 
 # -------------------------
-# Decision logic
+# Decision logic (canonical)
 # -------------------------
 def decision_gate(score: int, signals: dict):
     guardrail = (signals.get("guardrail") or "").strip()
@@ -330,10 +315,11 @@ def decision_gate(score: int, signals: dict):
     if guardrail == "volatile_current_fact_no_evidence":
         return "REVIEW", "Volatile real-world fact detected (current roles/events). Evidence required to ALLOW."
 
+    # enterprise: evidence required for ALLOW in high-liability OR volatile
     if evidence_required_for_allow and not has_refs:
         if score >= 70:
-            return "REVIEW", "Likely plausible, but no evidence provided. Policy requires verification for high-liability/numeric."
-        return "REVIEW", "No evidence provided for high-liability or numeric claim. Human verification recommended."
+            return "REVIEW", "Likely plausible, but no evidence provided. Policy requires verification for high-liability/volatile."
+        return "REVIEW", "No evidence provided for high-liability/volatile claim. Human verification recommended."
 
     if liability == "low":
         if score >= 70:
@@ -350,7 +336,7 @@ def decision_gate(score: int, signals: dict):
 
 
 # -------------------------
-# Core verification routine (shared by /verify and /api/score)
+# Core verification routine (shared)
 # -------------------------
 def run_verification(payload: dict):
     start = time.time()
@@ -366,7 +352,7 @@ def run_verification(payload: dict):
     event_id = sha[:12]
     ts = datetime.now(timezone.utc).isoformat()
 
-    # Claims extraction
+    # claims extraction (best effort)
     claims = []
     if extract_claims:
         try:
@@ -384,7 +370,7 @@ def run_verification(payload: dict):
     else:
         claims = [{"text": text}]
 
-    # Scoring
+    # scoring
     if score_claim_text:
         try:
             out = score_claim_text(text, evidence=evidence, policy_mode=policy_mode)
@@ -413,28 +399,23 @@ def run_verification(payload: dict):
     action, reason = decision_gate(int(score), signals)
     latency_ms = int((time.time() - start) * 1000)
 
-    # ✅ Flattened “Decision Payload” fields (matches your UI screenshot)
+    # ✅ Canonical response schema (single JSON; no duplicates)
     resp_obj = {
         "schema_version": SCHEMA_VERSION,
+        "latency_ms": latency_ms,
 
-        # summary fields (Decision Payload box)
-        "decision": action,
-        "score": int(score),
         "verdict": verdict,
+        "score": int(score),
+        "decision": {"action": action, "reason": reason},
+
+        "event_id": event_id,
         "policy_mode": policy_mode,
         "policy_version": POLICY_VERSION,
         "policy_hash": policy_hash(policy_mode),
-        "event_id": event_id,
-        "audit_fingerprint_sha256": sha,
-        "latency_ms": latency_ms,
-        "volatility": (signals.get("volatility") or "LOW"),
-        "risk_flags": signals.get("risk_flags") or [],
-        "guardrail": signals.get("guardrail"),
 
-        # full details (Validation details box)
         "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+
         "claims": claims,
-        "decision_gate": {"action": action, "reason": reason},
         "references": references,
         "signals": signals,
         "explanation": explanation,
@@ -467,7 +448,7 @@ def health():
 
 
 # -------------------------
-# OpenAPI stub (API credibility signal)
+# OpenAPI stub
 # -------------------------
 @app.get("/openapi.json")
 def openapi_spec():
@@ -483,28 +464,13 @@ def openapi_spec():
                 "post": {
                     "summary": "Verify AI-generated output",
                     "description": "Returns reliability score and enforcement decision for AI output.",
-                    "requestBody": {
-                        "required": True,
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "text": {"type": "string"},
-                                        "evidence": {"type": "string"},
-                                        "policy_mode": {"type": "string"}
-                                    }
-                                }
-                            }
-                        }
-                    },
                     "responses": {"200": {"description": "Verification result"}}
                 }
             },
             "/api/score": {
                 "post": {
                     "summary": "Level-2 scoring endpoint",
-                    "description": "Same as /verify but includes schema_version and latency_ms + flattened decision payload fields.",
+                    "description": "Same as /verify but includes schema_version and latency_ms.",
                     "responses": {"200": {"description": "Scoring result"}}
                 }
             }
@@ -515,7 +481,7 @@ def openapi_spec():
 
 
 # -------------------------
-# Verify endpoint (backward compatible)
+# Endpoints
 # -------------------------
 @app.route("/verify", methods=["POST", "OPTIONS"])
 def verify():
@@ -526,16 +492,13 @@ def verify():
     resp_obj, err = run_verification(payload)
     if err:
         msg, code = err
-        resp = make_response(jsonify({"error": msg}), code)
+        resp = make_response(jsonify({"error": msg, "schema_version": SCHEMA_VERSION}), code)
         return with_headers(resp)
 
     resp = make_response(jsonify(resp_obj), 200)
     return with_headers(resp)
 
 
-# -------------------------
-# Level-2 JSON endpoint (infra / VC-facing)
-# -------------------------
 @app.route("/api/score", methods=["POST", "OPTIONS"])
 def api_score():
     if request.method == "OPTIONS":
