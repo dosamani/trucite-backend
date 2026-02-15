@@ -245,6 +245,7 @@ def get_profile(policy_mode: str) -> dict:
 # -------------------------
 # Guardrails + parsing helpers
 # -------------------------
+
 UNIVERSAL_CERTAINTY_TERMS = [
     "always", "never", "guaranteed", "definitely", "proves", "proof", "100%", "cures", "cure", "no doubt"
 ]
@@ -259,19 +260,16 @@ KNOWN_FALSE_PATTERNS = [
 ]
 
 HIGH_LIABILITY_KEYWORDS = [
-    # medical
-    "dose", "dosage", "mg", "mcg", "units", "diagnosis", "treat", "treatment", "contraindication", "side effect",
-    "guideline", "clinical", "patient", "prescribe", "medication", "drug", "insulin", "warfarin",
-    # legal
-    "contract", "liability", "lawsuit", "indemnify", "breach", "statute", "jurisdiction", "legal advice",
-    "precedent", "case law", "plaintiff", "defendant",
-    # finance
-    "roi", "interest rate", "apr", "yield", "stock", "market", "earnings", "arr", "revenue", "forecast",
-    "valuation", "tax", "irs", "sec"
+    "dose", "dosage", "mg", "mcg", "units", "diagnosis", "treat", "treatment",
+    "contraindication", "side effect", "guideline", "clinical", "patient",
+    "prescribe", "medication", "drug", "insulin", "warfarin",
+    "contract", "liability", "lawsuit", "indemnify", "breach",
+    "statute", "jurisdiction", "legal advice",
+    "roi", "interest rate", "apr", "yield", "stock",
+    "market", "earnings", "arr", "revenue", "forecast",
+    "valuation", "tax", "irs"
 ]
 
-# Volatility taxonomy
-# - VOLATILE: current roles/titles, time-sensitive facts, "today", "right now", "current"
 VOLATILE_FACT_PATTERNS = [
     r"\bprime\s+minister\b",
     r"\bpresident\b",
@@ -280,53 +278,12 @@ VOLATILE_FACT_PATTERNS = [
     r"\bmayor\b",
     r"\bceo\b",
     r"\bcfo\b",
+    r"\bchief\s+medical\s+officer\b",
     r"\bcurrent\b",
+    r"\bas\s+of\s+\d{4}\b",
     r"\btoday\b",
     r"\bright\s+now\b",
-    r"\bas\s+of\s+\d{4}\b",
     r"\bis\s+the\s+(ceo|president|prime\s+minister|governor|mayor)\b",
-    r"\bwho\s+is\s+the\s+(ceo|president|prime\s+minister|governor|mayor)\b",
-]
-
-# - EVENT_SENSITIVE: elections, wars, disasters, incidents, breaking-news style facts (still volatile-ish)
-EVENT_SENSITIVE_PATTERNS = [
-    r"\belection\b",
-    r"\bwon\b",
-    r"\bresults\b",
-    r"\bbreaking\b",
-    r"\bearthquake\b",
-    r"\bshooting\b",
-    r"\battack\b",
-    r"\bwar\b",
-    r"\bceasefire\b",
-    r"\bmerger\b",
-    r"\bacquired\b",
-    r"\bipo\b",
-]
-
-# Trust tier allowlist (very lightweight; can be expanded later)
-TRUST_TIER_A_DOMAINS = [
-    "apple.com",
-    "cdc.gov",
-    "nih.gov",
-    "ncbi.nlm.nih.gov",
-    "who.int",
-    "sec.gov",
-    "irs.gov",
-    "europa.eu",
-    "justice.gov",
-]
-TRUST_TIER_B_DOMAINS = [
-    "reuters.com",
-    "apnews.com",
-    "bbc.co.uk",
-    "bbc.com",
-    "ft.com",
-    "wsj.com",
-    "nytimes.com",
-    "theguardian.com",
-    "nature.com",
-    "science.org",
 ]
 
 def normalize_text(s: str) -> str:
@@ -341,47 +298,14 @@ def has_any_digit(s: str) -> bool:
 def extract_urls(s: str):
     if not s:
         return []
-    urls = re.findall(r"https?://[^\s)]+", s)
-    # de-dupe while preserving order
-    seen = set()
-    out = []
-    for u in urls:
-        if u not in seen:
-            seen.add(u)
-            out.append(u)
-    return out
-
-def looks_like_doi_or_pmid(s: str) -> bool:
-    if not s:
-        return False
-    s = s.strip()
-    if re.search(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", s, re.I):
-        return True
-    if re.search(r"\bPMID:\s*\d+\b", s, re.I):
-        return True
-    if re.search(r"\bpubmed\.ncbi\.nlm\.nih\.gov/\d+\b", s, re.I):
-        return True
-    return False
+    return re.findall(r"https?://[^\s)]+", s)
 
 def evidence_present(evidence: str) -> bool:
     if not evidence:
         return False
     if extract_urls(evidence):
         return True
-    if looks_like_doi_or_pmid(evidence):
-        return True
     return len(evidence.strip()) >= 12
-
-def is_short_declarative(text: str) -> bool:
-    t = (text or "").strip()
-    if len(t) > 160:
-        return False
-    tl = normalize_text(t)
-    return (" is " in tl) or (" are " in tl) or t.endswith(".")
-
-def contains_universal_certainty(text: str) -> bool:
-    tl = normalize_text(text)
-    return any(w in tl for w in UNIVERSAL_CERTAINTY_TERMS)
 
 def matches_known_false(text: str) -> bool:
     tl = normalize_text(text)
@@ -390,300 +314,77 @@ def matches_known_false(text: str) -> bool:
             return True
     return False
 
-def detect_volatility(text: str) -> str:
-    """
-    Returns: LOW | VOLATILE | EVENT_SENSITIVE
-    """
+def matches_volatile_current_fact(text: str) -> bool:
     tl = normalize_text(text)
     for pat in VOLATILE_FACT_PATTERNS:
         if re.search(pat, tl, re.I):
-            return "VOLATILE"
-    for pat in EVENT_SENSITIVE_PATTERNS:
-        if re.search(pat, tl, re.I):
-            return "EVENT_SENSITIVE"
+            return True
+    return False
+
+def volatility_level(text: str, policy_mode: str = "enterprise") -> str:
+    if matches_volatile_current_fact(text):
+        return "VOLATILE"
     return "LOW"
 
-def liability_tier(text: str, policy_mode: str) -> str:
-    """
-    policy_mode-aware liability escalation:
-    - health/legal/finance are stricter: more things count as "high"
-    """
+def liability_tier(text: str, policy_mode: str = "enterprise") -> str:
     tl = normalize_text(text)
-    pm = (policy_mode or DEFAULT_POLICY_MODE).strip().lower()
-
     if has_any_digit(text):
         return "high"
-
-    # base: keyword driven
     for kw in HIGH_LIABILITY_KEYWORDS:
         if kw in tl:
             return "high"
-
-    # mode-specific escalation
-    if pm in ("health", "legal", "finance"):
-        # any strong certainty claims in these modes are treated as high-liability without evidence
-        if contains_universal_certainty(text):
-            return "high"
-
     return "low"
 
-def domain_root(host: str) -> str:
-    h = (host or "").strip().lower()
-    if h.startswith("www."):
-        h = h[4:]
-    return h
 
-def domain_trust_tier(url: str) -> str:
-    """
-    A | B | C
-    """
-    try:
-        host = urlparse(url).netloc
-        root = domain_root(host)
-    except Exception:
-        return "C"
 
-    if not root:
-        return "C"
-
-    if root in TRUST_TIER_A_DOMAINS or any(root.endswith("." + d) for d in TRUST_TIER_A_DOMAINS):
-        return "A"
-    if root in TRUST_TIER_B_DOMAINS or any(root.endswith("." + d) for d in TRUST_TIER_B_DOMAINS):
-        return "B"
-    return "C"
 # -------------------------
-# Evidence validation (MVP-safe, not a crawler)
+# MVP heuristic scoring + guardrails
 # -------------------------
-def safe_head_or_get(url: str):
-    """
-    Returns: (ok: bool, status_code: int|None, content_type: str|None, final_url: str, error: str|None)
-    Minimal request to validate a URL exists and is reachable.
-    """
-    headers = {
-        "User-Agent": "TruCiteEvidenceBot/0.1",
-        "Accept": "text/html,application/pdf,application/json;q=0.9,*/*;q=0.8",
-    }
 
-    # Try HEAD first (some servers block; then fallback to GET with small read)
-    for method in ("HEAD", "GET"):
-        try:
-            req = Request(url, headers=headers, method=method)
-            with urlopen(req, timeout=EVIDENCE_TIMEOUT_SEC) as resp:
-                status = getattr(resp, "status", None) or getattr(resp, "code", None)
-                ctype = resp.headers.get("Content-Type", "")
-                final_url = resp.geturl() if hasattr(resp, "geturl") else url
-
-                if method == "GET":
-                    # read a tiny amount to ensure the response is real
-                    _ = resp.read(min(EVIDENCE_MAX_BYTES, 2048))
-
-                return True, int(status) if status is not None else 200, (ctype or ""), final_url, None
-        except HTTPError as e:
-            return False, int(getattr(e, "code", 0) or 0), None, url, f"http_error:{getattr(e, 'code', '')}"
-        except URLError:
-            return False, None, None, url, "url_error"
-        except Exception:
-            return False, None, None, url, "unknown_error"
-
-    return False, None, None, url, "unknown_error"
-
-
-def validate_evidence(evidence: str):
-    """
-    Produces:
-      - references: list[{type,url,value,trust_tier,status,content_type}]
-      - evidence_signals: dict (counts + best_trust_tier + any_fetch_ok)
-    """
-    ev = (evidence or "").strip()
-    urls = extract_urls(ev)[:EVIDENCE_MAX_URLS]
-
-    references = []
-    fetch_ok = False
-    best_tier = None
-    tiers_seen = []
-
-    for u in urls:
-        tier = domain_trust_tier(u)
-        ok, status, ctype, final_url, err = safe_head_or_get(u)
-
-        if ok:
-            fetch_ok = True
-
-        tiers_seen.append(tier)
-        if best_tier is None:
-            best_tier = tier
-        else:
-            # A is best, then B, then C
-            if tier == "A":
-                best_tier = "A"
-            elif tier == "B" and best_tier != "A":
-                best_tier = "B"
-
-        references.append({
-            "type": "url",
-            "value": u,
-            "final_url": final_url,
-            "trust_tier": tier,
-            "fetch_ok": bool(ok),
-            "http_status": status,
-            "content_type": (ctype or "")[:120],
-            "error": err
-        })
-
-    # DOI/PMID evidence (non-fetchable in MVP; treat as present but unvalidated)
-    if looks_like_doi_or_pmid(ev) and not urls:
-        references.append({"type": "evidence", "value": ev[:240], "trust_tier": "B", "fetch_ok": False})
-
-    evidence_signals = {
-        "url_count": len(urls),
-        "any_fetch_ok": bool(fetch_ok),
-        "best_trust_tier": best_tier or ("B" if looks_like_doi_or_pmid(ev) else None),
-        "tiers_seen": tiers_seen,
-    }
-
-    return references, evidence_signals
-
-
-def trust_allows_volatile(profile: dict, evidence_signals: dict) -> bool:
-    """
-    In enterprise/regulated modes, volatile facts require trusted evidence (A/B) to ALLOW.
-    """
-    best = (evidence_signals or {}).get("best_trust_tier")
-    if not best:
-        return False
-    allow = profile.get("volatile_trust_allowlist", ["A", "B"])
-    return best in allow
-    # -------------------------
-# MVP heuristic scoring + guardrails (enhanced)
-# -------------------------
-def heuristic_score(text: str, evidence: str = "", policy_mode: str = DEFAULT_POLICY_MODE, seed_score: int = 55, **kwargs):
-    """
-    Enhanced heuristic scoring:
-      - Integrates evidence fetch validation
-      - Domain trust-tier shaping
-      - Volatility classification
-      - Policy-mode aware scoring
-    """
+def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterprise", seed_score: int = 55):
 
     raw = (text or "")
     t = raw.strip()
     tl = normalize_text(t)
     ev = (evidence or "").strip()
 
-    profile = POLICY_PROFILES.get(policy_mode, POLICY_PROFILES[DEFAULT_POLICY_MODE])
-
-    # --- Evidence validation ---
-    references, evidence_signals = validate_evidence(ev)
-    has_refs = bool(evidence_signals.get("url_count") or looks_like_doi_or_pmid(ev))
-    any_fetch_ok = evidence_signals.get("any_fetch_ok", False)
-    best_trust = evidence_signals.get("best_trust_tier")
-
-    # --- Core feature extraction ---
+    has_refs = evidence_present(ev)
     has_digit = has_any_digit(t)
-    tier = liability_tier(t, policy_mode=policy_mode)
-    volatility = volatility_level(t)
-    evidence_required_for_allow = (tier == "high")
 
-    risky_terms = ["always", "never", "guaranteed", "cure", "100%", "proof", "definitely", "no doubt"]
-    hedges = ["may", "might", "could", "likely", "possibly", "suggests", "uncertain"]
+    tier = liability_tier(t, policy_mode=policy_mode)
+    volatility = volatility_level(t, policy_mode=policy_mode)
 
     risk_flags = []
     rules_fired = []
     score = int(seed_score)
     guardrail = None
 
-    # -------------------------
-    # Linguistic signals
-    # -------------------------
-    if any(w in tl for w in risky_terms):
-        score -= 15
-        risk_flags.append("high_certainty_language")
-        rules_fired.append("high_certainty_language_penalty")
+    # short declarative bonus
+    if len(t) < 200 and " is " in tl:
+        score += 18
+        risk_flags.append("short_declarative_claim")
+        rules_fired.append("short_declarative_bonus")
 
-    if any(w in tl for w in hedges):
-        score += 10
-        risk_flags.append("hedging_language")
-        rules_fired.append("hedging_language_bonus")
-
-    if len(t) > 800:
-        score -= 10
-        risk_flags.append("very_long_output")
-        rules_fired.append("very_long_output_penalty")
-
-    # -------------------------
-    # Numeric / liability shaping
-    # -------------------------
+    # numeric without evidence
     if has_digit and not has_refs:
         score -= 18
         risk_flags.append("numeric_without_evidence")
         rules_fired.append("numeric_without_evidence_penalty")
 
-    if has_digit and has_refs:
-        score += 8
-        risk_flags.append("numeric_with_evidence")
-        rules_fired.append("numeric_with_evidence_bonus")
-
-    short_decl = is_short_declarative(t)
-    if short_decl and not has_digit:
-        risk_flags.append("short_declarative_claim")
-        score += 18
-        rules_fired.append("short_declarative_bonus")
-
-    # -------------------------
-    # Guardrails
-    # -------------------------
-    if matches_known_false(t) and not has_refs:
-        score = min(score, 45)
-        risk_flags.append("known_false_category_no_evidence")
-        rules_fired.append("known_false_category_cap")
-        guardrail = "known_false_claim_no_evidence"
-
-    if (short_decl and contains_universal_certainty(t)) and not has_refs and guardrail is None:
-        score = min(score, 60)
-        risk_flags.append("unsupported_universal_claim_no_evidence")
-        rules_fired.append("unsupported_universal_claim_cap")
-        guardrail = "unsupported_universal_claim_no_evidence"
-
-    if volatility != "LOW" and not has_refs and guardrail is None:
-        score = min(score, 65)
-        risk_flags.append("volatile_current_fact_no_evidence")
-        rules_fired.append("volatile_current_fact_cap")
-        guardrail = "volatile_current_fact_no_evidence"
-
-    # -------------------------
-    # Evidence trust shaping
-    # -------------------------
     if has_refs:
         score += 5
         risk_flags.append("evidence_present")
         rules_fired.append("evidence_present_bonus")
 
-        if any_fetch_ok:
-            score += 5
-            risk_flags.append("evidence_fetch_ok")
-            rules_fired.append("evidence_fetch_bonus")
-
-        if best_trust == "A":
-            score += 6
-            risk_flags.append("tier_a_source")
-            rules_fired.append("tier_a_bonus")
-
-        elif best_trust == "B":
-            score += 3
-            risk_flags.append("tier_b_source")
-            rules_fired.append("tier_b_bonus")
-
-    # Conservative cap for high-liability without evidence
-    if tier == "high" and not has_refs:
-        score = min(score, 73)
-        risk_flags.append("high_liability_without_evidence_cap")
-        rules_fired.append("high_liability_without_evidence_cap")
+    # volatile guardrail
+    if volatility == "VOLATILE" and not has_refs:
+        score = min(score, 65)
+        guardrail = "volatile_current_fact_no_evidence"
+        risk_flags.append("volatile_current_fact_no_evidence")
+        rules_fired.append("volatile_current_fact_cap")
 
     score = max(0, min(100, int(score)))
 
-    # -------------------------
-    # Verdict bands
-    # -------------------------
     if score >= 75:
         verdict = "Likely true / consistent"
     elif score >= 55:
@@ -691,27 +392,28 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = DEFAULT_PO
     else:
         verdict = "High risk of error / hallucination"
 
-    explanation = (
-        "Enhanced heuristic score with volatility detection, domain trust scoring, "
-        "live evidence validation, and enterprise policy shaping. "
-        "Replace with deeper semantic verification in production."
-    )
-
     signals = {
         "liability_tier": tier,
-        "evidence_required_for_allow": bool(evidence_required_for_allow),
-        "has_digit": bool(has_digit),
-        "has_references": bool(has_refs),
-        "reference_count": len(references),
+        "volatility": volatility,
+        "evidence_required_for_allow": (tier == "high" or volatility == "VOLATILE"),
+        "has_digit": has_digit,
+        "has_references": has_refs,
         "risk_flags": risk_flags,
         "rules_fired": rules_fired,
-        "guardrail": guardrail,
-        "volatility": volatility,
-        "evidence_signals": evidence_signals
+        "guardrail": guardrail
     }
 
+    explanation = (
+        "MVP heuristic scoring with volatility + liability gating. "
+        "Replace with evidence-backed verification in production."
+    )
+
+    references = []
+    for u in extract_urls(ev):
+        references.append({"type": "url", "value": u})
+
     return score, verdict, explanation, signals, references
-    # -------------------------
+
 # Decision logic (policy-aware, volatility-aware, trust-aware)
 # -------------------------
 def decision_gate(score: int, signals: dict, policy_mode: str = DEFAULT_POLICY_MODE):
