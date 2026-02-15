@@ -1,13 +1,13 @@
 (() => {
   // ================================
   // TruCite Frontend Script (MVP)
-  // Step 3/4 Updates: headers + config + volatility gating (client-side failsafe)
+  // Level-2 JSON + volatility gating + backward compatible fallback
   // ================================
 
   // ---------- CONFIG ----------
   const CONFIG = {
-    // If your frontend is served from the same host as backend, leave "".
-    // If you ever split domains, set: "https://YOUR-BACKEND.onrender.com"
+    // If frontend is served from same host as backend, leave "".
+    // If split domains later: "https://YOUR-BACKEND.onrender.com"
     API_BASE: "",
 
     // Demo runs enterprise-style policy by default
@@ -16,8 +16,12 @@
     // Request safety
     TIMEOUT_MS: 15000,
 
+    // Prefer Level-2 endpoint first (falls back to /verify automatically)
+    PRIMARY_ENDPOINT: "/api/score",
+    FALLBACK_ENDPOINT: "/verify",
+
     // Client-side failsafe:
-    // If backend flags a claim as VOLATILE knowledge, do not ALLOW unless evidence is present.
+    // If backend flags VOLATILE knowledge (time-sensitive fact), do not ALLOW unless evidence is present.
     VOLATILE_REQUIRES_EVIDENCE_FOR_ALLOW: true
   };
 
@@ -29,11 +33,8 @@
     for (const c of candidates) {
       if (!c) continue;
       let el = null;
-      if (c.startsWith("#") || c.startsWith(".") || c.includes("[") || c.includes(" ")) {
-        el = $(c);
-      } else {
-        el = byId(c);
-      }
+      if (c.startsWith("#") || c.startsWith(".") || c.includes("[") || c.includes(" ")) el = $(c);
+      else el = byId(c);
       if (el) return el;
     }
     return null;
@@ -48,8 +49,7 @@
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const res = await fetch(url, { ...options, signal: controller.signal });
-      return res;
+      return await fetch(url, { ...options, signal: controller.signal });
     } finally {
       clearTimeout(t);
     }
@@ -74,8 +74,16 @@
     document.body.removeChild(ta);
   }
 
+  function hasEvidence(payload, data) {
+    const ev = (payload?.evidence || "").trim();
+    if (ev.length >= 3) return true;
+    // backend may send signals.has_references
+    if (data?.signals?.has_references) return true;
+    if (data?.references && Array.isArray(data.references) && data.references.length > 0) return true;
+    return false;
+  }
+
   // ---------- Element binding ----------
-  // Robust: find VERIFY button by id or class; fallback to button with text "VERIFY"
   let verifyButton = pick("verifyBtn", "#verifyBtn", "button.primary-btn");
   if (!verifyButton) {
     const allBtns = Array.from(document.querySelectorAll("button"));
@@ -92,12 +100,13 @@
   const decisionReason = pick("decisionReason", "#decisionReason");
   const resultPre = pick("result", "#result");
 
-  // Optional: If you add these elements in HTML later, JS will populate them.
+  // Optional fields (only populate if present in HTML)
   const volatilityValue = pick("volatilityValue", "#volatilityValue");
   const policyValue = pick("policyValue", "#policyValue");
 
   let lastPayload = null;
   let lastResponse = null;
+  let lastEndpointUsed = null;
 
   // ---------- Decision Styling ----------
   function applyDecisionColor(action) {
@@ -109,23 +118,22 @@
     else decisionAction.classList.add("review");
   }
 
-  // Gauge uses stroke-dashoffset in your SVG (best for your current HTML/CSS)
+  // Gauge uses stroke-dashoffset in your SVG
   function updateGauge(score) {
-  if (!gaugeFill) return;
+    if (!gaugeFill) return;
 
-  const s = Math.max(0, Math.min(100, Number(score) || 0));
-  const total = 260;
+    const s = Math.max(0, Math.min(100, Number(score) || 0));
+    const total = 260;
 
-  // Reset first so animation plays every time
-  gaugeFill.style.transition = "none";
-  gaugeFill.style.strokeDashoffset = total;
+    gaugeFill.style.transition = "none";
+    gaugeFill.style.strokeDashoffset = total;
 
-  requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      gaugeFill.style.transition = "stroke-dashoffset 0.9s cubic-bezier(0.4, 0, 0.2, 1)";
-      gaugeFill.style.strokeDashoffset = total - (s / 100) * total;
+      requestAnimationFrame(() => {
+        gaugeFill.style.transition = "stroke-dashoffset 0.9s cubic-bezier(0.4, 0, 0.2, 1)";
+        gaugeFill.style.strokeDashoffset = total - (s / 100) * total;
+      });
     });
-  });
   }
 
   function setPendingUI() {
@@ -137,7 +145,6 @@
     updateGauge(0);
     if (resultPre) resultPre.textContent = "";
 
-    // Optional fields
     setText(volatilityValue, "—");
     setText(policyValue, "—");
   }
@@ -154,32 +161,42 @@
     }
   }
 
-  // Client-side failsafe policy adjustment:
-  // If VOLATILE knowledge is detected, do not allow ALLOW unless evidence is present.
+  // Normalize volatility for UI + client failsafe
+  function deriveVolatility(data) {
+    const guardrail = (data?.signals?.guardrail || "").toString();
+    const riskFlags = Array.isArray(data?.signals?.risk_flags) ? data.signals.risk_flags : [];
+    const rules = Array.isArray(data?.signals?.rules_fired) ? data.signals.rules_fired : [];
+
+    const volatile =
+      guardrail === "volatile_current_fact_no_evidence" ||
+      riskFlags.includes("volatile_current_fact_no_evidence") ||
+      rules.includes("volatile_current_fact_cap");
+
+    return volatile ? "VOLATILE" : "LOW";
+  }
+
+  // Client-side failsafe:
+  // If VOLATILE detected, do not allow ALLOW unless evidence is present.
   function applyClientFailSafe(data) {
     try {
-      const vol = (data?.signals?.knowledge_volatility || data?.signals?.volatility || "").toString().toUpperCase();
+      const vol = deriveVolatility(data);
       const action = (data?.decision?.action || "").toString().toUpperCase();
-      const hasEvidence =
-        !!(lastPayload?.evidence && String(lastPayload.evidence).trim().length > 0) ||
-        !!(data?.signals?.has_evidence);
+      const hasEv = hasEvidence(lastPayload, data);
 
-      if (CONFIG.VOLATILE_REQUIRES_EVIDENCE_FOR_ALLOW && vol === "VOLATILE" && action === "ALLOW" && !hasEvidence) {
-        // Mutate response for UI purposes (keeps JSON visible to user)
+      if (CONFIG.VOLATILE_REQUIRES_EVIDENCE_FOR_ALLOW && vol === "VOLATILE" && action === "ALLOW" && !hasEv) {
         data.decision = data.decision || {};
         data.decision.action = "REVIEW";
         data.decision.reason =
-          "Knowledge volatility detected (time-sensitive fact). Evidence required for ALLOW in enterprise mode.";
+          "Volatile knowledge detected (time-sensitive fact). Evidence required for ALLOW under enterprise policy.";
         data.verdict = data.verdict || "Unclear / needs verification";
-        // Add a visible flag
+
         data.signals = data.signals || {};
         if (!Array.isArray(data.signals.risk_flags)) data.signals.risk_flags = [];
-        if (!data.signals.risk_flags.includes("knowledge_volatility_requires_evidence")) {
-          data.signals.risk_flags.push("knowledge_volatility_requires_evidence");
+        if (!data.signals.risk_flags.includes("client_volatility_requires_evidence")) {
+          data.signals.risk_flags.push("client_volatility_requires_evidence");
         }
       }
     } catch (e) {
-      // never crash UI
       console.warn("Client failsafe error:", e);
     }
     return data;
@@ -188,7 +205,7 @@
   function renderResponse(data) {
     lastResponse = data;
 
-    // Apply client-side failsafe *before* showing action
+    // Apply client-side failsafe before rendering
     data = applyClientFailSafe(data);
 
     const score = data?.score ?? "--";
@@ -196,12 +213,17 @@
     setText(scoreVerdict, data?.verdict || "");
     updateGauge(score);
 
-    // Optional: policy/volatility labels (won't break if HTML not present)
-    const vol = data?.signals?.knowledge_volatility || data?.signals?.volatility || "LOW";
-    setText(volatilityValue, String(vol).toUpperCase());
+    // Optional: volatility + policy labels
+    const vol = deriveVolatility(data);
+    setText(volatilityValue, vol);
+
     const pMode = data?.policy_mode || CONFIG.POLICY_MODE;
     const pVer = data?.policy_version || "";
-    setText(policyValue, pVer ? `${pMode} v${pVer}` : `${pMode}`);
+    const pHash = data?.policy_hash || "";
+    const policyLabel = pVer
+      ? `${pMode} v${pVer}${pHash ? ` (hash: ${pHash})` : ""}`
+      : `${pMode}${pHash ? ` (hash: ${pHash})` : ""}`;
+    setText(policyValue, policyLabel);
 
     const action = data?.decision?.action || "REVIEW";
     const reason = data?.decision?.reason || "";
@@ -210,7 +232,23 @@
     applyDecisionColor(action);
     setText(decisionReason, reason);
 
+    // Display JSON
     if (resultPre) resultPre.textContent = safeJson(data);
+  }
+
+  async function postToEndpoint(endpoint, payload) {
+    const url = `${CONFIG.API_BASE}${endpoint}`;
+    const res = await fetchWithTimeout(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-TruCite-Client": "web-mvp",
+        "X-TruCite-Policy-Mode": CONFIG.POLICY_MODE
+      },
+      body: JSON.stringify(payload)
+    }, CONFIG.TIMEOUT_MS);
+
+    return res;
   }
 
   async function onVerify() {
@@ -223,22 +261,17 @@
     lastPayload = payload;
     setPendingUI();
 
-    // Build URL
-    const url = `${CONFIG.API_BASE}/verify`;
-
     try {
-      const res = await fetchWithTimeout(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // Optional headers for enterprise-style observability (backend can ignore safely)
-          "X-TruCite-Client": "web-mvp",
-          "X-TruCite-Policy-Mode": CONFIG.POLICY_MODE
-        },
-        body: JSON.stringify(payload)
-      }, CONFIG.TIMEOUT_MS);
+      // Try Level-2 endpoint first
+      let res = await postToEndpoint(CONFIG.PRIMARY_ENDPOINT, payload);
+      lastEndpointUsed = CONFIG.PRIMARY_ENDPOINT;
 
-      // Handle non-OK errors gracefully
+      // If endpoint missing or method mismatch, fall back to /verify
+      if (!res.ok && (res.status === 404 || res.status === 405 || res.status === 501)) {
+        res = await postToEndpoint(CONFIG.FALLBACK_ENDPOINT, payload);
+        lastEndpointUsed = CONFIG.FALLBACK_ENDPOINT;
+      }
+
       if (!res.ok) {
         let t = "";
         try { t = await res.text(); } catch {}
@@ -246,7 +279,6 @@
         return;
       }
 
-      // Parse JSON safely
       let data = null;
       try {
         data = await res.json();
@@ -269,8 +301,7 @@
   if (verifyButton) verifyButton.addEventListener("click", onVerify);
   else console.warn("VERIFY button not found. Check id/class.");
 
-  // ✅ IMPORTANT: Inline onclick compatibility shim.
-  // Your HTML currently uses onclick="scoreText()". This ensures it always works.
+  // Inline onclick compatibility shim (your HTML uses onclick="scoreText()")
   window.scoreText = function () {
     if (verifyButton) verifyButton.click();
     else onVerify();
@@ -289,7 +320,13 @@
 
   window.copyCurl = function () {
     if (!lastPayload) return alert("Run a verification first.");
-    const curl = `curl -X POST "${location.origin}/verify" -H "Content-Type: application/json" -d '${JSON.stringify(lastPayload)}'`;
+    const endpoint = lastEndpointUsed || CONFIG.PRIMARY_ENDPOINT;
+    const base = CONFIG.API_BASE ? CONFIG.API_BASE : location.origin;
+    const curl =
+      `curl -X POST "${base}${endpoint}" ` +
+      `-H "Content-Type: application/json" ` +
+      `-H "X-TruCite-Policy-Mode: ${CONFIG.POLICY_MODE}" ` +
+      `-d '${JSON.stringify(lastPayload)}'`;
     copyToClipboard(curl);
   };
 
@@ -299,8 +336,13 @@
   // Optional debug hook
   window.TruCiteDebug = {
     config: CONFIG,
-    elements: { verifyButton, claimBox, evidenceBox, scoreDisplay, scoreVerdict, gaugeFill, decisionCard, decisionAction, decisionReason, resultPre, volatilityValue, policyValue },
+    elements: {
+      verifyButton, claimBox, evidenceBox, scoreDisplay, scoreVerdict,
+      gaugeFill, decisionCard, decisionAction, decisionReason, resultPre,
+      volatilityValue, policyValue
+    },
     lastPayload: () => lastPayload,
-    lastResponse: () => lastResponse
+    lastResponse: () => lastResponse,
+    lastEndpointUsed: () => lastEndpointUsed
   };
 })();
