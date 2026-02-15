@@ -1,14 +1,12 @@
 (() => {
   // ================================
   // TruCite Frontend Script (MVP)
-  // Canonical schema v2.0 (/api/score)
-  // decision: { action, reason }
-  // signals: { volatility, risk_flags, guardrail, ... }
+  // Uses /api/score (schema v2.0+)
   // ================================
 
   const CONFIG = {
     API_BASE: "",              // same host
-    POLICY_MODE: "enterprise",
+    POLICY_MODE: "enterprise", // enterprise | health | legal | finance
     TIMEOUT_MS: 15000
   };
 
@@ -45,7 +43,6 @@
     if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
     else fallbackCopy(text);
   }
-
   function fallbackCopy(text) {
     const ta = document.createElement("textarea");
     ta.value = text;
@@ -136,13 +133,14 @@
     if (resultPre) resultPre.textContent = debugText ? `Backend error:\n${debugText}` : (userMsg || "Backend error.");
   }
 
-  // Build the compact "Decision Payload (live)" block shown above the full JSON.
-  // ✅ Canonical schema mapping (no decision_gate, no top-level volatility/risk_flags)
   function buildDecisionPayload(data) {
-    const action = data?.decision?.action || "REVIEW";
+    const sig = data?.signals || {};
+    const ev = sig?.evidence_validation || {};
+
     return {
       schema_version: data?.schema_version || "2.0",
-      decision: action,
+      request_id: data?.request_id || "",
+      decision: data?.decision?.action || "REVIEW",
       score: data?.score ?? "--",
       verdict: data?.verdict || "",
       policy_mode: data?.policy_mode || CONFIG.POLICY_MODE,
@@ -151,9 +149,15 @@
       event_id: data?.event_id || "",
       audit_fingerprint_sha256: data?.audit_fingerprint?.sha256 || "",
       latency_ms: (typeof data?.latency_ms === "number") ? data.latency_ms : null,
-      volatility: data?.signals?.volatility || "LOW",
-      risk_flags: data?.signals?.risk_flags || [],
-      guardrail: data?.signals?.guardrail || null
+
+      volatility: (sig?.volatility || "LOW"),
+      volatility_category: sig?.volatility_category || "",
+      evidence_validation_status: ev?.status || "NONE",
+      evidence_trust_tier: sig?.evidence_trust_tier || "C",
+      evidence_confidence: (typeof sig?.evidence_confidence === "number") ? sig.evidence_confidence : null,
+
+      risk_flags: sig?.risk_flags || [],
+      guardrail: sig?.guardrail || null
     };
   }
 
@@ -165,8 +169,8 @@
     setText(scoreVerdict, data?.verdict || "");
     updateGauge(score);
 
-    // Volatility comes from signals only (canonical)
-    const vol = (data?.signals?.volatility || "LOW").toString().toUpperCase();
+    const sig = data?.signals || {};
+    const vol = (sig?.volatility || "LOW").toString().toUpperCase();
     setText(volatilityValue, vol);
 
     const pMode = data?.policy_mode || CONFIG.POLICY_MODE;
@@ -174,9 +178,9 @@
     const pHash = data?.policy_hash || "";
     setText(policyValue, pVer ? `${pMode} v${pVer} (hash: ${pHash})` : `${pMode}`);
 
-    // Decision gate (canonical)
     const action = data?.decision?.action || "REVIEW";
     const reason = data?.decision?.reason || "";
+
     if (decisionCard) show(decisionCard, true);
     setText(decisionAction, action);
     applyDecisionColor(action);
@@ -202,7 +206,12 @@
 
     if (!text) return alert("Paste AI- or agent-generated text first.");
 
-    const payload = { text, evidence: evidence || "", policy_mode: CONFIG.POLICY_MODE };
+    const payload = {
+      text,
+      evidence: evidence || "",
+      policy_mode: CONFIG.POLICY_MODE
+    };
+
     lastPayload = payload;
     setPendingUI();
 
@@ -232,6 +241,12 @@
       } catch (e) {
         const txt = await res.text().catch(() => "");
         setErrorUI("could not parse response JSON.", txt || String(e));
+        return;
+      }
+
+      // If backend returns structured error, show cleanly
+      if (data?.error_code) {
+        setErrorUI(data?.message || "Request error.", safeJson(data));
         return;
       }
 
