@@ -172,7 +172,6 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
       - Unsupported universal certainty guardrail
       - Volatile current-fact guardrail (prevents stale ALLOWs without evidence)
     """
-
     raw = (text or "")
     t = raw.strip()
     tl = normalize_text(t)
@@ -247,11 +246,16 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         guardrail = "unsupported_universal_claim_no_evidence"
 
     # Guardrail #3: Volatile current facts (leaders, titles, etc.)
-    if matches_volatile_current_fact(t) and not has_refs and guardrail is None:
+    is_volatile = matches_volatile_current_fact(t)
+    if is_volatile and not has_refs and guardrail is None:
         score = min(score, 65)  # prevents easy ALLOW
         risk_flags.append("volatile_current_fact_no_evidence")
         rules_fired.append("volatile_current_fact_cap")
         guardrail = "volatile_current_fact_no_evidence"
+
+    # ✅ Enterprise behavior: volatile facts should require evidence to ALLOW
+    if is_volatile:
+        evidence_required_for_allow = True
 
     # Evidence helps but does not guarantee ALLOW
     if has_refs:
@@ -290,7 +294,9 @@ def heuristic_score(text: str, evidence: str = "", seed_score: int = 55):
         "reference_count": len(references),
         "risk_flags": risk_flags,
         "rules_fired": rules_fired,
-        "guardrail": guardrail
+        "guardrail": guardrail,
+        # ✅ NEW: explicit volatility label (used by UI)
+        "volatility": "VOLATILE" if is_volatile else "LOW",
     }
 
     return score, verdict, explanation, signals, references
@@ -310,19 +316,11 @@ def enrich_with_guardrails(text: str, evidence: str, score: int, verdict: str, e
 # Decision logic
 # -------------------------
 def decision_gate(score: int, signals: dict):
-    """
-    Demo policy (acquirer-friendly):
-      - Known-debunked categories: BLOCK unless evidence
-      - High-liability or numeric claims: evidence required to reach ALLOW
-      - Volatile current-event facts: REVIEW unless evidence (prevents stale ALLOWs)
-      - Low-liability non-numeric: can ALLOW at a lower threshold (>=70)
-    """
     guardrail = (signals.get("guardrail") or "").strip()
     has_refs = bool(signals.get("has_references"))
     liability = (signals.get("liability_tier") or "low").lower()
     evidence_required_for_allow = bool(signals.get("evidence_required_for_allow"))
 
-    # Hard guardrails first
     if guardrail == "known_false_claim_no_evidence":
         return "BLOCK", "Known false / widely debunked category without evidence. Guardrail triggered."
 
@@ -332,13 +330,11 @@ def decision_gate(score: int, signals: dict):
     if guardrail == "volatile_current_fact_no_evidence":
         return "REVIEW", "Volatile real-world fact detected (current roles/events). Evidence required to ALLOW."
 
-    # Enforce evidence for ALLOW in high-liability (or numeric) cases
     if evidence_required_for_allow and not has_refs:
         if score >= 70:
             return "REVIEW", "Likely plausible, but no evidence provided. Policy requires verification for high-liability/numeric."
         return "REVIEW", "No evidence provided for high-liability or numeric claim. Human verification recommended."
 
-    # Thresholds by liability tier
     if liability == "low":
         if score >= 70:
             return "ALLOW", "High confidence per current MVP scoring."
@@ -346,7 +342,6 @@ def decision_gate(score: int, signals: dict):
             return "REVIEW", "Medium confidence. Human verification recommended."
         return "BLOCK", "Low confidence. Do not use without verification."
 
-    # High-liability
     if score >= 75:
         return "ALLOW", "High confidence with evidence under high-liability policy."
     elif score >= 55:
@@ -367,7 +362,6 @@ def run_verification(payload: dict):
     if not text:
         return None, ("Missing 'text' in request body", 400)
 
-    # Fingerprint / Event ID
     sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
     event_id = sha[:12]
     ts = datetime.now(timezone.utc).isoformat()
@@ -404,7 +398,6 @@ def run_verification(payload: dict):
             else:
                 score, verdict, explanation, signals, references = heuristic_score(text, evidence)
         except TypeError:
-            # If reference_engine doesn't accept evidence/policy_mode
             try:
                 score, verdict, explanation = score_claim_text(text)
                 score, verdict, explanation, signals, references = enrich_with_guardrails(
@@ -418,25 +411,30 @@ def run_verification(payload: dict):
         score, verdict, explanation, signals, references = heuristic_score(text, evidence)
 
     action, reason = decision_gate(int(score), signals)
-
     latency_ms = int((time.time() - start) * 1000)
 
+    # ✅ Flattened “Decision Payload” fields (matches your UI screenshot)
     resp_obj = {
         "schema_version": SCHEMA_VERSION,
-        "latency_ms": latency_ms,
 
-        "verdict": verdict,
+        # summary fields (Decision Payload box)
+        "decision": action,
         "score": int(score),
-        "decision": {"action": action, "reason": reason},
-
-        "event_id": event_id,
+        "verdict": verdict,
         "policy_mode": policy_mode,
         "policy_version": POLICY_VERSION,
         "policy_hash": policy_hash(policy_mode),
+        "event_id": event_id,
+        "audit_fingerprint_sha256": sha,
+        "latency_ms": latency_ms,
+        "volatility": (signals.get("volatility") or "LOW"),
+        "risk_flags": signals.get("risk_flags") or [],
+        "guardrail": signals.get("guardrail"),
 
+        # full details (Validation details box)
         "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
-
         "claims": claims,
+        "decision_gate": {"action": action, "reason": reason},
         "references": references,
         "signals": signals,
         "explanation": explanation,
@@ -506,7 +504,7 @@ def openapi_spec():
             "/api/score": {
                 "post": {
                     "summary": "Level-2 scoring endpoint",
-                    "description": "Same as /verify but includes schema_version and latency_ms for infra-grade signaling.",
+                    "description": "Same as /verify but includes schema_version and latency_ms + flattened decision payload fields.",
                     "responses": {"200": {"description": "Scoring result"}}
                 }
             }
