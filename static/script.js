@@ -1,7 +1,9 @@
 (() => {
   // ================================
   // TruCite Frontend Script (MVP)
-  // Uses /api/score (schema v2.0)
+  // Canonical schema v2.0 (/api/score)
+  // decision: { action, reason }
+  // signals: { volatility, risk_flags, guardrail, ... }
   // ================================
 
   const CONFIG = {
@@ -43,6 +45,7 @@
     if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
     else fallbackCopy(text);
   }
+
   function fallbackCopy(text) {
     const ta = document.createElement("textarea");
     ta.value = text;
@@ -133,21 +136,24 @@
     if (resultPre) resultPre.textContent = debugText ? `Backend error:\n${debugText}` : (userMsg || "Backend error.");
   }
 
+  // Build the compact "Decision Payload (live)" block shown above the full JSON.
+  // ✅ Canonical schema mapping (no decision_gate, no top-level volatility/risk_flags)
   function buildDecisionPayload(data) {
+    const action = data?.decision?.action || "REVIEW";
     return {
       schema_version: data?.schema_version || "2.0",
-      decision: data?.decision || (data?.decision_gate?.action) || "REVIEW",
+      decision: action,
       score: data?.score ?? "--",
       verdict: data?.verdict || "",
       policy_mode: data?.policy_mode || CONFIG.POLICY_MODE,
       policy_version: data?.policy_version || "",
       policy_hash: data?.policy_hash || "",
       event_id: data?.event_id || "",
-      audit_fingerprint_sha256: data?.audit_fingerprint_sha256 || data?.audit_fingerprint?.sha256 || "",
-      latency_ms: data?.latency_ms ?? null,
-      volatility: data?.volatility || data?.signals?.volatility || "LOW",
-      risk_flags: data?.risk_flags || data?.signals?.risk_flags || [],
-      guardrail: data?.guardrail || data?.signals?.guardrail || null
+      audit_fingerprint_sha256: data?.audit_fingerprint?.sha256 || "",
+      latency_ms: (typeof data?.latency_ms === "number") ? data.latency_ms : null,
+      volatility: data?.signals?.volatility || "LOW",
+      risk_flags: data?.signals?.risk_flags || [],
+      guardrail: data?.signals?.guardrail || null
     };
   }
 
@@ -159,7 +165,8 @@
     setText(scoreVerdict, data?.verdict || "");
     updateGauge(score);
 
-    const vol = (data?.volatility || data?.signals?.volatility || "LOW").toString().toUpperCase();
+    // Volatility comes from signals only (canonical)
+    const vol = (data?.signals?.volatility || "LOW").toString().toUpperCase();
     setText(volatilityValue, vol);
 
     const pMode = data?.policy_mode || CONFIG.POLICY_MODE;
@@ -167,15 +174,13 @@
     const pHash = data?.policy_hash || "";
     setText(policyValue, pVer ? `${pMode} v${pVer} (hash: ${pHash})` : `${pMode}`);
 
-    const action = data?.decision || data?.decision_gate?.action || "REVIEW";
-    const reason = data?.decision_gate?.reason || (data?.decision_gate?.reason === "" ? "" : null) || data?.decision_gate?.reason || "";
-    const gateReason = data?.decision_gate?.reason || data?.decision_gate?.reason; // safe
-    const finalReason = data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason;
-
+    // Decision gate (canonical)
+    const action = data?.decision?.action || "REVIEW";
+    const reason = data?.decision?.reason || "";
     if (decisionCard) show(decisionCard, true);
     setText(decisionAction, action);
     applyDecisionColor(action);
-    setText(decisionReason, data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || data?.decision_gate?.reason || "");
+    setText(decisionReason, reason);
 
     const ms = (typeof data?.latency_ms === "number") ? data.latency_ms : "—";
     setText(apiMeta, `server ${ms}ms · /api/score`);
