@@ -305,7 +305,9 @@ def decision_gate(score: int, signals: dict):
     has_refs = bool(signals.get("has_references"))
     liability = (signals.get("liability_tier") or "low").lower()
     evidence_required_for_allow = bool(signals.get("evidence_required_for_allow"))
+    volatility = (signals.get("volatility") or "").upper()
 
+    # --- Hard guardrails ---
     if guardrail == "known_false_claim_no_evidence":
         return "BLOCK", "Known false / widely debunked category without evidence. Guardrail triggered."
 
@@ -315,31 +317,35 @@ def decision_gate(score: int, signals: dict):
     if guardrail == "volatile_current_fact_no_evidence":
         return "REVIEW", "Volatile real-world fact detected (current roles/events). Evidence required to ALLOW."
 
-    # enterprise: evidence required for ALLOW in high-liability OR volatile
+    # --- Enterprise rule: evidence required for ALLOW in high-liability OR volatile ---
     if evidence_required_for_allow and not has_refs:
         if score >= 70:
-            return "REVIEW", "Likely plausible, but no evidence provided. Policy requires verification for high-liability/volatile."
-        return "REVIEW", "No evidence provided for high-liability/volatile claim. Human verification recommended."
-    
+            return "REVIEW", "Likely plausible, but no evidence provided. Policy requires verification for high-liability or volatile claims."
+        return "REVIEW", "No evidence provided for high-liability or volatile claim. Human verification recommended."
+
+    # --- Low-liability branch ---
     if liability == "low":
-    if score >= 70:
-        # If volatile fact, require evidence clarity in decision language
-        if signals.get("volatility") == "VOLATILE":
-            if has_refs:
-                return "ALLOW", "Evidence present for volatile real-world fact. Approved under enterprise policy."
-            else:
-                return "REVIEW", "Volatile real-world fact detected. Evidence required to ALLOW."
-        return "ALLOW", "High confidence under current enterprise policy."
-    elif score >= 55:
-        return "REVIEW", "Medium confidence. Human verification recommended."
-    return "BLOCK", "Low confidence. Do not use without verification."
-    
+        if score >= 70:
+            # If volatile fact, explicitly reference evidence sufficiency
+            if volatility == "VOLATILE":
+                if has_refs:
+                    return "ALLOW", "Evidence present for volatile real-world fact. Approved under enterprise policy."
+                else:
+                    return "REVIEW", "Volatile real-world fact detected. Evidence required to ALLOW."
+            return "ALLOW", "High confidence under current enterprise policy."
+
+        elif score >= 55:
+            return "REVIEW", "Medium confidence. Human verification recommended."
+
+        return "BLOCK", "Low confidence. Do not use without verification."
+
+    # --- High-liability branch ---
     if score >= 75:
         return "ALLOW", "High confidence with evidence under high-liability policy."
     elif score >= 55:
         return "REVIEW", "Medium confidence. Human verification recommended."
-    return "BLOCK", "Low confidence. Do not use without verification."
 
+    return "BLOCK", "Low confidence. Do not use without verification."
 
 # -------------------------
 # Core verification routine (shared)
