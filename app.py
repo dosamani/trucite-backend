@@ -70,6 +70,63 @@ def openapi_spec():
     return jsonify(spec)
 
 # -------------------------
+# /api/score (audit-grade scoring endpoint)
+# -------------------------
+@app.route("/api/score", methods=["POST", "OPTIONS"])
+def api_score():
+    if request.method == "OPTIONS":
+        return ("", 204)
+
+    payload = request.get_json(silent=True) or {}
+    text = (payload.get("text") or "").strip()
+    evidence = (payload.get("evidence") or "").strip()
+    policy_mode = (payload.get("policy_mode") or DEFAULT_POLICY_MODE).strip()
+
+    if not text:
+        return jsonify({"error": "Missing 'text' in request body"}), 400
+
+    # Fingerprint / Event ID
+    sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    event_id = sha[:12]
+    ts = datetime.now(timezone.utc).isoformat()
+
+    # Minimal claims (keeps demo stable even if optional modules missing)
+    claims = [{"text": text}]
+
+    # Heuristic scoring (uses your existing heuristic_score)
+    score, verdict, explanation, signals, references = heuristic_score(text, evidence)
+
+    # Volatility label for UI (simple mapping from guardrail)
+    volatility = "VOLATILE" if signals.get("guardrail") == "volatile_current_fact_no_evidence" else "LOW"
+    signals["volatility"] = volatility
+
+    action, reason = decision_gate(int(score), signals)
+
+    resp_obj = {
+        "schema_version": SCHEMA_VERSION,
+        "request_id": event_id,
+        "latency_ms": 0,
+
+        "verdict": verdict,
+        "score": int(score),
+        "decision": {"action": action, "reason": reason},
+
+        "event_id": event_id,
+        "policy_mode": policy_mode,
+        "policy_version": POLICY_VERSION,
+        "policy_hash": policy_hash(policy_mode),
+
+        "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+
+        "claims": claims,
+        "references": references,
+        "signals": signals,
+        "explanation": explanation,
+    }
+
+    return jsonify(resp_obj), 200
+
+# -------------------------
 # Config (Phase 1.1 polish)
 # -------------------------
 POLICY_VERSION = "2026.01"
