@@ -321,13 +321,19 @@ def decision_gate(score: int, signals: dict):
             return "REVIEW", "Likely plausible, but no evidence provided. Policy requires verification for high-liability/volatile."
         return "REVIEW", "No evidence provided for high-liability/volatile claim. Human verification recommended."
 
-    if liability == "low":
-        if score >= 70:
-            return "ALLOW", "High confidence per current MVP scoring."
-        elif score >= 55:
-            return "REVIEW", "Medium confidence. Human verification recommended."
-        return "BLOCK", "Low confidence. Do not use without verification."
-
+if liability == "low":
+    if score >= 70:
+        # If volatile fact, require evidence clarity in decision language
+        if signals.get("volatility") == "VOLATILE":
+            if has_refs:
+                return "ALLOW", "Evidence present for volatile real-world fact. Approved under enterprise policy."
+            else:
+                return "REVIEW", "Volatile real-world fact detected. Evidence required to ALLOW."
+        return "ALLOW", "High confidence under current enterprise policy."
+    elif score >= 55:
+        return "REVIEW", "Medium confidence. Human verification recommended."
+    return "BLOCK", "Low confidence. Do not use without verification."
+    
     if score >= 75:
         return "ALLOW", "High confidence with evidence under high-liability policy."
     elif score >= 55:
