@@ -26,6 +26,15 @@ except Exception:
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 CORS(app)
 
+from flask import send_from_directory, make_response
+
+# -------------------------
+# Static landing page
+# -------------------------
+@app.get("/")
+def landing():
+    return send_from_directory(app.static_folder, "index.html")
+
 # -------------------------
 # Config (Phase 1.1 polish)
 # -------------------------
