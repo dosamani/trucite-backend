@@ -36,6 +36,40 @@ def landing():
     return send_from_directory(app.static_folder, "index.html")
 
 # -------------------------
+# Health check
+# -------------------------
+@app.get("/health")
+def health():
+    return jsonify({"status": "ok", "service": "trucite-backend", "ts": int(time.time())})
+
+# -------------------------
+# OpenAPI stub (API credibility signal)
+# -------------------------
+@app.get("/openapi.json")
+def openapi_spec():
+    spec = {
+        "openapi": "3.0.0",
+        "info": {
+            "title": "TruCite Verification API",
+            "version": "1.0.0",
+            "description": "Independent AI output verification and decision gating layer."
+        },
+        "paths": {
+            "/api/score": {
+                "post": {
+                    "summary": "Audit-grade scoring endpoint",
+                    "description": "Returns reliability score + enforceable ALLOW/REVIEW/BLOCK decision + audit fingerprint.",
+                    "responses": {"200": {"description": "Scoring result"}}
+                }
+            },
+            "/health": {
+                "get": {"summary": "Service health check", "responses": {"200": {"description": "OK"}}}
+            }
+        }
+    }
+    return jsonify(spec)
+
+# -------------------------
 # Config (Phase 1.1 polish)
 # -------------------------
 POLICY_VERSION = "2026.01"
