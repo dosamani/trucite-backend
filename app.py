@@ -422,6 +422,7 @@ def liability_tier(text: str, policy_mode: str = "enterprise") -> str:
 # MVP heuristic scoring + guardrails
 # -------------------------
 def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterprise", seed_score: int = 55):
+
     raw = (text or "")
     t = raw.strip()
     tl = normalize_text(t)
@@ -430,44 +431,37 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterpris
     has_refs = evidence_present(ev)
     has_digit = has_any_digit(t)
 
-    # Policy-aware tiers (these MUST exist elsewhere in your file)
     tier = liability_tier(t, policy_mode=policy_mode)
     volatility = volatility_level(t, policy_mode=policy_mode)
-
-# Volatility taxonomy (simple MVP categories)
-# NOTE: Keep this deterministic + explainable for demo.
-if volatility == "LOW":
-    volatility_category = "STATIC"
-elif volatility == "EVENT_SENSITIVE":
-    volatility_category = "EVENT_SENSITIVE"
-else:
-    # "VOLATILE" or anything else treated as volatile real-world
-    volatility_category = "CURRENT_FACT"
 
     risk_flags = []
     rules_fired = []
     score = int(seed_score)
     guardrail = None
 
-    # short declarative bonus
+    # -------------------------
+    # Scoring rules
+    # -------------------------
+
+    # Short declarative bonus
     if len(t) < 200 and " is " in tl:
         score += 18
         risk_flags.append("short_declarative_claim")
         rules_fired.append("short_declarative_bonus")
 
-    # numeric without evidence
+    # Numeric without evidence
     if has_digit and not has_refs:
         score -= 18
         risk_flags.append("numeric_without_evidence")
         rules_fired.append("numeric_without_evidence_penalty")
 
-    # evidence bonus
+    # Evidence present bonus
     if has_refs:
         score += 5
         risk_flags.append("evidence_present")
         rules_fired.append("evidence_present_bonus")
 
-    # volatile guardrail (cap score if volatile with no evidence)
+    # Volatile guardrail cap
     if volatility == "VOLATILE" and not has_refs:
         score = min(score, 65)
         guardrail = "volatile_current_fact_no_evidence"
@@ -476,6 +470,9 @@ else:
 
     score = max(0, min(100, int(score)))
 
+    # -------------------------
+    # Verdict bands
+    # -------------------------
     if score >= 75:
         verdict = "Likely true / consistent"
     elif score >= 55:
@@ -483,34 +480,23 @@ else:
     else:
         verdict = "High risk of error / hallucination"
 
-    # Deterministic trust scoring (this MUST exist elsewhere)
+    # -------------------------
+    # Evidence trust summary
+    # -------------------------
     best_trust_tier, evidence_status, evidence_conf = evidence_trust_summary(ev)
 
-    # Signals (single authoritative set)
-    # Canonical evidence state
-    if has_refs:
-        evidence_status = "PRESENT"
-    else:
-        evidence_status = "NONE"
-
+    # -------------------------
+    # Signals object
+    # -------------------------
     signals = {
         "has_references": bool(has_refs),
         "reference_count": len(extract_urls(ev)),
-
-        "liability_tier": liability,
+        "liability_tier": tier,
         "volatility": volatility,
-             "volatility_category": volatility_category,
-        
-
-        "evidence_required_for_allow": bool(
-            volatility != "LOW" or liability == "high"
-        ),
-
-        # Canonical evidence fields
+        "evidence_required_for_allow": bool(volatility != "LOW" or tier == "high"),
         "evidence_validation_status": evidence_status,
         "evidence_trust_tier": best_trust_tier or ("B" if has_refs else "C"),
         "evidence_confidence": evidence_conf,
-
         "risk_flags": risk_flags,
         "rules_fired": rules_fired,
         "guardrail": guardrail,
@@ -521,7 +507,9 @@ else:
         "Replace with evidence-backed verification in production."
     )
 
-    references = [{"type": "url", "value": u} for u in extract_urls(ev)]
+    references = []
+    for u in extract_urls(ev):
+        references.append({"type": "url", "value": u})
 
     return score, verdict, explanation, signals, references
 # -------------------------
