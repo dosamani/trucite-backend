@@ -665,7 +665,8 @@ def api_score():
             signals,
             policy_mode=policy_mode,
         )
-        # =========================
+
+         # =========================
         # DEMO MODE OVERRIDE
         # =========================
         if DEMO_MODE:
@@ -673,13 +674,14 @@ def api_score():
             if signals.get("volatility") == "VOLATILE" and not signals.get("has_references"):
                 action = "REVIEW"
                 reason = "Demo policy: volatile claim requires evidence."
-                score = min(score, 65)
+                score = min(int(score), 65)
                 verdict = "Unclear / needs verification"
+
             elif signals.get("has_references"):
                 action = "ALLOW"
                 reason = "Demo policy: evidence present."
-                score = max(score, 78)
-                verdict = "Likely true / consistent"
+                score = max(int(score), 78)
+                verdict = "Likely true / consistent"       
 
         latency_ms = int((time.time() - start) * 1000)
 
