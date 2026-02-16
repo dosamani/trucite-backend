@@ -697,6 +697,7 @@ def api_score():
             "verdict": verdict,
             "score": int(score),
             "decision": action,
+            "decision_detail": {"action": action, "reason": reason},
 
             # Policy metadata
             "policy_mode": policy_mode,
@@ -723,8 +724,8 @@ def api_score():
             "signals": signals,
             "explanation": explanation,
 
-            # Also keep your decision reason (UI copy uses it)
-            "decision_detail": {"action": action, "reason": reason},
+        
+            
         }
 
         return jsonify(resp_obj), 200
