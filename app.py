@@ -623,10 +623,10 @@ def health():
         "time_utc": datetime.now(timezone.utc).isoformat(),
     }), 200
 
+# =========================
+# API: SCORE
+# =========================
 
-# -------------------------
-# Core scoring endpoint (JSON)
-# -------------------------
 @app.route("/api/score", methods=["POST", "OPTIONS"])
 def api_score():
     # Always respond with JSON (even on errors) so frontend doesn't choke
@@ -644,7 +644,7 @@ def api_score():
         if not text:
             return json_error("MISSING_TEXT", "Missing 'text' in request body", 400)
 
-        # Fingerprint / Event ID
+        # Fingerprint / Event ID (deterministic)
         sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
         event_id = sha[:12]
         ts = datetime.now(timezone.utc).isoformat()
@@ -666,64 +666,68 @@ def api_score():
             policy_mode=policy_mode,
         )
 
-         # =========================
-        # DEMO MODE OVERRIDE
         # =========================
-        if DEMO_MODE:
-            # Force deterministic, investor-stable demo behavior
+        # DEMO MODE OVERRIDE (optional)
+        # If TRUCITE_DEMO_MODE=1, enforce deterministic "investor-stable" behavior
+        # =========================
+        demo_mode = os.getenv("TRUCITE_DEMO_MODE", "0").strip().lower() in ("1", "true", "yes", "on")
+        if demo_mode:
+            # If volatile + no evidence => force REVIEW and cap score
             if signals.get("volatility") == "VOLATILE" and not signals.get("has_references"):
                 action = "REVIEW"
                 reason = "Demo policy: volatile claim requires evidence."
                 score = min(int(score), 65)
                 verdict = "Unclear / needs verification"
 
+            # If evidence present => force ALLOW and floor score
             elif signals.get("has_references"):
                 action = "ALLOW"
                 reason = "Demo policy: evidence present."
                 score = max(int(score), 78)
-                verdict = "Likely true / consistent"       
+                verdict = "Likely true / consistent"
 
         latency_ms = int((time.time() - start) * 1000)
 
         resp_obj = {
-    "schema_version": SCHEMA_VERSION,
-    "request_id": request_id,
-    "latency_ms": latency_ms,
+            "schema_version": SCHEMA_VERSION,
+            "request_id": event_id,
+            "latency_ms": latency_ms,
 
-    # Outcome layer
-    "verdict": verdict,
-    "score": int(score),
-    "decision": {
-        "action": action,
-        "reason": reason
-    },
+            # Outcome layer
+            "verdict": verdict,
+            "score": int(score),
+            "decision": action,
 
-    # Policy metadata
-    "policy_mode": policy_mode,
-    "policy_version": POLICY_VERSION,
-    "policy_hash": policy_hash(policy_mode),
+            # Policy metadata
+            "policy_mode": policy_mode,
+            "policy_version": POLICY_VERSION,
+            "policy_hash": policy_hash(policy_mode),
 
-    # Execution fingerprint
-    "event_id": event_id,
-    "audit_fingerprint": {
-        "sha256": sha,
-        "timestamp_utc": ts
-    },
+            # Execution fingerprint
+            "event_id": event_id,
+            "audit_fingerprint_sha256": sha,
 
-    # Diagnostic layer
-    "claims": claims,
-    "references": references,
-    "signals": signals,
+            # Convenience fields for UI panel
+            "volatility": signals.get("volatility"),
+            "volatility_category": signals.get("volatility_category", ""),
+            "evidence_validation_status": signals.get("evidence_validation_status"),
+            "evidence_trust_tier": signals.get("evidence_trust_tier"),
+            "evidence_confidence": signals.get("evidence_confidence"),
+            "risk_flags": signals.get("risk_flags", []),
+            "guardrail": signals.get("guardrail"),
 
-    # Human explanation
-    "explanation": explanation,
+            # Detailed payload (for your debug accordion)
+            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+            "claims": claims,
+            "references": references,
+            "signals": signals,
+            "explanation": explanation,
+
+            # Also keep your decision reason (UI copy uses it)
+            "decision_detail": {"action": action, "reason": reason},
         }
-        # VC-signaling demo mode: return clean, contract-shaped payload
-if DEMO_MODE:
-    return jsonify(shape_demo_response(resp_obj)), 200
 
-# Default: full payload
-return jsonify(resp_obj), 200
+        return jsonify(resp_obj), 200
 
     except Exception as e:
         # Return JSON error (so you can see WHAT broke on mobile)
