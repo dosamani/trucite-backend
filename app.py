@@ -542,30 +542,36 @@ def make_request_id(text: str, evidence: str, policy_mode: str) -> str:
     """
     base = f"{(text or '').strip()}||{(evidence or '').strip()}||{(policy_mode or '').strip().lower()}"
     return hashlib.sha256(base.encode("utf-8")).hexdigest()[:12]
-
+    
 def shape_demo_response(resp_obj: dict) -> dict:
     """
-    Produces a clean, investor-facing response while keeping
-    internal scoring intact.
+    Investor-facing response contract.
 
-    Normalizes decision structure to:
-        {
-            "action": "...",
-            "reason": "..."
-        }
+    Canonical rules:
+      - decision: ALWAYS a string ("ALLOW" | "REVIEW" | "BLOCK")
+      - decision_detail: ALWAYS an object {action, reason}
     """
 
-    # --- Normalize decision ---
     raw_decision = resp_obj.get("decision")
 
+    # Normalize to: action(str), reason(str)
     if isinstance(raw_decision, dict):
-        decision_obj = raw_decision
+        action = raw_decision.get("action")
+        reason = raw_decision.get("reason")
     else:
-        # If old string format slipped in, reconstruct safely
-        decision_obj = {
-            "action": raw_decision,
-            "reason": resp_obj.get("decision_detail", {}).get("reason")
-        }
+        action = raw_decision
+        reason = None
+
+    # Prefer explicit decision_detail reason if present
+    detail = resp_obj.get("decision_detail") or {}
+    if reason is None:
+        reason = detail.get("reason")
+
+    # Hard fallback for safety
+    if action is None:
+        action = detail.get("action") or "REVIEW"
+    if reason is None:
+        reason = ""
 
     shaped = {
         # Contract layer
@@ -576,8 +582,9 @@ def shape_demo_response(resp_obj: dict) -> dict:
         },
 
         # Outcome layer (canonical)
-        "decision": decision_obj,
-        "decision_action": decision_obj.get("action"),
+        "decision": action,  # STRING ONLY
+        "decision_detail": {"action": action, "reason": reason},
+        "decision_action": action,  # optional convenience
         "score": resp_obj.get("score"),
         "verdict": resp_obj.get("verdict"),
 
