@@ -288,6 +288,47 @@ def volatility_level(text: str, policy_mode: str = "enterprise") -> str:
             return "EVENT_SENSITIVE"
 
     return "LOW"
+    # -------------------------
+# Liability tier classification
+# -------------------------
+
+HIGH_LIABILITY_KEYWORDS = [
+    "dose",
+    "dosage",
+    "mg",
+    "treatment",
+    "diagnosis",
+    "legal advice",
+    "contract",
+    "lawsuit",
+    "financial advice",
+    "investment",
+    "interest rate",
+    "prescription",
+]
+
+def liability_tier(text: str, policy_mode: str = "enterprise") -> str:
+    """
+    Returns: 'low' or 'high'
+    Escalates for numeric claims or regulated domains.
+    """
+    tl = (text or "").strip().lower()
+
+    # numeric claims are automatically high liability
+    if any(ch.isdigit() for ch in tl):
+        return "high"
+
+    # keyword-based escalation
+    for kw in HIGH_LIABILITY_KEYWORDS:
+        if kw in tl:
+            return "high"
+
+    # stricter in regulated policy modes
+    if policy_mode.lower() in ("health", "legal", "finance"):
+        if any(word in tl for word in ["must", "always", "guarantee"]):
+            return "high"
+
+    return "low"
     # =============================
 # Heuristic scoring + Decision Gate (MVP)
 # app.py (PART 2/4)
