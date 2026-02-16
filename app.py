@@ -698,8 +698,7 @@ def api_score():
             # Outcome layer
             "verdict": verdict,
             "score": int(score),
-            "decision": action,  # <-- canonical decision (string)
-            "decision_detail": {"action": action, "reason": reason},
+            "decision": {"action": action, "reason": reason},
 
             # Policy metadata
             "policy_mode": policy_mode,
