@@ -109,12 +109,14 @@ def api_score():
 
         # Use your existing heuristic_score if present; otherwise minimal safe scoring
         if "heuristic_score" in globals() and callable(globals()["heuristic_score"]):
-            score, verdict, explanation, signals, references = globals()["heuristic_score"](text, evidence)
+            score, verdict, explanation, signals, references = globals()["heuristic_score"](
+                text, evidence, policy_mode=policy_mode
+            )
         else:
             score = 55
             verdict = "Unclear / needs verification"
             explanation = "Fallback scoring (heuristic_score not found)."
-            signals = {"has_references": bool(evidence.strip()), "risk_flags": ["fallback_scoring"]}
+            signals = {"has_references": bool(evidence.strip()), "risk_flags": ["fallback_scoring"], "volatility": "LOW"}
             references = [{"type": "evidence", "value": evidence[:240]}] if evidence.strip() else []
 
         # Ensure volatility exists for UI
@@ -124,19 +126,21 @@ def api_score():
                 signals["volatility"] = "VOLATILE" if "volatile" in guardrail else "LOW"
         else:
             signals = {"volatility": "LOW"}
-         # Use your decision_gate if present; else safe default
-    if "decision_gate" in globals() and callable(globals()["decision_gate"]):
-        action, reason = globals()["decision_gate"](
-            int(score),
-            signals,
-            policy_mode
-        )
-    else:
-        action = "REVIEW"
-        reason = "Fallback decisioning (decision_gate not found)."
-        
+
+        # Use your decision_gate if present; else safe default
+        if "decision_gate" in globals() and callable(globals()["decision_gate"]):
+            action, reason = globals()["decision_gate"](
+                int(score),
+                signals,
+                policy_mode
+            )
+        else:
+            action = "REVIEW"
+            reason = "Fallback decisioning (decision_gate not found)."
+
         latency_ms = int((time.time() - start) * 1000)
-resp_obj = {
+
+        resp_obj = {
             "schema_version": schema_version,
             "request_id": event_id,
             "latency_ms": latency_ms,
@@ -146,12 +150,12 @@ resp_obj = {
 
             "decision": {"action": action, "reason": reason},
 
+            "event_id": event_id,
+            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+
             "policy_mode": policy_mode,
             "policy_version": policy_version,
             "policy_hash": ph,
-
-            "event_id": event_id,
-            "audit_fingerprint_sha256": sha,
 
             "volatility": signals.get("volatility"),
             "volatility_category": signals.get("volatility_category", ""),
@@ -167,7 +171,7 @@ resp_obj = {
             "references": references,
             "signals": signals,
             "explanation": explanation,
-}
+        }
 
         return jsonify(resp_obj), 200
 
