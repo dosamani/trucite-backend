@@ -125,17 +125,16 @@ def api_score():
         else:
             signals = {"volatility": "LOW"}
 
-        # Use your decision_gate if present; else safe default
-        if "decision_gate" in globals() and callable(globals()["decision_gate"]):
+         # Use your decision_gate if present; else safe default
+         if "decision_gate" in globals() and callable(globals()["decision_gate"]):
     action, reason = globals()["decision_gate"](
         int(score),
         signals,
         policy_mode
     )
-else:
+        else:
     action = "REVIEW"
-    reason = "Fallback decisioning (decision_gate not found)."
-            
+    reason = "Fallback decisioning (decision_gate not found)."   
 
         latency_ms = int((time.time() - start) * 1000)
 resp_obj = {
