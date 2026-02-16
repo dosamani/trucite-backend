@@ -137,6 +137,34 @@
     const sig = data?.signals || {};
     const ev = sig?.evidence_validation || {};
 
+    // Prefer top-level fields first (backend truth),
+    // then signals.* (older schema),
+    // then signals.evidence_validation.* (newer structured object),
+    // then fallbacks.
+    const volatility =
+      (data?.volatility ?? sig?.volatility ?? "LOW");
+
+    const volatilityCategory =
+      (data?.volatility_category ?? sig?.volatility_category ?? "");
+
+    const evidenceStatus =
+      (data?.evidence_validation_status ??
+       sig?.evidence_validation_status ??
+       ev?.status ??
+       "NONE");
+
+    const evidenceTrustTier =
+      (data?.evidence_trust_tier ??
+       sig?.evidence_trust_tier ??
+       ev?.trust_tier ??
+       "C");
+
+    const evidenceConfidence =
+      (typeof data?.evidence_confidence === "number") ? data.evidence_confidence :
+      (typeof sig?.evidence_confidence === "number") ? sig.evidence_confidence :
+      (typeof ev?.confidence === "number") ? ev.confidence :
+      null;
+
     return {
       schema_version: data?.schema_version || "2.0",
       request_id: data?.request_id || "",
@@ -147,17 +175,17 @@
       policy_version: data?.policy_version || "",
       policy_hash: data?.policy_hash || "",
       event_id: data?.event_id || "",
-      audit_fingerprint_sha256: data?.audit_fingerprint?.sha256 || "",
+      audit_fingerprint_sha256: data?.audit_fingerprint?.sha256 || data?.audit_fingerprint_sha256 || "",
       latency_ms: (typeof data?.latency_ms === "number") ? data.latency_ms : null,
 
-      volatility: (sig?.volatility || "LOW"),
-      volatility_category: sig?.volatility_category || "",
-      evidence_validation_status: ev?.status || "NONE",
-      evidence_trust_tier: sig?.evidence_trust_tier || "C",
-      evidence_confidence: (typeof sig?.evidence_confidence === "number") ? sig.evidence_confidence : null,
+      volatility: String(volatility).toUpperCase(),
+      volatility_category: volatilityCategory,
+      evidence_validation_status: evidenceStatus,
+      evidence_trust_tier: evidenceTrustTier,
+      evidence_confidence: evidenceConfidence,
 
-      risk_flags: sig?.risk_flags || [],
-      guardrail: sig?.guardrail || null
+      risk_flags: data?.risk_flags || sig?.risk_flags || [],
+      guardrail: data?.guardrail ?? sig?.guardrail ?? null
     };
   }
 
