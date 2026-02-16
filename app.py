@@ -598,38 +598,38 @@ def api_score():
         latency_ms = int((time.time() - start) * 1000)
 
         resp_obj = {
-            "schema_version": SCHEMA_VERSION,
-            "request_id": event_id,
-            "latency_ms": latency_ms,
+    "schema_version": SCHEMA_VERSION,
+    "request_id": event_id,
+    "latency_ms": latency_ms,
 
-            "verdict": verdict,
-            "score": int(score),
+    # Outcome layer
+    "verdict": verdict,
+    "score": int(score),
+    "decision": {
+        "action": action,
+        "reason": reason
+    },
 
-            "decision": {"action": action, "reason": reason},
-            # ---- top-level reliability signals (UI reads these) ----
-            "volatility": signals.get("volatility", "LOW"),
-            "volatility_category": signals.get("volatility_category", ""),
+    # Policy metadata
+    "policy_mode": policy_mode,
+    "policy_version": POLICY_VERSION,
+    "policy_hash": policy_hash(policy_mode),
 
-            "evidence_validation_status": signals.get("evidence_validation_status", "NONE"),
-            "evidence_trust_tier": signals.get("evidence_trust_tier", "C"),
-            "evidence_confidence": signals.get("evidence_confidence", None),
+    # Execution fingerprint
+    "event_id": event_id,
+    "audit_fingerprint": {
+        "sha256": sha,
+        "timestamp_utc": ts
+    },
 
-            "risk_flags": signals.get("risk_flags", []),
-            "guardrail": signals.get("guardrail", None),
+    # Diagnostic layer
+    "claims": claims,
+    "references": references,
+    "signals": signals,
 
-            "policy_mode": policy_mode,
-            "policy_version": POLICY_VERSION,
-            "policy_hash": policy_hash(policy_mode),
-
-            "event_id": event_id,
-            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
-
-            "claims": claims,
-            "references": references,
-            "signals": signals,
-            "explanation": explanation,
+    # Human explanation
+    "explanation": explanation,
         }
-
         return jsonify(resp_obj), 200
 
     except Exception as e:
