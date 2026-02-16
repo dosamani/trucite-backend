@@ -127,14 +127,18 @@ def api_score():
 
         # Use your decision_gate if present; else safe default
         if "decision_gate" in globals() and callable(globals()["decision_gate"]):
-            action, reason = globals()["decision_gate"](int(score), signals)
-        else:
-            action = "REVIEW"
-            reason = "Fallback decisioning (decision_gate not found)."
+    action, reason = globals()["decision_gate"](
+        int(score),
+        signals,
+        policy_mode
+    )
+else:
+    action = "REVIEW"
+    reason = "Fallback decisioning (decision_gate not found)."
+            
 
         latency_ms = int((time.time() - start) * 1000)
-
-        resp_obj = {
+resp_obj = {
             "schema_version": schema_version,
             "request_id": event_id,
             "latency_ms": latency_ms,
@@ -144,18 +148,28 @@ def api_score():
 
             "decision": {"action": action, "reason": reason},
 
-            "event_id": event_id,
             "policy_mode": policy_mode,
             "policy_version": policy_version,
             "policy_hash": ph,
 
-            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+            "event_id": event_id,
+            "audit_fingerprint_sha256": sha,
 
+            "volatility": signals.get("volatility"),
+            "volatility_category": signals.get("volatility_category", ""),
+            "evidence_validation_status": signals.get("evidence_validation_status"),
+            "evidence_trust_tier": signals.get("evidence_trust_tier"),
+            "evidence_confidence": signals.get("evidence_confidence"),
+
+            "risk_flags": signals.get("risk_flags", []),
+            "guardrail": signals.get("guardrail"),
+
+            # keep detailed section below for debugging panel
             "claims": [{"text": text}],
             "references": references,
             "signals": signals,
             "explanation": explanation,
-        }
+}
 
         return jsonify(resp_obj), 200
 
@@ -422,15 +436,17 @@ def liability_tier(text: str, policy_mode: str = "enterprise") -> str:
 # MVP heuristic scoring + guardrails
 # -------------------------
 def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterprise", seed_score: int = 55):
-
     raw = (text or "")
     t = raw.strip()
     tl = normalize_text(t)
     ev = (evidence or "").strip()
 
+    # Evidence presence
     has_refs = evidence_present(ev)
+    urls = extract_urls(ev)
     has_digit = has_any_digit(t)
 
+    # Policy-aware signals
     tier = liability_tier(t, policy_mode=policy_mode)
     volatility = volatility_level(t, policy_mode=policy_mode)
 
@@ -439,29 +455,25 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterpris
     score = int(seed_score)
     guardrail = None
 
-    # -------------------------
-    # Scoring rules
-    # -------------------------
-
-    # Short declarative bonus
+    # short declarative bonus
     if len(t) < 200 and " is " in tl:
         score += 18
         risk_flags.append("short_declarative_claim")
         rules_fired.append("short_declarative_bonus")
 
-    # Numeric without evidence
+    # numeric without evidence
     if has_digit and not has_refs:
         score -= 18
         risk_flags.append("numeric_without_evidence")
         rules_fired.append("numeric_without_evidence_penalty")
 
-    # Evidence present bonus
+    # evidence bonus
     if has_refs:
         score += 5
         risk_flags.append("evidence_present")
         rules_fired.append("evidence_present_bonus")
 
-    # Volatile guardrail cap
+    # volatile guardrail
     if volatility == "VOLATILE" and not has_refs:
         score = min(score, 65)
         guardrail = "volatile_current_fact_no_evidence"
@@ -470,9 +482,6 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterpris
 
     score = max(0, min(100, int(score)))
 
-    # -------------------------
-    # Verdict bands
-    # -------------------------
     if score >= 75:
         verdict = "Likely true / consistent"
     elif score >= 55:
@@ -480,23 +489,22 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterpris
     else:
         verdict = "High risk of error / hallucination"
 
-    # -------------------------
-    # Evidence trust summary
-    # -------------------------
+    # Deterministic trust scoring (safe even if you’re not fetching)
     best_trust_tier, evidence_status, evidence_conf = evidence_trust_summary(ev)
 
-    # -------------------------
-    # Signals object
-    # -------------------------
     signals = {
         "has_references": bool(has_refs),
-        "reference_count": len(extract_urls(ev)),
+        "reference_count": len(urls),
+
         "liability_tier": tier,
         "volatility": volatility,
+
         "evidence_required_for_allow": bool(volatility != "LOW" or tier == "high"),
-        "evidence_validation_status": evidence_status,
+
+        "evidence_validation_status": evidence_status,  # e.g., "PRESENT" / "NONE"
         "evidence_trust_tier": best_trust_tier or ("B" if has_refs else "C"),
         "evidence_confidence": evidence_conf,
+
         "risk_flags": risk_flags,
         "rules_fired": rules_fired,
         "guardrail": guardrail,
@@ -507,9 +515,7 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterpris
         "Replace with evidence-backed verification in production."
     )
 
-    references = []
-    for u in extract_urls(ev):
-        references.append({"type": "url", "value": u})
+    references = [{"type": "url", "value": u} for u in urls]
 
     return score, verdict, explanation, signals, references
 # -------------------------
