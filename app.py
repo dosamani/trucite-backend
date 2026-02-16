@@ -543,8 +543,7 @@ def make_request_id(text: str, evidence: str, policy_mode: str) -> str:
     base = f"{(text or '').strip()}||{(evidence or '').strip()}||{(policy_mode or '').strip().lower()}"
     return hashlib.sha256(base.encode("utf-8")).hexdigest()[:12]
 
-
-    def shape_demo_response(resp_obj: dict) -> dict:
+def shape_demo_response(resp_obj: dict) -> dict:
     """
     Produces a clean, investor-facing response while keeping
     internal scoring intact.
