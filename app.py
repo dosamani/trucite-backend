@@ -626,7 +626,6 @@ def health():
 # =========================
 # API: SCORE
 # =========================
-
 @app.route("/api/score", methods=["POST", "OPTIONS"])
 def api_score():
     # Always respond with JSON (even on errors) so frontend doesn't choke
@@ -644,7 +643,7 @@ def api_score():
         if not text:
             return json_error("MISSING_TEXT", "Missing 'text' in request body", 400)
 
-        # Fingerprint / Event ID (deterministic)
+        # Fingerprint / Event ID
         sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
         event_id = sha[:12]
         ts = datetime.now(timezone.utc).isoformat()
@@ -652,35 +651,35 @@ def api_score():
         # Claims (MVP: single-claim passthrough)
         claims = [{"text": text}]
 
-        # Scoring (always use our heuristic_score for stability)
+        # Scoring
         score, verdict, explanation, signals, references = heuristic_score(
             text=text,
             evidence=evidence,
             policy_mode=policy_mode,
         )
 
-        # Decision gate
+        # Decision gate (canonical)
         action, reason = decision_gate(
             int(score),
             signals,
             policy_mode=policy_mode,
         )
 
-        # =========================
+        # --------------------------
         # DEMO MODE OVERRIDE (optional)
-        # If TRUCITE_DEMO_MODE=1, enforce deterministic "investor-stable" behavior
-        # =========================
-        demo_mode = os.getenv("TRUCITE_DEMO_MODE", "0").strip().lower() in ("1", "true", "yes", "on")
-        if demo_mode:
-            # If volatile + no evidence => force REVIEW and cap score
-            if signals.get("volatility") == "VOLATILE" and not signals.get("has_references"):
+        # --------------------------
+        if DEMO_MODE:
+            # Treat "has references" as either signals flag OR actual references list
+            has_refs = bool(signals.get("has_references")) or bool(references)
+            is_volatile = (signals.get("volatility") == "VOLATILE")
+
+            if is_volatile and not has_refs:
                 action = "REVIEW"
                 reason = "Demo policy: volatile claim requires evidence."
                 score = min(int(score), 65)
                 verdict = "Unclear / needs verification"
-
-            # If evidence present => force ALLOW and floor score
-            elif signals.get("has_references"):
+                signals["guardrail"] = "volatile_current_fact_no_evidence"
+            elif has_refs:
                 action = "ALLOW"
                 reason = "Demo policy: evidence present."
                 score = max(int(score), 78)
@@ -688,6 +687,9 @@ def api_score():
 
         latency_ms = int((time.time() - start) * 1000)
 
+        # --------------------------
+        # Response object (NO duplicate decision keys)
+        # --------------------------
         resp_obj = {
             "schema_version": SCHEMA_VERSION,
             "request_id": event_id,
@@ -696,7 +698,7 @@ def api_score():
             # Outcome layer
             "verdict": verdict,
             "score": int(score),
-            "decision": action,
+            "decision": action,  # <-- canonical decision (string)
             "decision_detail": {"action": action, "reason": reason},
 
             # Policy metadata
@@ -707,6 +709,7 @@ def api_score():
             # Execution fingerprint
             "event_id": event_id,
             "audit_fingerprint_sha256": sha,
+            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
 
             # Convenience fields for UI panel
             "volatility": signals.get("volatility"),
@@ -717,21 +720,16 @@ def api_score():
             "risk_flags": signals.get("risk_flags", []),
             "guardrail": signals.get("guardrail"),
 
-            # Detailed payload (for your debug accordion)
-            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+            # Diagnostic payload
             "claims": claims,
             "references": references,
             "signals": signals,
             "explanation": explanation,
-
-        
-            
         }
 
         return jsonify(resp_obj), 200
 
     except Exception as e:
-        # Return JSON error (so you can see WHAT broke on mobile)
         return json_error(
             "SERVER_EXCEPTION",
             str(e),
