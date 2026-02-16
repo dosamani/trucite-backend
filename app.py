@@ -238,70 +238,56 @@ def trust_allows_volatile(profile: dict, best_trust_tier: str) -> bool:
 # -------------------------
 # Volatility + liability (MVP)
 # -------------------------
+
 VOLATILE_FACT_PATTERNS = [
-    r"\bcurrent ceo\b",
-    r"\bcurrent president\b",
-    r"\bcurrently\b",
-    r"\bas of (today|now)\b",
-    r"\bthis year\b",
-    r"\blast (week|month)\b",
-    r"\bbreaking\b",
-    r"\bjust announced\b",
-    r"\bappointed\b",
-    r"\bresigned\b",
+    # current roles / titles / leadership positions
+    r"\bcurrent\b",
+    r"\bCEO\b",
+    r"\bCFO\b",
+    r"\bCOO\b",
+    r"\bCTO\b",
+    r"\bchairman\b",
+    r"\bpresident\b",
+    r"\bprime minister\b",
+    r"\bgovernor\b",
+    r"\bmayor\b",
+    r"\bhead of\b",
+    r"\bleadership\b",
+
+    # phrasing often used in role assertions
+    r"\bis the CEO of\b",
+    r"\bis the (?:current )?(?:CEO|CFO|COO|CTO)\b",
+    r"\bis (?:currently|now)\b",
 ]
 
 EVENT_SENSITIVE_PATTERNS = [
-    r"\belection\b",
-    r"\bwar\b",
-    r"\bmarket crash\b",
-    r"\binterest rate\b",
-    r"\bquarterly earnings\b",
+    # time-sensitive events / news claims
+    r"\btoday\b",
+    r"\byesterday\b",
+    r"\bthis week\b",
+    r"\blast week\b",
+    r"\bbreaking\b",
+    r"\brecent\b",
+    r"\bjust announced\b",
 ]
 
-HIGH_LIABILITY_KEYWORDS = [
-    "dose", "dosage", "medication", "diagnosis", "treatment",
-    "contract", "legal advice", "case law", "precedent",
-    "investment", "security", "stock", "bond", "derivative",
-    "credit score", "bankruptcy", "tax",
-    "hipaa", "phi", "patient",
-]
+def volatility_level(text: str, policy_mode: str = "enterprise") -> str:
+    """
+    Returns: LOW | EVENT_SENSITIVE | VOLATILE
+    VOLATILE = claims likely to change (current roles/titles, real-world status)
+    EVENT_SENSITIVE = news-like time claims
+    """
+    tl = normalize_text(text or "")
 
-def volatility_level(text: str, policy_mode: str = DEFAULT_POLICY_MODE) -> str:
-    """
-    Returns: LOW | VOLATILE | EVENT_SENSITIVE
-    policy_mode currently unused, reserved for future taxonomy.
-    """
-    tl = normalize_text(text)
     for pat in VOLATILE_FACT_PATTERNS:
-        if re.search(pat, tl, re.IGNORECASE):
+        if re.search(pat, tl, re.I):
             return "VOLATILE"
+
     for pat in EVENT_SENSITIVE_PATTERNS:
-        if re.search(pat, tl, re.IGNORECASE):
+        if re.search(pat, tl, re.I):
             return "EVENT_SENSITIVE"
+
     return "LOW"
-
-def liability_tier(text: str, policy_mode: str = DEFAULT_POLICY_MODE) -> str:
-    """
-    policy_mode-aware liability escalation:
-    - health/legal/finance are stricter: more things count as "high"
-    """
-    tl = normalize_text(text)
-    pm = (policy_mode or DEFAULT_POLICY_MODE).strip().lower()
-
-    # Any digits can represent dosage, money, rates, etc.
-    if has_any_digit(text):
-        return "high"
-
-    for kw in HIGH_LIABILITY_KEYWORDS:
-        if kw in tl:
-            return "high"
-
-    if pm in ("health", "legal", "finance"):
-        if contains_universal_certainty(text):
-            return "high"
-
-    return "low"
     # =============================
 # Heuristic scoring + Decision Gate (MVP)
 # app.py (PART 2/4)
