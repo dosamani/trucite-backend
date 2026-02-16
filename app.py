@@ -476,7 +476,7 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterpris
     else:
         verdict = "High risk of error / hallucination"
 ev = (evidence or "").strip()
-    has_refs = evidence_present(ev)
+has_refs = evidence_present(ev)
 
     # Deterministic trust scoring
     best_trust_tier, evidence_status, evidence_conf = evidence_trust_summary(ev)
