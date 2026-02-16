@@ -414,157 +414,69 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterpris
 
     return score, verdict, explanation, signals, references
 
-# Decision logic (policy-aware, volatility-aware, trust-aware)
+    # -------------------------
+# Decision logic (canonical MVP-safe)
 # -------------------------
-def decision_gate(score: int, signals: dict, policy_mode: str = DEFAULT_POLICY_MODE):
-    profile = POLICY_PROFILES.get(policy_mode, POLICY_PROFILES[DEFAULT_POLICY_MODE])
+def decision_gate(score: int, signals: dict, policy_mode: str = None):
+    """
+    Stable MVP decision logic.
+    No external dependencies.
+    No trust tiers.
+    No advanced volatility taxonomy.
+    """
+
+    signals = signals or {}
 
     guardrail = (signals.get("guardrail") or "").strip()
     has_refs = bool(signals.get("has_references"))
     liability = (signals.get("liability_tier") or "low").lower()
-    volatility = (signals.get("volatility") or "LOW").upper()
     evidence_required_for_allow = bool(signals.get("evidence_required_for_allow"))
-    evidence_signals = signals.get("evidence_signals") or {}
-
-    best_trust = evidence_signals.get("best_trust_tier")
-    trusted_for_volatile = trust_allows_volatile(profile, evidence_signals)
+    volatility = (signals.get("volatility") or "LOW").strip().upper()
 
     # -------------------------
     # Hard guardrails
     # -------------------------
+
     if guardrail == "known_false_claim_no_evidence":
         return "BLOCK", "Known false / widely debunked category without evidence. Guardrail triggered."
 
     if guardrail == "unsupported_universal_claim_no_evidence":
         return "REVIEW", "Unsupported universal/high-certainty claim without evidence. Conservative gating applied."
 
-    # Volatile real-world fact requires trusted evidence to ALLOW
-    if volatility != "LOW":
-        if not has_refs:
-            return "REVIEW", "Volatile real-world fact detected. Evidence required to ALLOW."
-        if not trusted_for_volatile:
-            return "REVIEW", "Evidence provided but source trust tier insufficient for volatile ALLOW under enterprise policy."
+    if guardrail == "volatile_current_fact_no_evidence":
+        return "REVIEW", "Volatile real-world fact detected (current roles/events). Evidence required to ALLOW."
 
     # -------------------------
-    # High-liability enforcement
+    # High-liability evidence requirement
     # -------------------------
+
     if evidence_required_for_allow and not has_refs:
         if score >= 70:
-            return "REVIEW", "Likely plausible, but evidence required under high-liability policy."
-        return "REVIEW", "No evidence provided for high-liability claim. Human verification recommended."
+            return "REVIEW", "Likely plausible, but no evidence provided. Policy requires verification."
+        return "REVIEW", "No evidence provided for high-liability or numeric claim."
 
     # -------------------------
-    # Liability-tier thresholds
+    # Low-liability tier
     # -------------------------
+
     if liability == "low":
-        if score >= 75:
-            return "ALLOW", "High confidence under enterprise policy."
+
+        # Volatile facts require evidence even in low tier
+        if volatility == "VOLATILE" and not has_refs:
+            return "REVIEW", "Volatile real-world fact detected. Evidence required to ALLOW."
+
+        if score >= 70:
+            return "ALLOW", "High confidence per MVP scoring."
         elif score >= 55:
             return "REVIEW", "Medium confidence. Human verification recommended."
         return "BLOCK", "Low confidence. Do not use without verification."
 
-    # High-liability tier
-    if score >= 80:
-        return "ALLOW", "High confidence with trusted evidence under high-liability policy."
-    elif score >= 60:
+    # -------------------------
+    # High-liability tier (evidence already handled above)
+    # -------------------------
+
+    if score >= 75:
+        return "ALLOW", "High confidence with evidence under high-liability policy."
+    elif score >= 55:
         return "REVIEW", "Medium confidence. Human verification recommended."
     return "BLOCK", "Low confidence. Do not use without verification."
-    # -------------------------
-# Core verification routine (shared by /verify and /api/score)
-# -------------------------
-def run_verification(payload: dict):
-    start = time.time()
-
-    text = (payload.get("text") or "").strip()
-    evidence = (payload.get("evidence") or "").strip()
-    policy_mode = (payload.get("policy_mode") or DEFAULT_POLICY_MODE).strip().lower()
-
-    if not text:
-        return None, ("Missing 'text' in request body", 400)
-
-    # Fingerprint / Event ID
-    sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
-    event_id = sha[:12]
-    ts = datetime.now(timezone.utc).isoformat()
-
-    # Claims extraction
-    claims = []
-    if extract_claims:
-        try:
-            extracted = extract_claims(text)
-            if isinstance(extracted, list):
-                for c in extracted:
-                    if isinstance(c, dict) and "text" in c:
-                        claims.append({"text": str(c["text"])})
-                    elif isinstance(c, str):
-                        claims.append({"text": c})
-            elif isinstance(extracted, str):
-                claims = [{"text": extracted}]
-        except Exception:
-            claims = [{"text": text}]
-    else:
-        claims = [{"text": text}]
-
-    # Scoring
-    if score_claim_text:
-        try:
-            out = score_claim_text(text, evidence=evidence, policy_mode=policy_mode)
-            if isinstance(out, (list, tuple)) and len(out) >= 5:
-                score, verdict, explanation, signals, references = out[:5]
-            elif isinstance(out, (list, tuple)) and len(out) == 3:
-                score, verdict, explanation = out
-                score, verdict, explanation, signals, references = enrich_with_guardrails(
-                    text, evidence, int(score), verdict, explanation
-                )
-            else:
-                score, verdict, explanation, signals, references = heuristic_score(
-                    text, evidence, policy_mode=policy_mode
-                )
-        except TypeError:
-            # reference_engine may not accept evidence/policy_mode
-            try:
-                score, verdict, explanation = score_claim_text(text)
-                score, verdict, explanation, signals, references = enrich_with_guardrails(
-                    text, evidence, int(score), verdict, explanation
-                )
-            except Exception:
-                score, verdict, explanation, signals, references = heuristic_score(
-                    text, evidence, policy_mode=policy_mode
-                )
-        except Exception:
-            score, verdict, explanation, signals, references = heuristic_score(
-                text, evidence, policy_mode=policy_mode
-            )
-    else:
-        score, verdict, explanation, signals, references = heuristic_score(
-            text, evidence, policy_mode=policy_mode
-        )
-
-    # Decision gate (updated signature)
-    action, reason = decision_gate(int(score), signals, policy_mode=policy_mode)
-
-    latency_ms = int((time.time() - start) * 1000)
-
-    resp_obj = {
-        "schema_version": SCHEMA_VERSION,
-        "latency_ms": latency_ms,
-
-        "verdict": verdict,
-        "score": int(score),
-        "decision": {"action": action, "reason": reason},
-
-        "event_id": event_id,
-        "policy_mode": policy_mode,
-        "policy_version": POLICY_VERSION,
-        "policy_hash": policy_hash(policy_mode),
-
-        "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
-
-        "claims": claims,
-        "references": references,
-        "signals": signals,
-        "explanation": explanation,
-    }
-
-    return resp_obj, None
-    
