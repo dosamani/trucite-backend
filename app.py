@@ -606,6 +606,16 @@ def api_score():
             "score": int(score),
 
             "decision": {"action": action, "reason": reason},
+            # ---- top-level reliability signals (UI reads these) ----
+            "volatility": signals.get("volatility", "LOW"),
+            "volatility_category": signals.get("volatility_category", ""),
+
+            "evidence_validation_status": signals.get("evidence_validation_status", "NONE"),
+            "evidence_trust_tier": signals.get("evidence_trust_tier", "C"),
+            "evidence_confidence": signals.get("evidence_confidence", None),
+
+            "risk_flags": signals.get("risk_flags", []),
+            "guardrail": signals.get("guardrail", None),
 
             "policy_mode": policy_mode,
             "policy_version": POLICY_VERSION,
