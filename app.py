@@ -434,6 +434,16 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterpris
     tier = liability_tier(t, policy_mode=policy_mode)
     volatility = volatility_level(t, policy_mode=policy_mode)
 
+# Volatility taxonomy (simple MVP categories)
+# NOTE: Keep this deterministic + explainable for demo.
+if volatility == "LOW":
+    volatility_category = "STATIC"
+elif volatility == "EVENT_SENSITIVE":
+    volatility_category = "EVENT_SENSITIVE"
+else:
+    # "VOLATILE" or anything else treated as volatile real-world
+    volatility_category = "CURRENT_FACT"
+
     risk_flags = []
     rules_fired = []
     score = int(seed_score)
@@ -477,18 +487,26 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterpris
     best_trust_tier, evidence_status, evidence_conf = evidence_trust_summary(ev)
 
     # Signals (single authoritative set)
+    # Canonical evidence state
+    if has_refs:
+        evidence_status = "PRESENT"
+    else:
+        evidence_status = "NONE"
+
     signals = {
         "has_references": bool(has_refs),
         "reference_count": len(extract_urls(ev)),
 
-        "liability_tier": tier,
+        "liability_tier": liability,
         "volatility": volatility,
+             "volatility_category": volatility_category,
+        
 
-        # enterprise rule: evidence needed if volatile OR high liability
         "evidence_required_for_allow": bool(
-            volatility != "LOW" or tier == "high"
+            volatility != "LOW" or liability == "high"
         ),
 
+        # Canonical evidence fields
         "evidence_validation_status": evidence_status,
         "evidence_trust_tier": best_trust_tier or ("B" if has_refs else "C"),
         "evidence_confidence": evidence_conf,
@@ -506,29 +524,35 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterpris
     references = [{"type": "url", "value": u} for u in extract_urls(ev)]
 
     return score, verdict, explanation, signals, references
-
-# Decision logic (canonical MVP-safe)
 # -------------------------
-def decision_gate(score: int, signals: dict, policy_mode: str = None):
+# Decision logic (canonical)
+# -------------------------
+def decision_gate(score: int, signals: dict, policy_mode: str = "enterprise"):
     """
-    Stable MVP decision logic.
-    No external dependencies.
-    No trust tiers.
-    No advanced volatility taxonomy.
-    """
+    Canonical decision gate for MVP.
+    Keeps behavior deterministic and explainable.
 
-    signals = signals or {}
+    Inputs:
+      - score: 0-100 heuristic score
+      - signals: dict from heuristic_score / enrich_with_guardrails
+      - policy_mode: enterprise | health | legal | finance
+    """
+    pm = (policy_mode or "enterprise").strip().lower()
 
     guardrail = (signals.get("guardrail") or "").strip()
     has_refs = bool(signals.get("has_references"))
     liability = (signals.get("liability_tier") or "low").lower()
+    volatility = (signals.get("volatility") or "LOW").upper()
+
     evidence_required_for_allow = bool(signals.get("evidence_required_for_allow"))
-    volatility = (signals.get("volatility") or "LOW").strip().upper()
+
+    # Evidence trust summary (optional in MVP; safe defaults)
+    trust_tier = (signals.get("evidence_trust_tier") or "C").upper()
+    evidence_status = (signals.get("evidence_validation_status") or ("PRESENT" if has_refs else "NONE")).upper()
 
     # -------------------------
-    # Hard guardrails
+    # Hard guardrails (highest precedence)
     # -------------------------
-
     if guardrail == "known_false_claim_no_evidence":
         return "BLOCK", "Known false / widely debunked category without evidence. Guardrail triggered."
 
@@ -539,36 +563,41 @@ def decision_gate(score: int, signals: dict, policy_mode: str = None):
         return "REVIEW", "Volatile real-world fact detected (current roles/events). Evidence required to ALLOW."
 
     # -------------------------
-    # High-liability evidence requirement
+    # Volatility policy: require evidence for volatile facts
     # -------------------------
-
-    if evidence_required_for_allow and not has_refs:
-        if score >= 70:
-            return "REVIEW", "Likely plausible, but no evidence provided. Policy requires verification."
-        return "REVIEW", "No evidence provided for high-liability or numeric claim."
-
-    # -------------------------
-    # Low-liability tier
-    # -------------------------
-
-    if liability == "low":
-
-        # Volatile facts require evidence even in low tier
-        if volatility == "VOLATILE" and not has_refs:
+    if volatility != "LOW":
+        if not has_refs:
             return "REVIEW", "Volatile real-world fact detected. Evidence required to ALLOW."
 
+        # In enterprise + regulated modes, require at least B trust for volatile ALLOW
+        if pm in ("enterprise", "health", "legal", "finance"):
+            if trust_tier not in ("A", "B"):
+                return "REVIEW", "Evidence provided but source trust tier insufficient for volatile ALLOW under enterprise policy."
+
+    # -------------------------
+    # High-liability enforcement: require evidence to ALLOW
+    # -------------------------
+    if evidence_required_for_allow and not has_refs:
         if score >= 70:
+            return "REVIEW", "Likely plausible, but evidence required under high-liability/volatile policy."
+        return "REVIEW", "No evidence provided for high-liability/volatile claim. Human verification recommended."
+
+    # -------------------------
+    # Thresholds (liability-aware)
+    # -------------------------
+    if liability == "low":
+        if score >= 70:
+            # Special messaging for volatile + evidence (your Cook demo)
+            if volatility != "LOW" and has_refs and trust_tier in ("A", "B") and evidence_status in ("PRESENT", "FETCH_OK", "OK"):
+                return "ALLOW", "Evidence present for volatile real-world fact. Approved under enterprise policy."
             return "ALLOW", "High confidence per MVP scoring."
         elif score >= 55:
             return "REVIEW", "Medium confidence. Human verification recommended."
         return "BLOCK", "Low confidence. Do not use without verification."
 
-    # -------------------------
-    # High-liability tier (evidence already handled above)
-    # -------------------------
-
-    if score >= 75:
+    # High-liability tier
+    if score >= 80:
         return "ALLOW", "High confidence with evidence under high-liability policy."
-    elif score >= 55:
+    elif score >= 60:
         return "REVIEW", "Medium confidence. Human verification recommended."
     return "BLOCK", "Low confidence. Do not use without verification."
