@@ -544,52 +544,71 @@ def make_request_id(text: str, evidence: str, policy_mode: str) -> str:
     return hashlib.sha256(base.encode("utf-8")).hexdigest()[:12]
 
 
-def shape_demo_response(resp_obj: dict) -> dict:
+    def shape_demo_response(resp_obj: dict) -> dict:
     """
-    Produces a clean, investor-facing response while keeping detailed fields intact.
-    This does NOT change your scoring. It only formats the payload.
+    Produces a clean, investor-facing response while keeping
+    internal scoring intact.
+
+    Normalizes decision structure to:
+        {
+            "action": "...",
+            "reason": "..."
+        }
     """
-    # Always keep these (contract)
+
+    # --- Normalize decision ---
+    raw_decision = resp_obj.get("decision")
+
+    if isinstance(raw_decision, dict):
+        decision_obj = raw_decision
+    else:
+        # If old string format slipped in, reconstruct safely
+        decision_obj = {
+            "action": raw_decision,
+            "reason": resp_obj.get("decision_detail", {}).get("reason")
+        }
+
     shaped = {
+        # Contract layer
         "contract": {
             "name": "TruCite Runtime Execution Reliability",
             "contract_version": DEMO_CONTRACT_VERSION,
             "schema_version": resp_obj.get("schema_version"),
         },
 
-        # Outcome layer (what downstream systems enforce)
-        "decision": resp_obj.get("decision"),
+        # Outcome layer (canonical)
+        "decision": decision_obj,
+        "decision_action": decision_obj.get("action"),
         "score": resp_obj.get("score"),
         "verdict": resp_obj.get("verdict"),
 
-        # Policy metadata (why this decision occurred)
+        # Policy metadata
         "policy": {
             "mode": resp_obj.get("policy_mode"),
             "version": resp_obj.get("policy_version"),
             "hash": resp_obj.get("policy_hash"),
         },
 
-        # Execution-bound audit artifact
+        # Audit artifact
         "audit": {
             "event_id": resp_obj.get("event_id"),
-            "audit_fingerprint": resp_obj.get("audit_fingerprint"),
+            "audit_fingerprint_sha256": resp_obj.get("audit_fingerprint_sha256"),
         },
 
-        # Latency for “runtime gate” credibility
+        # Runtime credibility
         "latency_ms": resp_obj.get("latency_ms"),
 
-        # Evidence + references (show you’re model-agnostic + evidence-driven)
+        # Evidence
         "references": resp_obj.get("references", []),
 
-        # Signals (keep: used by UI + demo transparency)
+        # Signals
         "signals": resp_obj.get("signals", {}),
 
-        # Human explanation (demo narrative)
+        # Explanation
         "explanation": resp_obj.get("explanation", ""),
     }
 
     return shaped
-    
 
 
 # -------------------------
@@ -699,6 +718,7 @@ def api_score():
             "verdict": verdict,
             "score": int(score),
             "decision": {"action": action, "reason": reason},
+            "decision_action": action,
 
             # Policy metadata
             "policy_mode": policy_mode,
