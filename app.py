@@ -20,6 +20,18 @@ from flask_cors import CORS
 SCHEMA_VERSION = "2.0"
 POLICY_VERSION = "2026.01"
 DEFAULT_POLICY_MODE = "enterprise"
+# =========================
+# Demo Mode (VC signaling)
+# =========================
+DEMO_MODE = os.getenv("TRUCITE_DEMO_MODE", "0").strip() in ("1", "true", "TRUE", "yes", "YES")
+
+# Stable, investor-friendly response contract version (separate from schema_version)
+DEMO_CONTRACT_VERSION = "2026.02-demo"
+
+# Deterministic request_id mode:
+# - In demo mode, request_id is deterministic for the same (text + evidence + policy_mode)
+# - In non-demo mode, request_id can be per-request random if you want later
+DEMO_DETERMINISTIC_REQUEST_ID = True
 
 # -------------------------
 # Evidence validation constraints (MVP-safe)
@@ -519,6 +531,65 @@ def json_error(code: str, message: str, status: int = 400, hint: str | None = No
     if extra and isinstance(extra, dict):
         payload.update(extra)
     return jsonify(payload), status
+    # =========================
+# Demo Mode helpers
+# =========================
+def make_request_id(text: str, evidence: str, policy_mode: str) -> str:
+    """
+    Demo-friendly request id.
+    Deterministic in demo mode so the same input yields the same request_id
+    (great for screenshots + reproducibility).
+    """
+    base = f"{(text or '').strip()}||{(evidence or '').strip()}||{(policy_mode or '').strip().lower()}"
+    return hashlib.sha256(base.encode("utf-8")).hexdigest()[:12]
+
+
+def shape_demo_response(resp_obj: dict) -> dict:
+    """
+    Produces a clean, investor-facing response while keeping detailed fields intact.
+    This does NOT change your scoring. It only formats the payload.
+    """
+    # Always keep these (contract)
+    shaped = {
+        "contract": {
+            "name": "TruCite Runtime Execution Reliability",
+            "contract_version": DEMO_CONTRACT_VERSION,
+            "schema_version": resp_obj.get("schema_version"),
+        },
+
+        # Outcome layer (what downstream systems enforce)
+        "decision": resp_obj.get("decision"),
+        "score": resp_obj.get("score"),
+        "verdict": resp_obj.get("verdict"),
+
+        # Policy metadata (why this decision occurred)
+        "policy": {
+            "mode": resp_obj.get("policy_mode"),
+            "version": resp_obj.get("policy_version"),
+            "hash": resp_obj.get("policy_hash"),
+        },
+
+        # Execution-bound audit artifact
+        "audit": {
+            "event_id": resp_obj.get("event_id"),
+            "audit_fingerprint": resp_obj.get("audit_fingerprint"),
+        },
+
+        # Latency for “runtime gate” credibility
+        "latency_ms": resp_obj.get("latency_ms"),
+
+        # Evidence + references (show you’re model-agnostic + evidence-driven)
+        "references": resp_obj.get("references", []),
+
+        # Signals (keep: used by UI + demo transparency)
+        "signals": resp_obj.get("signals", {}),
+
+        # Human explanation (demo narrative)
+        "explanation": resp_obj.get("explanation", ""),
+    }
+
+    return shaped
+    
 
 
 # -------------------------
@@ -594,12 +665,27 @@ def api_score():
             signals,
             policy_mode=policy_mode,
         )
+        # =========================
+        # DEMO MODE OVERRIDE
+        # =========================
+        if DEMO_MODE:
+            # Force deterministic, investor-stable demo behavior
+            if signals.get("volatility") == "VOLATILE" and not signals.get("has_references"):
+                action = "REVIEW"
+                reason = "Demo policy: volatile claim requires evidence."
+                score = min(score, 65)
+                verdict = "Unclear / needs verification"
+            elif signals.get("has_references"):
+                action = "ALLOW"
+                reason = "Demo policy: evidence present."
+                score = max(score, 78)
+                verdict = "Likely true / consistent"
 
         latency_ms = int((time.time() - start) * 1000)
 
         resp_obj = {
     "schema_version": SCHEMA_VERSION,
-    "request_id": event_id,
+    "request_id": request_id,
     "latency_ms": latency_ms,
 
     # Outcome layer
@@ -630,7 +716,12 @@ def api_score():
     # Human explanation
     "explanation": explanation,
         }
-        return jsonify(resp_obj), 200
+        # VC-signaling demo mode: return clean, contract-shaped payload
+if DEMO_MODE:
+    return jsonify(shape_demo_response(resp_obj)), 200
+
+# Default: full payload
+return jsonify(resp_obj), 200
 
     except Exception as e:
         # Return JSON error (so you can see WHAT broke on mobile)
