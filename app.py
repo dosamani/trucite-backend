@@ -418,15 +418,10 @@ def liability_tier(text: str, policy_mode: str = "enterprise") -> str:
         if kw in tl:
             return "high"
     return "low"
-
-
-
 # -------------------------
 # MVP heuristic scoring + guardrails
 # -------------------------
-
 def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterprise", seed_score: int = 55):
-
     raw = (text or "")
     t = raw.strip()
     tl = normalize_text(t)
@@ -435,6 +430,7 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterpris
     has_refs = evidence_present(ev)
     has_digit = has_any_digit(t)
 
+    # Policy-aware tiers (these MUST exist elsewhere in your file)
     tier = liability_tier(t, policy_mode=policy_mode)
     volatility = volatility_level(t, policy_mode=policy_mode)
 
@@ -455,12 +451,13 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterpris
         risk_flags.append("numeric_without_evidence")
         rules_fired.append("numeric_without_evidence_penalty")
 
+    # evidence bonus
     if has_refs:
         score += 5
         risk_flags.append("evidence_present")
         rules_fired.append("evidence_present_bonus")
 
-    # volatile guardrail
+    # volatile guardrail (cap score if volatile with no evidence)
     if volatility == "VOLATILE" and not has_refs:
         score = min(score, 65)
         guardrail = "volatile_current_fact_no_evidence"
@@ -475,34 +472,30 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterpris
         verdict = "Unclear / needs verification"
     else:
         verdict = "High risk of error / hallucination"
-ev = (evidence or "").strip()
-has_refs = evidence_present(ev)
 
-    # Deterministic trust scoring
+    # Deterministic trust scoring (this MUST exist elsewhere)
     best_trust_tier, evidence_status, evidence_conf = evidence_trust_summary(ev)
 
-    # Volatility + liability
-    volatility = volatility_level(text) if "volatility_level" in globals() else "LOW"
-    liability = liability_tier(text, policy_mode) if "liability_tier" in globals() else "low"
-
+    # Signals (single authoritative set)
     signals = {
         "has_references": bool(has_refs),
         "reference_count": len(extract_urls(ev)),
 
-        "liability_tier": liability,
+        "liability_tier": tier,
         "volatility": volatility,
 
+        # enterprise rule: evidence needed if volatile OR high liability
         "evidence_required_for_allow": bool(
-            volatility != "LOW" or liability == "high"
+            volatility != "LOW" or tier == "high"
         ),
 
         "evidence_validation_status": evidence_status,
         "evidence_trust_tier": best_trust_tier or ("B" if has_refs else "C"),
         "evidence_confidence": evidence_conf,
 
-        "risk_flags": [],
-        "rules_fired": [],
-        "guardrail": None,
+        "risk_flags": risk_flags,
+        "rules_fired": rules_fired,
+        "guardrail": guardrail,
     }
 
     explanation = (
@@ -510,13 +503,10 @@ has_refs = evidence_present(ev)
         "Replace with evidence-backed verification in production."
     )
 
-    references = []
-    for u in extract_urls(ev):
-        references.append({"type": "url", "value": u})
+    references = [{"type": "url", "value": u} for u in extract_urls(ev)]
 
     return score, verdict, explanation, signals, references
 
-    # -------------------------
 # Decision logic (canonical MVP-safe)
 # -------------------------
 def decision_gate(score: int, signals: dict, policy_mode: str = None):
