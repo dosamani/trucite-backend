@@ -179,6 +179,90 @@ EVIDENCE_MAX_URLS = 2
 EVIDENCE_TIMEOUT_SEC = 2.5
 EVIDENCE_MAX_BYTES = 120_000
 
+# -------------------------
+# Evidence Trust (Deterministic, No Network Calls)
+# -------------------------
+from urllib.parse import urlparse
+
+# Tier A = High-authority primary sources
+TRUST_TIER_A_DOMAINS = {
+    "nih.gov", "ncbi.nlm.nih.gov", "pubmed.ncbi.nlm.nih.gov",
+    "cdc.gov", "who.int", "fda.gov", "cms.gov",
+    "nature.com", "science.org", "nejm.org", "thelancet.com",
+    "jamanetwork.com", "bmj.com",
+    "ieee.org", "acm.org", "iso.org", "nist.gov",
+}
+
+# Tier B = Official company / institutional sources
+TRUST_TIER_B_DOMAINS = {
+    "apple.com", "microsoft.com", "openai.com",
+    "google.com", "amazon.com",
+    "sec.gov", "ftc.gov",
+    "reuters.com", "apnews.com", "bloomberg.com",
+    "wsj.com", "ft.com",
+}
+
+def _domain_root(host: str) -> str:
+    h = (host or "").strip().lower()
+    if h.startswith("www."):
+        h = h[4:]
+    return h
+
+def domain_trust_tier(url: str) -> str:
+    """
+    Returns: "A" | "B" | "C"
+    Deterministic domain-only trust scoring.
+    """
+    try:
+        host = urlparse(url).netloc
+        root = _domain_root(host)
+    except Exception:
+        return "C"
+
+    if not root:
+        return "C"
+
+    # gov/edu rule
+    if root.endswith(".gov") or root.endswith(".edu"):
+        return "A"
+
+    if root in TRUST_TIER_A_DOMAINS or any(root.endswith("." + d) for d in TRUST_TIER_A_DOMAINS):
+        return "A"
+
+    if root in TRUST_TIER_B_DOMAINS or any(root.endswith("." + d) for d in TRUST_TIER_B_DOMAINS):
+        return "B"
+
+    return "C"
+
+def evidence_trust_summary(evidence: str):
+    """
+    Returns:
+      best_trust_tier
+      evidence_status
+      confidence_score
+    """
+    ev = (evidence or "").strip()
+
+    if not ev:
+        return None, "NONE", None
+
+    urls = extract_urls(ev)[:EVIDENCE_MAX_URLS]
+
+    if not urls:
+        if looks_like_doi_or_pmid(ev):
+            return "B", "IDENTIFIER_ONLY", 0.65
+        return "C", "PRESENT", 0.40
+
+    tiers = [domain_trust_tier(u) for u in urls]
+
+    if "A" in tiers:
+        return "A", "PRESENT", 0.90
+
+    if "B" in tiers:
+        return "B", "PRESENT", 0.72
+
+    return "C", "PRESENT", 0.50
+
 # Basic API hardening signals (acquirer-friendly)
 DEFAULT_HEADERS = {
     "X-Content-Type-Options": "nosniff",
@@ -391,16 +475,34 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = "enterpris
         verdict = "Unclear / needs verification"
     else:
         verdict = "High risk of error / hallucination"
+ev = (evidence or "").strip()
+    has_refs = evidence_present(ev)
+
+    # Deterministic trust scoring
+    best_trust_tier, evidence_status, evidence_conf = evidence_trust_summary(ev)
+
+    # Volatility + liability
+    volatility = volatility_level(text) if "volatility_level" in globals() else "LOW"
+    liability = liability_tier(text, policy_mode) if "liability_tier" in globals() else "low"
 
     signals = {
-        "liability_tier": tier,
+        "has_references": bool(has_refs),
+        "reference_count": len(extract_urls(ev)),
+
+        "liability_tier": liability,
         "volatility": volatility,
-        "evidence_required_for_allow": (tier == "high" or volatility == "VOLATILE"),
-        "has_digit": has_digit,
-        "has_references": has_refs,
-        "risk_flags": risk_flags,
-        "rules_fired": rules_fired,
-        "guardrail": guardrail
+
+        "evidence_required_for_allow": bool(
+            volatility != "LOW" or liability == "high"
+        ),
+
+        "evidence_validation_status": evidence_status,
+        "evidence_trust_tier": best_trust_tier or ("B" if has_refs else "C"),
+        "evidence_confidence": evidence_conf,
+
+        "risk_flags": [],
+        "rules_fired": [],
+        "guardrail": None,
     }
 
     explanation = (
