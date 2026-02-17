@@ -132,62 +132,83 @@
     setText(apiMeta, "server —ms · /api/score");
     if (resultPre) resultPre.textContent = debugText ? `Backend error:\n${debugText}` : (userMsg || "Backend error.");
   }
+  
+function buildDecisionPayload(data) {
+  const sig = data?.signals || {};
+  const ev = sig?.evidence_validation || {};
 
-  function buildDecisionPayload(data) {
-    const sig = data?.signals || {};
-    const ev = sig?.evidence_validation || {};
+  // --- Normalize decision (string OR object) ---
+  const rawDecision = data?.decision;
+  const decisionObj =
+    (rawDecision && typeof rawDecision === "object")
+      ? rawDecision
+      : {
+          action: (typeof rawDecision === "string" ? rawDecision : null) || "REVIEW",
+          reason:
+            data?.decision_detail?.reason ||
+            data?.decision_reason ||
+            data?.reason ||
+            ""
+        };
 
-    // Prefer top-level fields first (backend truth),
-    // then signals.* (older schema),
-    // then signals.evidence_validation.* (newer structured object),
-    // then fallbacks.
-    const volatility =
-      (data?.volatility ?? sig?.volatility ?? "LOW");
+  // Prefer top-level fields first (backend truth), then signals fallbacks.
+  const volatility =
+    (data?.volatility ?? sig?.volatility ?? "LOW");
 
-    const volatilityCategory =
-      (data?.volatility_category ?? sig?.volatility_category ?? "");
+  const volatilityCategory =
+    (data?.volatility_category ?? sig?.volatility_category ?? "");
 
-    const evidenceStatus =
-      (data?.evidence_validation_status ??
-       sig?.evidence_validation_status ??
-       ev?.status ??
-       "NONE");
+  const evidenceStatus =
+    (data?.evidence_validation_status ??
+     sig?.evidence_validation_status ??
+     ev?.status ??
+     "NONE");
 
-    const evidenceTrustTier =
-      (data?.evidence_trust_tier ??
-       sig?.evidence_trust_tier ??
-       ev?.trust_tier ??
-       "C");
+  const evidenceTrustTier =
+    (data?.evidence_trust_tier ??
+     sig?.evidence_trust_tier ??
+     ev?.trust_tier ??
+     "C");
 
-    const evidenceConfidence =
-      (typeof data?.evidence_confidence === "number") ? data.evidence_confidence :
-      (typeof sig?.evidence_confidence === "number") ? sig.evidence_confidence :
-      (typeof ev?.confidence === "number") ? ev.confidence :
-      null;
+  const evidenceConfidence =
+    (typeof data?.evidence_confidence === "number") ? data.evidence_confidence :
+    (typeof sig?.evidence_confidence === "number") ? sig.evidence_confidence :
+    (typeof ev?.confidence === "number") ? ev.confidence :
+    null;
 
-    return {
-      schema_version: data?.schema_version || "2.0",
-      request_id: data?.request_id || "",
-      decision: data?.decision?.action || "REVIEW",
-      score: data?.score ?? "--",
-      verdict: data?.verdict || "",
-      policy_mode: data?.policy_mode || CONFIG.POLICY_MODE,
-      policy_version: data?.policy_version || "",
-      policy_hash: data?.policy_hash || "",
-      event_id: data?.event_id || "",
-      audit_fingerprint_sha256: data?.audit_fingerprint?.sha256 || data?.audit_fingerprint_sha256 || "",
-      latency_ms: (typeof data?.latency_ms === "number") ? data.latency_ms : null,
+  return {
+    schema_version: data?.schema_version || "2.0",
+    request_id: data?.request_id || "",
 
-      volatility: String(volatility).toUpperCase(),
-      volatility_category: volatilityCategory,
-      evidence_validation_status: evidenceStatus,
-      evidence_trust_tier: evidenceTrustTier,
-      evidence_confidence: evidenceConfidence,
+    // ✅ ALWAYS consistent with UI
+    decision: decisionObj.action || "REVIEW",
 
-      risk_flags: data?.risk_flags || sig?.risk_flags || [],
-      guardrail: data?.guardrail ?? sig?.guardrail ?? null
-    };
-  }
+    score: data?.score ?? "--",
+    verdict: data?.verdict || "",
+
+    policy_mode: data?.policy_mode || data?.policy?.mode || CONFIG.POLICY_MODE,
+    policy_version: data?.policy_version || data?.policy?.version || "",
+    policy_hash: data?.policy_hash || data?.policy?.hash || "",
+
+    event_id: data?.event_id || data?.audit?.event_id || "",
+    audit_fingerprint_sha256:
+      data?.audit_fingerprint?.sha256 ||
+      data?.audit_fingerprint_sha256 ||
+      data?.audit?.audit_fingerprint_sha256 ||
+      "",
+
+    latency_ms: (typeof data?.latency_ms === "number") ? data.latency_ms : null,
+
+    volatility: String(volatility).toUpperCase(),
+    volatility_category: volatilityCategory,
+    evidence_validation_status: evidenceStatus,
+    evidence_trust_tier: evidenceTrustTier,
+    evidence_confidence: evidenceConfidence,
+
+    risk_flags: data?.risk_flags || sig?.risk_flags || [],
+    guardrail: data?.guardrail ?? sig?.guardrail ?? null
+  };
+}
 
   function renderResponse(data) {
     lastResponse = data;
@@ -197,18 +218,35 @@
     setText(scoreVerdict, data?.verdict || "");
     updateGauge(score);
 
-    const sig = data?.signals || {};
-    const vol = (sig?.volatility || "LOW").toString().toUpperCase();
-    setText(volatilityValue, vol);
+const sig = data?.signals || {};
 
-    const pMode = data?.policy_mode || CONFIG.POLICY_MODE;
-    const pVer = data?.policy_version || "";
-    const pHash = data?.policy_hash || "";
-    setText(policyValue, pVer ? `${pMode} v${pVer} (hash: ${pHash})` : `${pMode}`);
+// ✅ Prefer top-level volatility (your backend emits it)
+const vol = (data?.volatility ?? sig?.volatility ?? "LOW").toString().toUpperCase();
+setText(volatilityValue, vol);
 
-    const action = data?.decision?.action || "REVIEW";
-    const reason = data?.decision?.reason || "";
+// ✅ Policy fallbacks (some shaped responses put policy inside data.policy)
+const pMode = data?.policy_mode || data?.policy?.mode || CONFIG.POLICY_MODE;
+const pVer  = data?.policy_version || data?.policy?.version || "";
+const pHash = data?.policy_hash || data?.policy?.hash || "";
+setText(policyValue, pVer ? `${pMode} v${pVer} (hash: ${pHash})` : `${pMode}`);
 
+// ✅ Normalize decision (string OR object)
+const rawDecision = data?.decision;
+const decisionObj =
+  (rawDecision && typeof rawDecision === "object")
+    ? rawDecision
+    : {
+        action: (typeof rawDecision === "string" ? rawDecision : null) || "REVIEW",
+        reason:
+          data?.decision_detail?.reason ||
+          data?.decision_reason ||
+          data?.reason ||
+          ""
+      };
+
+const action = decisionObj.action || "REVIEW";
+const reason = decisionObj.reason || "";
+    
     if (decisionCard) show(decisionCard, true);
     setText(decisionAction, action);
     applyDecisionColor(action);
