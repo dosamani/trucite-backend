@@ -709,50 +709,49 @@ def api_score():
                 reason = "Demo policy: evidence present."
                 score = max(int(score), 78)
                 verdict = "Likely true / consistent"
+latency_ms = int((time.time() - start) * 1000)
 
-        latency_ms = int((time.time() - start) * 1000)
+# Canonical decision object (single source of truth)
+decision_obj = {"action": action, "reason": reason}
 
-        # --------------------------
-        # Response object (NO duplicate decision keys)
-        # --------------------------
-        resp_obj = {
-            "schema_version": SCHEMA_VERSION,
-            "request_id": event_id,
-            "latency_ms": latency_ms,
+resp_obj = {
+    "schema_version": SCHEMA_VERSION,
+    "request_id": event_id,
+    "latency_ms": latency_ms,
 
-            # Outcome layer
-            "verdict": verdict,
-            "score": int(score),
-            "decision": {"action": action, "reason": reason},
-            "decision_action": action,
+    # Outcome layer (canonical)
+    "decision": decision_obj,
+    "decision_action": action,
+    "score": int(score),
+    "verdict": verdict,
 
-            # Policy metadata
-            "policy_mode": policy_mode,
-            "policy_version": POLICY_VERSION,
-            "policy_hash": policy_hash(policy_mode),
+    # Policy metadata
+    "policy_mode": policy_mode,
+    "policy_version": POLICY_VERSION,
+    "policy_hash": policy_hash(policy_mode),
 
-            # Execution fingerprint
-            "event_id": event_id,
-            "audit_fingerprint_sha256": sha,
-            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+    # Execution fingerprint
+    "event_id": event_id,
+    "audit_fingerprint_sha256": sha,
 
-            # Convenience fields for UI panel
-            "volatility": signals.get("volatility"),
-            "volatility_category": signals.get("volatility_category", ""),
-            "evidence_validation_status": signals.get("evidence_validation_status"),
-            "evidence_trust_tier": signals.get("evidence_trust_tier"),
-            "evidence_confidence": signals.get("evidence_confidence"),
-            "risk_flags": signals.get("risk_flags", []),
-            "guardrail": signals.get("guardrail"),
+    # Convenience fields for UI panel
+    "volatility": signals.get("volatility"),
+    "volatility_category": signals.get("volatility_category", ""),
+    "evidence_validation_status": signals.get("evidence_validation_status"),
+    "evidence_trust_tier": signals.get("evidence_trust_tier"),
+    "evidence_confidence": signals.get("evidence_confidence"),
+    "risk_flags": signals.get("risk_flags", []),
+    "guardrail": signals.get("guardrail"),
 
-            # Diagnostic payload
-            "claims": claims,
-            "references": references,
-            "signals": signals,
-            "explanation": explanation,
-        }
+    # Validation details (this IS your “validation section”)
+    "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+    "claims": claims,
+    "references": references,
+    "signals": signals,
+    "explanation": explanation,
+}
 
-        return jsonify(resp_obj), 200
+return jsonify(resp_obj), 200
 
     except Exception as e:
         return json_error(
