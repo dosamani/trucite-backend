@@ -61,19 +61,21 @@ def make_request_id(text: str, evidence: str, policy_mode: str) -> str:
     base = f"{(text or '').strip()}||{(evidence or '').strip()}||{(policy_mode or DEFAULT_POLICY_MODE).strip().lower()}"
     return hashlib.sha256(base.encode("utf-8")).hexdigest()[:12]
 
-
 def extract_urls(raw: str) -> List[str]:
     if not raw:
         return []
+
     urls = re.findall(r"https?://[^\s]+", raw.strip())
-    # De-dupe, preserve order
+
+    # De-dupe while preserving order
     seen = set()
     out = []
     for u in urls:
         if u not in seen:
             seen.add(u)
             out.append(u)
-return out
+
+    return out
 
 
 def heuristic_score(text: str, evidence: str, policy_mode: str):
