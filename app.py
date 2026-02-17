@@ -186,7 +186,84 @@ def decision_gate(score: int, signals: Dict[str, Any], policy_mode: str) -> Tupl
         return "BLOCK", "Score below minimum reliability threshold."
 
     return "ALLOW", "Approved under enterprise policy."
+    
+# ---- DEMO response shaping ----
 
+DEMO_MODE = True
+DEMO_CONTRACT_VERSION = "2026.01"
+
+def shape_demo_response(resp_obj: dict) -> dict:
+    """
+    Produces a clean, investor-facing response while keeping
+    internal scoring intact.
+
+    Canonical output:
+      - contract
+      - decision (object)
+      - policy
+      - audit
+      - references
+      - signals
+    """
+
+    # --- Normalize decision (dict OR legacy string) ---
+    raw_decision = resp_obj.get("decision")
+
+    if isinstance(raw_decision, dict):
+        decision_obj = raw_decision
+    else:
+        decision_obj = {
+            "action": (raw_decision or "REVIEW"),
+            "reason": (resp_obj.get("decision_detail") or {}).get("reason", "")
+        }
+
+    # --- Deterministic ids for demo contract/audit ---
+    event_id = resp_obj.get("event_id") or resp_obj.get("request_id") or ""
+    audit_sha = (
+        resp_obj.get("audit_fingerprint_sha256")
+        or (resp_obj.get("audit_fingerprint") or {}).get("sha256")
+        or ""
+    )
+
+    shaped = {
+        "contract": {
+            "name": "TruCite Runtime Execution Reliability",
+            "contract_version": DEMO_CONTRACT_VERSION,
+            "schema_version": resp_obj.get("schema_version"),
+            "request_id": event_id,
+        },
+
+        # Canonical decision
+        "decision": decision_obj,
+        "decision_action": decision_obj.get("action"),
+        "score": resp_obj.get("score"),
+        "verdict": resp_obj.get("verdict"),
+
+        # Policy metadata
+        "policy": {
+            "mode": resp_obj.get("policy_mode"),
+            "version": resp_obj.get("policy_version"),
+            "hash": resp_obj.get("policy_hash"),
+        },
+
+        # Audit artifact
+        "audit": {
+            "event_id": event_id,
+            "audit_fingerprint_sha256": audit_sha,
+        },
+
+        # Runtime metrics
+        "latency_ms": resp_obj.get("latency_ms"),
+
+        # Evidence
+        "references": resp_obj.get("references", []),
+
+        # Signals + explanation
+        "signals": resp_obj.get("signals", {}),
+        "explanation": resp_obj.get("explanation", ""),
+    }
+
+    return shaped
 
 def shape_demo_response(resp_obj: dict) -> dict:
     """
@@ -256,11 +333,11 @@ def health():
         "default_policy_mode": DEFAULT_POLICY_MODE,
         "time_utc": datetime.now(timezone.utc).isoformat(),
     }), 200
+# ---- API: /api/score ----
 
 @app.route("/api/score", methods=["POST", "OPTIONS"])
 def api_score():
     try:
-        # Preflight
         if request.method == "OPTIONS":
             return ("", 204)
 
@@ -274,14 +351,9 @@ def api_score():
         if not text:
             return json_error("MISSING_TEXT", "Missing 'text' in request body", 400)
 
-        # Deterministic request id (stable for screenshots / reproducibility)
-        request_id = make_request_id(text=text, evidence=evidence, policy_mode=policy_mode)
-
-        # Execution-bound audit fingerprint (stable for same inputs + policy)
-        audit_base = f"{text}||{evidence}||{policy_mode}||{POLICY_VERSION}"
-        audit_sha = hashlib.sha256(audit_base.encode("utf-8")).hexdigest()
-
-        event_id = request_id
+        # Fingerprint / Event ID
+        sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        event_id = sha[:12]
         ts = datetime.now(timezone.utc).isoformat()
 
         # Claims (MVP: single-claim passthrough)
@@ -294,73 +366,51 @@ def api_score():
             policy_mode=policy_mode,
         )
 
-        # Canonical decision gate
-        action, reason = decision_gate(int(score), signals, policy_mode=policy_mode)
-
-        # Demo override (keeps screenshots consistent / matches your UI copy)
-        if DEMO_MODE:
-            has_refs = bool(signals.get("has_references")) or bool(references)
-            is_volatile = (signals.get("volatility") == "VOLATILE")
-            requires = bool(signals.get("evidence_required_for_allow"))
-
-            if (is_volatile or requires) and not has_refs:
-                action = "REVIEW"
-                reason = "Demo policy: volatile/numeric claim requires evidence."
-                score = min(int(score), 65)
-                verdict = "Unclear / needs verification"
-                signals["guardrail"] = "evidence_required_not_present"
-            elif has_refs:
-                action = "ALLOW"
-                reason = "Evidence present for volatile real-world fact. Approved under enterprise policy."
-                score = max(int(score), 78)
-                verdict = "Likely true / consistent"
+        # Decision gate (must return action, reason)
+        action, reason = decision_gate(
+            int(score),
+            signals,
+            policy_mode=policy_mode,
+        )
 
         latency_ms = int((time.time() - start) * 1000)
 
-        # Canonical response: decision is ALWAYS an object (single source of truth)
-        decision_obj = {"action": action, "reason": reason}
-
         resp_obj = {
             "schema_version": SCHEMA_VERSION,
-            "request_id": request_id,
-            "decision": decision_obj,
-            "decision_action": action,
-            "score": int(score),
+            "request_id": event_id,
+            "latency_ms": latency_ms,
+
             "verdict": verdict,
+            "score": int(score),
+
+            "decision": {"action": action, "reason": reason},
+
             "policy_mode": policy_mode,
             "policy_version": POLICY_VERSION,
             "policy_hash": policy_hash(policy_mode),
+
             "event_id": event_id,
-            "audit_fingerprint_sha256": audit_sha,
-            "latency_ms": latency_ms,
+            "audit_fingerprint_sha256": sha,
+            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
 
-            # Convenience fields your UI reads
-            "volatility": signals.get("volatility"),
-            "volatility_category": signals.get("volatility_category", ""),
-            "evidence_validation_status": signals.get("evidence_validation_status"),
-            "evidence_trust_tier": signals.get("evidence_trust_tier"),
-            "evidence_confidence": signals.get("evidence_confidence"),
-            "risk_flags": signals.get("risk_flags", []),
-            "guardrail": signals.get("guardrail"),
-
-            # Validation details section (this IS your “validation” block)
-            "audit_fingerprint": {"sha256": audit_sha, "timestamp_utc": ts},
             "claims": claims,
             "references": references,
             "signals": signals,
             "explanation": explanation,
         }
 
-        # Investor-facing shaping (keeps internal fields intact)
-        shaped = shape_demo_response(resp_obj)
-        return jsonify(shaped), 200
+        # ✅ DEMO returns ONE canonical shaped object (prevents ALLOW/REVIEW mismatches)
+        if DEMO_MODE:
+            return jsonify(shape_demo_response(resp_obj)), 200
+
+        return jsonify(resp_obj), 200
 
     except Exception as e:
         return json_error(
             "SERVER_EXCEPTION",
             str(e),
             500,
-            hint="Likely indentation/paste error OR a missing helper above this section.",
+            hint="Likely indentation/paste error OR missing helper above this section.",
         )
 
 if __name__ == "__main__":
