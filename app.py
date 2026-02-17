@@ -372,6 +372,16 @@ def api_score():
             signals,
             policy_mode=policy_mode,
         )
+        # -----------------------------
+    # Normalize verdict to decision
+    # (prevents ALLOW + "needs review" mismatch)
+    # -----------------------------
+        if action == "ALLOW":
+            verdict = "Likely true / consistent"
+        elif action == "REVIEW":
+            verdict = "Unclear / needs verification"
+        elif action == "BLOCK":
+            verdict = "Likely false / inconsistent"
 
         latency_ms = int((time.time() - start) * 1000)
 
