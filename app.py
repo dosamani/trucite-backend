@@ -689,26 +689,27 @@ def api_score():
             signals,
             policy_mode=policy_mode,
         )
+# ----------------------------
+# DEMO MODE OVERRIDE (optional)
+# ----------------------------
+if DEMO_MODE:
+    # Treat "has references" as either signals flag OR actual references list
+    has_refs = bool(signals.get("has_references")) or bool(references)
+    is_volatile = (signals.get("volatility") == "VOLATILE")
 
-        # --------------------------
-        # DEMO MODE OVERRIDE (optional)
-        # --------------------------
-        if DEMO_MODE:
-            # Treat "has references" as either signals flag OR actual references list
-            has_refs = bool(signals.get("has_references")) or bool(references)
-            is_volatile = (signals.get("volatility") == "VOLATILE")
+    if is_volatile and not has_refs:
+        action = "REVIEW"
+        reason = "Demo policy: volatile claim requires evidence."
+        score = min(int(score), 65)
+        verdict = "Unclear / needs verification"
+        signals["guardrail"] = "volatile_current_fact_no_evidence"
+    elif has_refs:
+        action = "ALLOW"
+        reason = "Demo policy: evidence present."
+        score = max(int(score), 78)
+        verdict = "Likely true / consistent"
 
-            if is_volatile and not has_refs:
-                action = "REVIEW"
-                reason = "Demo policy: volatile claim requires evidence."
-                score = min(int(score), 65)
-                verdict = "Unclear / needs verification"
-                signals["guardrail"] = "volatile_current_fact_no_evidence"
-            elif has_refs:
-                action = "ALLOW"
-                reason = "Demo policy: evidence present."
-                score = max(int(score), 78)
-                verdict = "Likely true / consistent"
+# Always compute latency AFTER scoring/overrides
 latency_ms = int((time.time() - start) * 1000)
 
 # Canonical decision object (single source of truth)
