@@ -71,15 +71,17 @@ def extract_urls(raw: str) -> List[str]:
         if u not in seen:
             seen.add(u)
             out.append(u)
-    return out
-    def heuristic_score(text: str, evidence: str, policy_mode: str) -> Tuple[int, str, str, Dict[str, Any], List[Dict[str, str]]]:
+return out
+
+
+def heuristic_score(text: str, evidence: str, policy_mode: str):
     """
     Returns:
-      score (0-100),
-      verdict string,
-      explanation string,
-      signals dict,
-      references list[{type,value}]
+        score (0-100),
+        verdict string,
+        explanation string,
+        signals dict,
+        references list[{type,value}]
     """
     t = (text or "").strip()
     ev = (evidence or "").strip()
