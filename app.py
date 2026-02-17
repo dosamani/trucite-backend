@@ -1,368 +1,184 @@
-# =============================
-# TruCite Backend (Flask) - MVP+
-# app.py (PART 1/4)
-# =============================
-
-import os
+import hashlib
 import re
 import time
-import json
-import hashlib
 from datetime import datetime, timezone
-from urllib.parse import urlparse
+from flask import Flask, request, jsonify
 
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
+app = Flask(__name__)
 
-# -------------------------
-# Versioning / defaults
-# -------------------------
 SCHEMA_VERSION = "2.0"
 POLICY_VERSION = "2026.01"
 DEFAULT_POLICY_MODE = "enterprise"
-# =========================
-# Demo Mode (VC signaling)
-# =========================
-DEMO_MODE = os.getenv("TRUCITE_DEMO_MODE", "0").strip() in ("1", "true", "TRUE", "yes", "YES")
+DEMO_CONTRACT_VERSION = "1.0"
+DEMO_MODE = True
+# -------------------------
+# Helpers (safe + deterministic)
+# -------------------------
 
-# Stable, investor-friendly response contract version (separate from schema_version)
-DEMO_CONTRACT_VERSION = "2026.02-demo"
+def json_error(code: str, message: str, status: int = 500, hint: str | None = None):
+    payload = {"error_code": code, "message": message}
+    if hint:
+        payload["hint"] = hint
+    return jsonify(payload), status
 
-# Deterministic request_id mode:
-# - In demo mode, request_id is deterministic for the same (text + evidence + policy_mode)
-# - In non-demo mode, request_id can be per-request random if you want later
-DEMO_DETERMINISTIC_REQUEST_ID = True
+
+def normalize_text(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "").strip()).lower()
+
+
+def extract_urls(s: str):
+    if not s:
+        return []
+    # simple, MVP-safe URL extraction
+    return re.findall(r"https?://[^\s)>\"]+", s)
+
 
 # -------------------------
 # Evidence validation constraints (MVP-safe)
-# NOTE: This MVP does NOT fetch URLs server-side.
-# It extracts URLs and assigns a deterministic trust tier.
 # -------------------------
 EVIDENCE_MAX_URLS = 2
-EVIDENCE_TIMEOUT_SEC = 2.5   # reserved for future fetch (not used in MVP)
-EVIDENCE_MAX_BYTES = 120_000 # reserved for future fetch (not used in MVP)
+EVIDENCE_TIMEOUT_SEC = 2.5
+EVIDENCE_MAX_BYTES = 120_000
 
-# -------------------------
-# Trust tiers (deterministic / heuristic)
-# A = primary authorities, official orgs, standards bodies
-# B = reputable secondary sources
-# C = unknown / user-provided / everything else
-# -------------------------
-TRUST_TIER_A_DOMAINS = {
-    "apple.com",
-    "nih.gov",
-    "cdc.gov",
-    "who.int",
-    "cms.gov",
-    "fda.gov",
-    "sec.gov",
-    "justice.gov",
-    "europa.eu",
-    "gov.uk",
-}
-
-TRUST_TIER_B_DOMAINS = {
-    "wikipedia.org",
-    "reuters.com",
-    "apnews.com",
-    "bbc.co.uk",
-    "bbc.com",
-    "nature.com",
-    "sciencemag.org",
-    "nejm.org",
-    "jamanetwork.com",
-    "theguardian.com",
-    "nytimes.com",
-    "wsj.com",
-    "ft.com",
-}
-
-# -------------------------
-# Policy profiles (simple knobs for MVP)
-# -------------------------
-POLICY_PROFILES = {
-    "enterprise": {
-        "volatile_trust_allowlist": ["A", "B"],
-        "high_liability_requires_refs": True,
-        "low_allow_score": 70,
-        "low_review_score": 55,
-        "high_allow_score": 80,
-        "high_review_score": 60,
-    },
-    "health": {
-        "volatile_trust_allowlist": ["A"],
-        "high_liability_requires_refs": True,
-        "low_allow_score": 75,
-        "low_review_score": 60,
-        "high_allow_score": 85,
-        "high_review_score": 65,
-    },
-    "legal": {
-        "volatile_trust_allowlist": ["A", "B"],
-        "high_liability_requires_refs": True,
-        "low_allow_score": 75,
-        "low_review_score": 60,
-        "high_allow_score": 85,
-        "high_review_score": 65,
-    },
-    "finance": {
-        "volatile_trust_allowlist": ["A", "B"],
-        "high_liability_requires_refs": True,
-        "low_allow_score": 75,
-        "low_review_score": 60,
-        "high_allow_score": 85,
-        "high_review_score": 65,
-    },
-}
-
-def policy_hash(policy_mode: str) -> str:
-    pm = (policy_mode or DEFAULT_POLICY_MODE).strip().lower()
-    base = f"{POLICY_VERSION}:{pm}"
-    return hashlib.sha256(base.encode("utf-8")).hexdigest()[:12]
-
-# -------------------------
-# Text utilities
-# -------------------------
-def normalize_text(s: str) -> str:
-    return re.sub(r"\s+", " ", (s or "").strip().lower())
-
-def has_any_digit(s: str) -> bool:
-    return bool(re.search(r"\d", (s or "")))
-
-def contains_universal_certainty(s: str) -> bool:
-    """
-    Flags language like "always", "never", "guaranteed", etc.
-    """
-    tl = normalize_text(s)
-    return bool(re.search(r"\b(always|never|guarantee(d)?|100%|cannot fail|no doubt|definitely)\b", tl))
-
-# -------------------------
-# URL extraction / evidence presence
-# -------------------------
-URL_REGEX = re.compile(r"(https?://[^\s)\]}>,\"']+)", re.IGNORECASE)
-
-def extract_urls(evidence: str):
-    ev = (evidence or "").strip()
-    if not ev:
-        return []
-    urls = URL_REGEX.findall(ev)
-    # Normalize / de-dupe preserving order
-    seen = set()
-    out = []
-    for u in urls:
-        u2 = u.strip().rstrip(".")
-        if u2 and u2 not in seen:
-            seen.add(u2)
-            out.append(u2)
-    return out[:EVIDENCE_MAX_URLS]
 
 def evidence_present(evidence: str) -> bool:
     ev = (evidence or "").strip()
     if not ev:
         return False
-    if extract_urls(ev):
-        return True
-    # Accept DOI / PMID style strings as "present" (not validated in MVP)
-    if looks_like_doi(ev) or looks_like_pmid(ev):
-        return True
-    return False
+    return len(extract_urls(ev)) > 0
 
-def looks_like_doi(s: str) -> bool:
-    # Very lightweight DOI pattern
-    return bool(re.search(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", (s or ""), re.IGNORECASE))
-
-def looks_like_pmid(s: str) -> bool:
-    return bool(re.search(r"\bPMID[:\s]*\d{6,9}\b", (s or ""), re.IGNORECASE))
-
-# -------------------------
-# Domain trust tier
-# -------------------------
-def domain_root(host: str) -> str:
-    h = (host or "").strip().lower()
-    if h.startswith("www."):
-        h = h[4:]
-    return h
 
 def domain_trust_tier(url: str) -> str:
     """
-    Returns A | B | C
+    Very lightweight trust heuristic for MVP:
+      A = primary/official domains (apple.com, gov, edu, etc)
+      B = common reputable org/news (basic allowlist)
+      C = everything else
     """
     try:
-        host = urlparse(url).netloc
-        root = domain_root(host)
+        host = re.sub(r"^www\.", "", re.split(r"/", url.replace("https://", "").replace("http://", ""))[0].lower())
     except Exception:
         return "C"
 
-    if not root:
-        return "C"
-
-    # Exact match or subdomain of known domains
-    if root in TRUST_TIER_A_DOMAINS or any(root.endswith("." + d) for d in TRUST_TIER_A_DOMAINS):
+    if host.endswith(".gov") or host.endswith(".edu") or host.endswith(".mil"):
         return "A"
-    if root in TRUST_TIER_B_DOMAINS or any(root.endswith("." + d) for d in TRUST_TIER_B_DOMAINS):
+
+    if host.endswith("apple.com"):
+        return "A"
+
+    # basic "B" examples (expand later)
+    b_suffixes = (
+        "who.int", "cdc.gov", "nih.gov", "nejm.org", "nature.com", "science.org",
+        "reuters.com", "apnews.com", "bbc.co.uk", "nytimes.com", "wsj.com"
+    )
+    if any(host.endswith(x) for x in b_suffixes):
         return "B"
+
     return "C"
+
 
 def evidence_trust_summary(evidence: str):
     """
-    Deterministic MVP summary of evidence quality.
-
-    Returns:
-      best_trust_tier: "A"|"B"|"C"|None
-      evidence_status: "NONE"|"PRESENT"
-      evidence_conf: float|None   (rough confidence)
+    Returns: (best_trust_tier, evidence_validation_status, evidence_confidence)
+    No crawling. Just presence + domain tier.
     """
-    ev = (evidence or "").strip()
-    urls = extract_urls(ev)
-
-    if not ev:
+    urls = extract_urls(evidence)[:EVIDENCE_MAX_URLS]
+    if not urls:
         return None, "NONE", None
 
-    # DOI/PMID only
-    if not urls and (looks_like_doi(ev) or looks_like_pmid(ev)):
-        return "B", "PRESENT", 0.55
-
-    if not urls:
-        # Some text present but no URL/DOI/PMID
-        return "C", "PRESENT", 0.25
-
     tiers = [domain_trust_tier(u) for u in urls]
-    # Best tier (A > B > C)
     best = "C"
     if "A" in tiers:
         best = "A"
     elif "B" in tiers:
         best = "B"
 
-    # Simple confidence mapping for MVP
-    conf_map = {"A": 0.85, "B": 0.72, "C": 0.45}
-    return best, "PRESENT", conf_map.get(best, 0.45)
+    # confidence is a demo heuristic (not a real probability)
+    conf = 0.85 if best == "A" else 0.72 if best == "B" else 0.55
+    return best, "PRESENT", conf
 
-def trust_allows_volatile(profile: dict, best_trust_tier: str) -> bool:
-    """
-    In enterprise/regulated modes, volatile facts require trusted evidence (A/B) to ALLOW.
-    """
-    if not best_trust_tier:
-        return False
-    allow = (profile or {}).get("volatile_trust_allowlist", ["A", "B"])
-    return best_trust_tier in allow
+
+def has_any_digit(text: str) -> bool:
+    return bool(re.search(r"\d", text or ""))
+
 
 # -------------------------
-# Volatility + liability (MVP)
+# Volatility detection (MVP)
 # -------------------------
-
 VOLATILE_FACT_PATTERNS = [
-    # current roles / titles / leadership positions
-    r"\bcurrent\b",
-    r"\bCEO\b",
-    r"\bCFO\b",
-    r"\bCOO\b",
-    r"\bCTO\b",
-    r"\bchairman\b",
-    r"\bpresident\b",
-    r"\bprime minister\b",
-    r"\bgovernor\b",
-    r"\bmayor\b",
-    r"\bhead of\b",
-    r"\bleadership\b",
-
-    # phrasing often used in role assertions
-    r"\bis the CEO of\b",
-    r"\bis the (?:current )?(?:CEO|CFO|COO|CTO)\b",
-    r"\bis (?:currently|now)\b",
+    r"\bceo\b", r"\bcfo\b", r"\bcoo\b", r"\bcto\b",
+    r"\bpresident\b", r"\bprime minister\b", r"\bmayor\b", r"\bgovernor\b",
+    r"\bis the ceo of\b", r"\bis the (?:current )?(?:ceo|cfo|coo|cto)\b",
+    r"\bcurrent\b", r"\bcurrently\b", r"\bnow\b"
 ]
 
 EVENT_SENSITIVE_PATTERNS = [
-    # time-sensitive events / news claims
-    r"\btoday\b",
-    r"\byesterday\b",
-    r"\bthis week\b",
-    r"\blast week\b",
-    r"\bbreaking\b",
-    r"\brecent\b",
-    r"\bjust announced\b",
+    r"\btoday\b", r"\byesterday\b", r"\bthis week\b", r"\blast week\b",
+    r"\bbreaking\b", r"\brecent\b", r"\bjust announced\b"
 ]
 
-def volatility_level(text: str, policy_mode: str = "enterprise") -> str:
-    """
-    Returns: LOW | EVENT_SENSITIVE | VOLATILE
-    VOLATILE = claims likely to change (current roles/titles, real-world status)
-    EVENT_SENSITIVE = news-like time claims
-    """
-    tl = normalize_text(text or "")
 
+def volatility_level(text: str, policy_mode: str = DEFAULT_POLICY_MODE) -> str:
+    tl = normalize_text(text or "")
     for pat in VOLATILE_FACT_PATTERNS:
         if re.search(pat, tl, re.I):
             return "VOLATILE"
-
     for pat in EVENT_SENSITIVE_PATTERNS:
         if re.search(pat, tl, re.I):
             return "EVENT_SENSITIVE"
-
     return "LOW"
-    # -------------------------
-# Liability tier classification
-# -------------------------
 
+
+# -------------------------
+# Liability tier (MVP)
+# -------------------------
 HIGH_LIABILITY_KEYWORDS = [
-    "dose",
-    "dosage",
-    "mg",
-    "treatment",
-    "diagnosis",
-    "legal advice",
-    "contract",
-    "lawsuit",
-    "financial advice",
-    "investment",
-    "interest rate",
-    "prescription",
+    "diagnose", "treatment", "dose", "prescribe", "contraindication",
+    "legal advice", "lawsuit", "contract", "liability",
+    "investment", "buy", "sell", "financial advice", "tax"
 ]
 
-def liability_tier(text: str, policy_mode: str = "enterprise") -> str:
-    """
-    Returns: 'low' or 'high'
-    Escalates for numeric claims or regulated domains.
-    """
-    tl = (text or "").strip().lower()
 
-    # numeric claims are automatically high liability
-    if any(ch.isdigit() for ch in tl):
+def liability_tier(text: str, policy_mode: str = DEFAULT_POLICY_MODE) -> str:
+    tl = normalize_text(text or "")
+    pm = (policy_mode or DEFAULT_POLICY_MODE).strip().lower()
+
+    if has_any_digit(text):
         return "high"
 
-    # keyword-based escalation
-    for kw in HIGH_LIABILITY_KEYWORDS:
-        if kw in tl:
-            return "high"
+    if any(kw in tl for kw in HIGH_LIABILITY_KEYWORDS):
+        return "high"
 
-    # stricter in regulated policy modes
-    if policy_mode.lower() in ("health", "legal", "finance"):
-        if any(word in tl for word in ["must", "always", "guarantee"]):
-            return "high"
+    # regulated modes are stricter
+    if pm in ("health", "legal", "finance"):
+        return "high" if len(tl) > 0 else "low"
 
     return "low"
-    # =============================
-# Heuristic scoring + Decision Gate (MVP)
-# app.py (PART 2/4)
-# =============================
 
-# -------------------------
+
+def policy_hash(policy_mode: str) -> str:
+    base = f"{POLICY_VERSION}:{(policy_mode or DEFAULT_POLICY_MODE).strip().lower()}"
+    return hashlib.sha256(base.encode("utf-8")).hexdigest()[:12]
+    # -------------------------
 # MVP heuristic scoring + guardrails
-# Returns: score, verdict, explanation, signals, references
 # -------------------------
-def heuristic_score(text: str, evidence: str = "", policy_mode: str = DEFAULT_POLICY_MODE, seed_score: int = 55):
+
+def heuristic_score(
+    text: str,
+    evidence: str = "",
+    policy_mode: str = DEFAULT_POLICY_MODE,
+    seed_score: int = 55,
+):
     raw = (text or "")
     t = raw.strip()
     tl = normalize_text(t)
     ev = (evidence or "").strip()
 
-    # Evidence presence + trust summary (deterministic MVP)
     has_refs = evidence_present(ev)
-    best_trust_tier, evidence_status, evidence_conf = evidence_trust_summary(ev)
+    has_digit = has_any_digit(t)
 
-    # Volatility + liability
-    volatility = volatility_level(t, policy_mode=policy_mode)
     liability = liability_tier(t, policy_mode=policy_mode)
+    volatility = volatility_level(t, policy_mode=policy_mode)
 
     risk_flags = []
     rules_fired = []
@@ -376,7 +192,7 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = DEFAULT_PO
         rules_fired.append("short_declarative_bonus")
 
     # numeric without evidence
-    if has_any_digit(t) and not has_refs:
+    if has_digit and not has_refs:
         score -= 18
         risk_flags.append("numeric_without_evidence")
         rules_fired.append("numeric_without_evidence_penalty")
@@ -387,8 +203,8 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = DEFAULT_PO
         risk_flags.append("evidence_present")
         rules_fired.append("evidence_present_bonus")
 
-    # volatile guardrail (cap if no evidence)
-    if volatility != "LOW" and not has_refs:
+    # volatile guardrail: cap without evidence
+    if volatility in ("VOLATILE", "EVENT_SENSITIVE") and not has_refs:
         score = min(score, 65)
         guardrail = "volatile_current_fact_no_evidence"
         risk_flags.append("volatile_current_fact_no_evidence")
@@ -403,23 +219,21 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = DEFAULT_PO
     else:
         verdict = "High risk of error / hallucination"
 
+    # Deterministic trust scoring (no crawling)
+    best_trust_tier, evidence_status, evidence_conf = evidence_trust_summary(ev)
+
+    evidence_required_for_allow = bool(volatility != "LOW" or liability == "high")
+
     signals = {
         "has_references": bool(has_refs),
         "reference_count": len(extract_urls(ev)),
-
         "liability_tier": liability,
         "volatility": volatility,
         "volatility_category": "",
-
-        # Policy intent: evidence needed to ALLOW if volatile or high-liability
-        "evidence_required_for_allow": bool(volatility != "LOW" or liability == "high"),
-
-        # Evidence / trust
-        "evidence_validation_status": evidence_status if has_refs else "NONE",
-        "evidence_trust_tier": (best_trust_tier or ("B" if has_refs else "C")),
-        "evidence_confidence": evidence_conf if has_refs else None,
-
-        # Diagnostics
+        "evidence_required_for_allow": evidence_required_for_allow,
+        "evidence_validation_status": evidence_status,
+        "evidence_trust_tier": best_trust_tier or ("B" if has_refs else "C"),
+        "evidence_confidence": evidence_conf,
         "risk_flags": risk_flags,
         "rules_fired": rules_fired,
         "guardrail": guardrail,
@@ -430,231 +244,55 @@ def heuristic_score(text: str, evidence: str = "", policy_mode: str = DEFAULT_PO
         "Replace with evidence-backed verification in production."
     )
 
-    references = []
-    for u in extract_urls(ev):
-        references.append({"type": "url", "value": u})
-
-    # DOI/PMID pass-through if present and no URLs
-    if not references and (looks_like_doi(ev) or looks_like_pmid(ev)):
-        references.append({"type": "evidence", "value": ev[:240]})
+    references = [{"type": "url", "value": u} for u in extract_urls(ev)[:EVIDENCE_MAX_URLS]]
 
     return score, verdict, explanation, signals, references
 
 
 # -------------------------
 # Decision logic (policy-aware, volatility-aware, trust-aware)
-# Returns: (action, reason)
 # -------------------------
+
 def decision_gate(score: int, signals: dict, policy_mode: str = DEFAULT_POLICY_MODE):
-    pm = (policy_mode or DEFAULT_POLICY_MODE).strip().lower()
-    profile = POLICY_PROFILES.get(pm, POLICY_PROFILES[DEFAULT_POLICY_MODE])
+    has_refs = bool((signals or {}).get("has_references"))
+    liability = ((signals or {}).get("liability_tier") or "low").lower()
+    volatility = ((signals or {}).get("volatility") or "LOW").upper()
+    evidence_required_for_allow = bool((signals or {}).get("evidence_required_for_allow"))
 
-    guardrail = (signals.get("guardrail") or "").strip()
-    has_refs = bool(signals.get("has_references"))
-    liability = (signals.get("liability_tier") or "low").lower()
-    volatility = (signals.get("volatility") or "LOW").upper()
-    evidence_required_for_allow = bool(signals.get("evidence_required_for_allow"))
-
-    best_trust = (signals.get("evidence_trust_tier") or None)
-    trusted_for_volatile = trust_allows_volatile(profile, best_trust)
-
-    # -------------------------
-    # Hard guardrails
-    # -------------------------
+    # Hard guardrail
+    guardrail = ((signals or {}).get("guardrail") or "").strip()
     if guardrail == "known_false_claim_no_evidence":
         return "BLOCK", "Known false / widely debunked category without evidence. Guardrail triggered."
 
-    if guardrail == "unsupported_universal_claim_no_evidence":
-        return "REVIEW", "Unsupported universal/high-certainty claim without evidence. Conservative gating applied."
+    # Volatile facts: must have evidence to ALLOW
+    if volatility != "LOW" and not has_refs:
+        return "REVIEW", "Volatile real-world fact detected (current roles/events). Evidence required to ALLOW."
 
-    # -------------------------
-    # Volatile enforcement
-    # -------------------------
-    if volatility != "LOW":
-        if not has_refs:
-            return "REVIEW", "Volatile real-world fact detected (current roles/events). Evidence required to ALLOW."
-        if not trusted_for_volatile:
-            return "REVIEW", "Evidence provided but source trust tier insufficient for volatile ALLOW under policy."
+    # High-liability: evidence required to ALLOW
+    if evidence_required_for_allow and not has_refs:
+        return "REVIEW", "Evidence required under policy before ALLOW."
 
-    # -------------------------
-    # High-liability enforcement (policy-driven)
-    # -------------------------
-    if profile.get("high_liability_requires_refs", True):
-        if evidence_required_for_allow and not has_refs:
-            if score >= 70:
-                return "REVIEW", "Likely plausible, but evidence required under high-liability/volatile policy."
-            return "REVIEW", "No evidence provided for high-liability/volatile claim. Human verification recommended."
-
-    # -------------------------
-    # Thresholds by liability tier
-    # -------------------------
+    # Thresholds
     if liability == "low":
-        if score >= int(profile.get("low_allow_score", 70)):
-            if volatility != "LOW" and has_refs and trusted_for_volatile:
-                return "ALLOW", "Evidence present for volatile real-world fact. Approved under enterprise policy."
+        if score >= 75:
             return "ALLOW", "High confidence per MVP scoring."
-        if score >= int(profile.get("low_review_score", 55)):
+        if score >= 55:
             return "REVIEW", "Medium confidence. Human verification recommended."
         return "BLOCK", "Low confidence. Do not use without verification."
 
-    # high-liability tier
-    if not has_refs:
-        return "REVIEW", "High-liability content requires evidence to ALLOW. Human verification recommended."
-
-    if score >= int(profile.get("high_allow_score", 80)):
+    # High-liability tier
+    if score >= 80 and has_refs:
         return "ALLOW", "High confidence with evidence under high-liability policy."
-    if score >= int(profile.get("high_review_score", 60)):
+    if score >= 60:
         return "REVIEW", "Medium confidence. Human verification recommended."
     return "BLOCK", "Low confidence. Do not use without verification."
-    # =============================
-# Flask app + Routes
-# app.py (PART 3/4)
-# =============================
-
+    # -------------------------
+# API: /api/score
 # -------------------------
-# Flask app init
-# -------------------------
-app = Flask(__name__, static_folder="static", static_url_path="/static")
-CORS(app)
 
-
-# -------------------------
-# Helpers: consistent JSON errors (so frontend never chokes)
-# -------------------------
-def json_error(code: str, message: str, status: int = 400, hint: str | None = None, extra: dict | None = None):
-    payload = {
-        "error_code": code,
-        "message": message,
-    }
-    if hint:
-        payload["hint"] = hint
-    if extra and isinstance(extra, dict):
-        payload.update(extra)
-    return jsonify(payload), status
-    # =========================
-# Demo Mode helpers
-# =========================
-def make_request_id(text: str, evidence: str, policy_mode: str) -> str:
-    """
-    Demo-friendly request id.
-    Deterministic in demo mode so the same input yields the same request_id
-    (great for screenshots + reproducibility).
-    """
-    base = f"{(text or '').strip()}||{(evidence or '').strip()}||{(policy_mode or '').strip().lower()}"
-    return hashlib.sha256(base.encode("utf-8")).hexdigest()[:12]
-    
-def shape_demo_response(resp_obj: dict) -> dict:
-    """
-    Investor-facing response contract.
-
-    Canonical rules:
-      - decision: ALWAYS a string ("ALLOW" | "REVIEW" | "BLOCK")
-      - decision_detail: ALWAYS an object {action, reason}
-    """
-
-    raw_decision = resp_obj.get("decision")
-
-    # Normalize to: action(str), reason(str)
-    if isinstance(raw_decision, dict):
-        action = raw_decision.get("action")
-        reason = raw_decision.get("reason")
-    else:
-        action = raw_decision
-        reason = None
-
-    # Prefer explicit decision_detail reason if present
-    detail = resp_obj.get("decision_detail") or {}
-    if reason is None:
-        reason = detail.get("reason")
-
-    # Hard fallback for safety
-    if action is None:
-        action = detail.get("action") or "REVIEW"
-    if reason is None:
-        reason = ""
-
-    shaped = {
-        # Contract layer
-        "contract": {
-            "name": "TruCite Runtime Execution Reliability",
-            "contract_version": DEMO_CONTRACT_VERSION,
-            "schema_version": resp_obj.get("schema_version"),
-        },
-
-        # Outcome layer (canonical)
-        "decision": action,  # STRING ONLY
-        "decision_detail": {"action": action, "reason": reason},
-        "decision_action": action,  # optional convenience
-        "score": resp_obj.get("score"),
-        "verdict": resp_obj.get("verdict"),
-
-        # Policy metadata
-        "policy": {
-            "mode": resp_obj.get("policy_mode"),
-            "version": resp_obj.get("policy_version"),
-            "hash": resp_obj.get("policy_hash"),
-        },
-
-        # Audit artifact
-        "audit": {
-            "event_id": resp_obj.get("event_id"),
-            "audit_fingerprint_sha256": resp_obj.get("audit_fingerprint_sha256"),
-        },
-
-        # Runtime credibility
-        "latency_ms": resp_obj.get("latency_ms"),
-
-        # Evidence
-        "references": resp_obj.get("references", []),
-
-        # Signals
-        "signals": resp_obj.get("signals", {}),
-
-        # Explanation
-        "explanation": resp_obj.get("explanation", ""),
-    }
-
-    return shaped
-
-
-# -------------------------
-# Landing page (Render-hosted frontend)
-# - If you have /static/index.html this will serve it
-# -------------------------
-@app.route("/", methods=["GET"])
-def index():
-    try:
-        return send_from_directory(app.static_folder, "index.html")
-    except Exception:
-        # If you don't have a frontend file yet, still respond OK.
-        return (
-            "TruCite backend is running. "
-            "POST to /api/score with JSON {text, evidence?, policy_mode?}.",
-            200,
-        )
-
-
-# -------------------------
-# Health endpoint (JSON)
-# -------------------------
-@app.route("/health", methods=["GET"])
-def health():
-    return jsonify({
-        "ok": True,
-        "service": "trucite-backend",
-        "schema_version": SCHEMA_VERSION,
-        "policy_version": POLICY_VERSION,
-        "default_policy_mode": DEFAULT_POLICY_MODE,
-        "time_utc": datetime.now(timezone.utc).isoformat(),
-    }), 200
-
-# =========================
-# API: SCORE
-# =========================
 @app.route("/api/score", methods=["POST", "OPTIONS"])
 def api_score():
     try:
-
         if request.method == "OPTIONS":
             return ("", 204)
 
@@ -665,49 +303,34 @@ def api_score():
         evidence = (payload.get("evidence") or "").strip()
         policy_mode = (payload.get("policy_mode") or DEFAULT_POLICY_MODE).strip().lower()
 
-        # ---- scoring ----
+        if not text:
+            return json_error("MISSING_TEXT", "Missing 'text' in request body", 400)
+
+        # Fingerprint / Event ID
+        sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        event_id = sha[:12]
+        ts = datetime.now(timezone.utc).isoformat()
+
+        # Scoring
         score, verdict, explanation, signals, references = heuristic_score(
             text=text,
             evidence=evidence,
             policy_mode=policy_mode,
         )
 
-        # ---- decision gate ----
+        # Decisioning
         action, reason = decision_gate(
             int(score),
             signals,
             policy_mode=policy_mode,
         )
 
-        # ---- DEMO MODE OVERRIDE ----
-        if DEMO_MODE:
-            has_refs = bool(signals.get("has_references")) or bool(references)
-            is_volatile = (signals.get("volatility") == "VOLATILE")
-
-            if is_volatile and not has_refs:
-                action = "REVIEW"
-                reason = "Demo policy: volatile claim requires evidence."
-                score = min(int(score), 65)
-                verdict = "Unclear / needs verification"
-                signals["guardrail"] = "volatile_current_fact_no_evidence"
-
-            elif has_refs:
-                action = "ALLOW"
-                reason = "Demo policy: evidence present."
-                score = max(int(score), 78)
-                verdict = "Likely true / consistent"
-
-        # ---- latency AFTER overrides ----
         latency_ms = int((time.time() - start) * 1000)
-
-        decision_obj = {"action": action, "reason": reason}
 
         resp_obj = {
             "schema_version": SCHEMA_VERSION,
             "request_id": event_id,
-            "latency_ms": latency_ms,
-            "decision": decision_obj,
-            "decision_action": action,
+            "decision": action,  # for legacy UI surfaces (string)
             "score": int(score),
             "verdict": verdict,
             "policy_mode": policy_mode,
@@ -715,6 +338,23 @@ def api_score():
             "policy_hash": policy_hash(policy_mode),
             "event_id": event_id,
             "audit_fingerprint_sha256": sha,
+            "latency_ms": latency_ms,
+
+            # UI fields
+            "volatility": (signals.get("volatility") if isinstance(signals, dict) else "LOW"),
+            "volatility_category": (signals.get("volatility_category", "") if isinstance(signals, dict) else ""),
+            "evidence_validation_status": (signals.get("evidence_validation_status") if isinstance(signals, dict) else None),
+            "evidence_trust_tier": (signals.get("evidence_trust_tier") if isinstance(signals, dict) else None),
+            "evidence_confidence": (signals.get("evidence_confidence") if isinstance(signals, dict) else None),
+            "risk_flags": (signals.get("risk_flags", []) if isinstance(signals, dict) else []),
+            "guardrail": (signals.get("guardrail") if isinstance(signals, dict) else None),
+
+            # Canonical decision object (what your frontend “Decision Gate” should use)
+            "decision_detail": {"action": action, "reason": reason},
+
+            # Debug panel payload
+            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+            "claims": [{"text": text}],
             "references": references,
             "signals": signals,
             "explanation": explanation,
@@ -727,74 +367,283 @@ def api_score():
             "SERVER_EXCEPTION",
             str(e),
             500,
+            hint="Likely indentation/paste error OR a missing helper above this section.",
         )
-        # =============================
-# app.py (PART 4/4)
-# Static helpers + error handlers + local run
-# =============================
-
+        # -------------------------
+# API: /verify  (alias of /api/score for the demo UI)
 # -------------------------
-# Static asset passthrough (optional but helpful)
-# -------------------------
-@app.route("/static/<path:filename>", methods=["GET"])
-def static_files(filename: str):
-    return send_from_directory(app.static_folder, filename)
 
-
-# -------------------------
-# Optional: robots + favicon (won't break if missing)
-# -------------------------
-@app.route("/robots.txt", methods=["GET"])
-def robots():
-    return ("User-agent: *\nDisallow:\n", 200, {"Content-Type": "text/plain; charset=utf-8"})
-
-
-@app.route("/favicon.ico", methods=["GET"])
-def favicon():
+@app.route("/verify", methods=["POST", "OPTIONS"])
+def verify():
     try:
-        return send_from_directory(app.static_folder, "favicon.ico")
-    except Exception:
-        return ("", 204)
+        if request.method == "OPTIONS":
+            return ("", 204)
 
+        start = time.time()
 
+        payload = request.get_json(silent=True) or {}
+        text = (payload.get("text") or "").strip()
+        evidence = (payload.get("evidence") or "").strip()
+        policy_mode = (payload.get("policy_mode") or DEFAULT_POLICY_MODE).strip().lower()
+
+        if not text:
+            return json_error("MISSING_TEXT", "Missing 'text' in request body", 400)
+
+        sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        event_id = sha[:12]
+        ts = datetime.now(timezone.utc).isoformat()
+
+        score, verdict, explanation, signals, references = heuristic_score(
+            text=text,
+            evidence=evidence,
+            policy_mode=policy_mode,
+        )
+
+        action, reason = decision_gate(
+            int(score),
+            signals,
+            policy_mode=policy_mode,
+        )
+
+        latency_ms = int((time.time() - start) * 1000)
+
+        resp_obj = {
+            "schema_version": SCHEMA_VERSION,
+            "request_id": event_id,
+            "decision": action,
+            "score": int(score),
+            "verdict": verdict,
+            "policy_mode": policy_mode,
+            "policy_version": POLICY_VERSION,
+            "policy_hash": policy_hash(policy_mode),
+            "event_id": event_id,
+            "audit_fingerprint_sha256": sha,
+            "latency_ms": latency_ms,
+
+            "volatility": (signals.get("volatility") if isinstance(signals, dict) else "LOW"),
+            "volatility_category": (signals.get("volatility_category", "") if isinstance(signals, dict) else ""),
+            "evidence_validation_status": (signals.get("evidence_validation_status") if isinstance(signals, dict) else None),
+            "evidence_trust_tier": (signals.get("evidence_trust_tier") if isinstance(signals, dict) else None),
+            "evidence_confidence": (signals.get("evidence_confidence") if isinstance(signals, dict) else None),
+            "risk_flags": (signals.get("risk_flags", []) if isinstance(signals, dict) else []),
+            "guardrail": (signals.get("guardrail") if isinstance(signals, dict) else None),
+
+            "decision_detail": {"action": action, "reason": reason},
+
+            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+            "claims": [{"text": text}],
+            "references": references,
+            "signals": signals,
+            "explanation": explanation,
+        }
+
+        return jsonify(resp_obj), 200
+
+    except Exception as e:
+        return json_error(
+            "SERVER_EXCEPTION",
+            str(e),
+            500,
+            hint="Likely indentation/paste error OR a missing helper above this section.",
+        )
+        # -------------------------
+# Health / sanity endpoints
 # -------------------------
-# Error handlers: ALWAYS JSON for API paths
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({
+        "status": "ok",
+        "service": "trucite-backend",
+        "policy_version": POLICY_VERSION,
+        "schema_version": SCHEMA_VERSION,
+    }), 200
+
+
+@app.route("/", methods=["GET"])
+def root():
+    # Lightweight confirmation that the backend is reachable.
+    return jsonify({
+        "name": "TruCite Backend",
+        "status": "ok",
+        "endpoints": ["/api/score", "/verify", "/health"],
+        "policy_version": POLICY_VERSION,
+        "schema_version": SCHEMA_VERSION,
+    }), 200
+    # -------------------------
+# Core API: /api/score
 # -------------------------
-@app.errorhandler(404)
-def handle_404(err):
-    # If browser hits unknown path, keep it simple
-    if request.path.startswith("/api/") or request.path in ("/health",):
-        return jsonify({
-            "error_code": "NOT_FOUND",
-            "message": f"Route not found: {request.path}",
-        }), 404
-    # For non-API, just show a small message
-    return ("Not found", 404)
 
+@app.route("/api/score", methods=["POST", "OPTIONS"])
+def api_score():
+    # Always respond with JSON (even on errors) so frontend doesn't choke
+    try:
+        if request.method == "OPTIONS":
+            return ("", 204)
 
-@app.errorhandler(405)
-def handle_405(err):
-    if request.path.startswith("/api/") or request.path in ("/health",):
-        return jsonify({
-            "error_code": "METHOD_NOT_ALLOWED",
-            "message": f"Method not allowed for {request.path}",
-        }), 405
-    return ("Method not allowed", 405)
+        start = time.time()
 
+        payload = request.get_json(silent=True) or {}
+        text = (payload.get("text") or "").strip()
+        evidence = (payload.get("evidence") or "").strip()
+        policy_mode = (payload.get("policy_mode") or DEFAULT_POLICY_MODE).strip().lower()
 
-@app.errorhandler(500)
-def handle_500(err):
-    # Gunicorn/Flask will call this for unhandled exceptions
-    if request.path.startswith("/api/") or request.path in ("/health",):
-        return jsonify({
-            "error_code": "INTERNAL_SERVER_ERROR",
-            "message": "Internal server error",
-        }), 500
-    return ("Internal server error", 500)
+        if not text:
+            return json_error("MISSING_TEXT", "Missing 'text' in request body", 400)
 
+        # Fingerprint / Event ID
+        sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        event_id = sha[:12]
+        ts = datetime.now(timezone.utc).isoformat()
 
+        # Claims (MVP: single-claim passthrough)
+        claims = [{"text": text}]
+
+        # Scoring (use our heuristic_score for stability)
+        score, verdict, explanation, signals, references = heuristic_score(
+            text=text,
+            evidence=evidence,
+            policy_mode=policy_mode,
+        )
+
+        # Decision gate (canonical)
+        action, reason = decision_gate(
+            int(score),
+            signals,
+            policy_mode=policy_mode,
+        )
+
+        latency_ms = int((time.time() - start) * 1000)
+
+        # Canonical response: decision is ALWAYS an object
+        resp_obj = {
+            "schema_version": SCHEMA_VERSION,
+            "request_id": event_id,
+            "latency_ms": latency_ms,
+
+            "verdict": verdict,
+            "score": int(score),
+
+            "decision": {"action": action, "reason": reason},
+            "decision_action": action,  # convenience for frontend
+
+            "policy_mode": policy_mode,
+            "policy_version": POLICY_VERSION,
+            "policy_hash": policy_hash(policy_mode),
+
+            "event_id": event_id,
+            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+            "audit_fingerprint_sha256": sha,  # convenience field your UI already reads
+
+            # Convenience fields your UI panel reads
+            "volatility": signals.get("volatility"),
+            "volatility_category": signals.get("volatility_category", ""),
+            "evidence_validation_status": signals.get("evidence_validation_status"),
+            "evidence_trust_tier": signals.get("evidence_trust_tier"),
+            "evidence_confidence": signals.get("evidence_confidence"),
+            "risk_flags": signals.get("risk_flags", []),
+            "guardrail": signals.get("guardrail"),
+
+            # Debug payload
+            "claims": claims,
+            "references": references,
+            "signals": signals,
+            "explanation": explanation,
+        }
+
+        return jsonify(resp_obj), 200
+
+    except Exception as e:
+        return json_error(
+            "SERVER_EXCEPTION",
+            str(e),
+            500,
+            hint="Likely indentation/paste error OR a missing helper above this section.",
+        )
+        # -------------------------
+# UI API: /verify (mirrors /api/score)
 # -------------------------
-# Local dev run (Render uses gunicorn; safe to keep)
+
+@app.route("/verify", methods=["POST", "OPTIONS"])
+def verify():
+    try:
+        if request.method == "OPTIONS":
+            return ("", 204)
+
+        start = time.time()
+
+        payload = request.get_json(silent=True) or {}
+        text = (payload.get("text") or "").strip()
+        evidence = (payload.get("evidence") or "").strip()
+        policy_mode = (payload.get("policy_mode") or DEFAULT_POLICY_MODE).strip().lower()
+
+        if not text:
+            return json_error("MISSING_TEXT", "Missing 'text' in request body", 400)
+
+        sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        event_id = sha[:12]
+        ts = datetime.now(timezone.utc).isoformat()
+
+        claims = [{"text": text}]
+
+        score, verdict, explanation, signals, references = heuristic_score(
+            text=text,
+            evidence=evidence,
+            policy_mode=policy_mode,
+        )
+
+        action, reason = decision_gate(
+            int(score),
+            signals,
+            policy_mode=policy_mode,
+        )
+
+        latency_ms = int((time.time() - start) * 1000)
+
+        resp_obj = {
+            "schema_version": SCHEMA_VERSION,
+            "request_id": event_id,
+            "latency_ms": latency_ms,
+
+            "verdict": verdict,
+            "score": int(score),
+
+            "decision": {"action": action, "reason": reason},
+            "decision_action": action,
+
+            "policy_mode": policy_mode,
+            "policy_version": POLICY_VERSION,
+            "policy_hash": policy_hash(policy_mode),
+
+            "event_id": event_id,
+            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+            "audit_fingerprint_sha256": sha,
+
+            "volatility": signals.get("volatility"),
+            "volatility_category": signals.get("volatility_category", ""),
+            "evidence_validation_status": signals.get("evidence_validation_status"),
+            "evidence_trust_tier": signals.get("evidence_trust_tier"),
+            "evidence_confidence": signals.get("evidence_confidence"),
+            "risk_flags": signals.get("risk_flags", []),
+            "guardrail": signals.get("guardrail"),
+
+            "claims": claims,
+            "references": references,
+            "signals": signals,
+            "explanation": explanation,
+        }
+
+        return jsonify(resp_obj), 200
+
+    except Exception as e:
+        return json_error(
+            "SERVER_EXCEPTION",
+            str(e),
+            500,
+            hint="Likely indentation/paste error OR a missing helper above this section.",
+        )
+        # -------------------------
+# Local dev runner (Render uses gunicorn; this is for local only)
 # -------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "10000"))
