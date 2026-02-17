@@ -45,10 +45,12 @@ def json_error(code: str, message: str, status: int = 400, hint: str = None, ext
     if extra and isinstance(extra, dict):
         payload.update(extra)
     return jsonify(payload), status
-    def policy_hash(policy_mode: str) -> str:
+return jsonify(payload), status
+
+
+def policy_hash(policy_mode: str) -> str:
     base = f"{POLICY_VERSION}:{(policy_mode or DEFAULT_POLICY_MODE).strip().lower()}"
     return hashlib.sha256(base.encode("utf-8")).hexdigest()[:16]
-
 
 def make_request_id(text: str, evidence: str, policy_mode: str) -> str:
     """
