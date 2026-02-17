@@ -653,8 +653,8 @@ def health():
 # =========================
 @app.route("/api/score", methods=["POST", "OPTIONS"])
 def api_score():
-    # Always respond with JSON (even on errors) so frontend doesn't choke
     try:
+
         if request.method == "OPTIONS":
             return ("", 204)
 
@@ -665,101 +665,68 @@ def api_score():
         evidence = (payload.get("evidence") or "").strip()
         policy_mode = (payload.get("policy_mode") or DEFAULT_POLICY_MODE).strip().lower()
 
-        if not text:
-            return json_error("MISSING_TEXT", "Missing 'text' in request body", 400)
-
-        # Fingerprint / Event ID
-        sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
-        event_id = sha[:12]
-        ts = datetime.now(timezone.utc).isoformat()
-
-        # Claims (MVP: single-claim passthrough)
-        claims = [{"text": text}]
-
-        # Scoring
+        # ---- scoring ----
         score, verdict, explanation, signals, references = heuristic_score(
             text=text,
             evidence=evidence,
             policy_mode=policy_mode,
         )
 
-        # Decision gate (canonical)
+        # ---- decision gate ----
         action, reason = decision_gate(
             int(score),
             signals,
             policy_mode=policy_mode,
         )
-# ----------------------------
-# DEMO MODE OVERRIDE (optional)
-# ----------------------------
-if DEMO_MODE:
-    # Treat "has references" as either signals flag OR actual references list
-    has_refs = bool(signals.get("has_references")) or bool(references)
-    is_volatile = (signals.get("volatility") == "VOLATILE")
 
-    if is_volatile and not has_refs:
-        action = "REVIEW"
-        reason = "Demo policy: volatile claim requires evidence."
-        score = min(int(score), 65)
-        verdict = "Unclear / needs verification"
-        signals["guardrail"] = "volatile_current_fact_no_evidence"
-    elif has_refs:
-        action = "ALLOW"
-        reason = "Demo policy: evidence present."
-        score = max(int(score), 78)
-        verdict = "Likely true / consistent"
+        # ---- DEMO MODE OVERRIDE ----
+        if DEMO_MODE:
+            has_refs = bool(signals.get("has_references")) or bool(references)
+            is_volatile = (signals.get("volatility") == "VOLATILE")
 
-# Always compute latency AFTER scoring/overrides
-latency_ms = int((time.time() - start) * 1000)
+            if is_volatile and not has_refs:
+                action = "REVIEW"
+                reason = "Demo policy: volatile claim requires evidence."
+                score = min(int(score), 65)
+                verdict = "Unclear / needs verification"
+                signals["guardrail"] = "volatile_current_fact_no_evidence"
 
-# Canonical decision object (single source of truth)
-decision_obj = {"action": action, "reason": reason}
+            elif has_refs:
+                action = "ALLOW"
+                reason = "Demo policy: evidence present."
+                score = max(int(score), 78)
+                verdict = "Likely true / consistent"
 
-resp_obj = {
-    "schema_version": SCHEMA_VERSION,
-    "request_id": event_id,
-    "latency_ms": latency_ms,
+        # ---- latency AFTER overrides ----
+        latency_ms = int((time.time() - start) * 1000)
 
-    # Outcome layer (canonical)
-    "decision": decision_obj,
-    "decision_action": action,
-    "score": int(score),
-    "verdict": verdict,
+        decision_obj = {"action": action, "reason": reason}
 
-    # Policy metadata
-    "policy_mode": policy_mode,
-    "policy_version": POLICY_VERSION,
-    "policy_hash": policy_hash(policy_mode),
+        resp_obj = {
+            "schema_version": SCHEMA_VERSION,
+            "request_id": event_id,
+            "latency_ms": latency_ms,
+            "decision": decision_obj,
+            "decision_action": action,
+            "score": int(score),
+            "verdict": verdict,
+            "policy_mode": policy_mode,
+            "policy_version": POLICY_VERSION,
+            "policy_hash": policy_hash(policy_mode),
+            "event_id": event_id,
+            "audit_fingerprint_sha256": sha,
+            "references": references,
+            "signals": signals,
+            "explanation": explanation,
+        }
 
-    # Execution fingerprint
-    "event_id": event_id,
-    "audit_fingerprint_sha256": sha,
-
-    # Convenience fields for UI panel
-    "volatility": signals.get("volatility"),
-    "volatility_category": signals.get("volatility_category", ""),
-    "evidence_validation_status": signals.get("evidence_validation_status"),
-    "evidence_trust_tier": signals.get("evidence_trust_tier"),
-    "evidence_confidence": signals.get("evidence_confidence"),
-    "risk_flags": signals.get("risk_flags", []),
-    "guardrail": signals.get("guardrail"),
-
-    # Validation details (this IS your “validation section”)
-    "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
-    "claims": claims,
-    "references": references,
-    "signals": signals,
-    "explanation": explanation,
-}
-
-return jsonify(resp_obj), 200
+        return jsonify(resp_obj), 200
 
     except Exception as e:
         return json_error(
             "SERVER_EXCEPTION",
             str(e),
             500,
-            hint="Likely indentation/paste error OR a missing helper above this section.",
         )
         # =============================
 # app.py (PART 4/4)
