@@ -167,7 +167,6 @@ def heuristic_score(text: str, evidence: str, policy_mode: str):
 
     return score, verdict, explanation, signals, references
 
-
 def decision_gate(score: int, signals: Dict[str, Any], policy_mode: str) -> Tuple[str, str]:
     """
     Canonical enforcement gate.
@@ -181,22 +180,23 @@ def decision_gate(score: int, signals: Dict[str, Any], policy_mode: str) -> Tupl
 
     if score < 40:
         return "BLOCK", "Score below minimum reliability threshold."
-return "ALLOW", "Approved under enterprise policy."
+
+    return "ALLOW", "Approved under enterprise policy."
 
 
 def shape_demo_response(resp_obj: dict) -> dict:
     """
     Produces a clean, investor-facing response while keeping internal scoring intact.
-    Ensures decision is always an object:
-        {"action": "...", "reason": "..."}
+    Ensures decision is always an object: {"action": "...", "reason": "..."}
     """
     raw_decision = resp_obj.get("decision")
+
     if isinstance(raw_decision, dict):
         decision_obj = raw_decision
     else:
         decision_obj = {
             "action": raw_decision,
-            "reason": resp_obj.get("decision_detail", {}).get("reason")
+            "reason": resp_obj.get("decision_detail", {}).get("reason"),
         }
 
     shaped = {
@@ -223,7 +223,8 @@ def shape_demo_response(resp_obj: dict) -> dict:
         "signals": resp_obj.get("signals", {}),
         "explanation": resp_obj.get("explanation", ""),
     }
-return shaped
+
+    return shaped
 
 
 @app.route("/", methods=["GET"])
