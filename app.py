@@ -181,9 +181,10 @@ def decision_gate(score: int, signals: Dict[str, Any], policy_mode: str) -> Tupl
 
     if score < 40:
         return "BLOCK", "Score below minimum reliability threshold."
+return "ALLOW", "Approved under enterprise policy."
 
-    return "ALLOW", "Approved under enterprise policy."
-    def shape_demo_response(resp_obj: dict) -> dict:
+
+def shape_demo_response(resp_obj: dict) -> dict:
     """
     Produces a clean, investor-facing response while keeping internal scoring intact.
     Ensures decision is always an object:
