@@ -223,8 +223,10 @@ def shape_demo_response(resp_obj: dict) -> dict:
         "signals": resp_obj.get("signals", {}),
         "explanation": resp_obj.get("explanation", ""),
     }
-    return shaped
-    @app.route("/", methods=["GET"])
+return shaped
+
+
+@app.route("/", methods=["GET"])
 def root():
     # If you have /static/index.html, serve it; otherwise return JSON
     try:
