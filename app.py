@@ -252,16 +252,17 @@ def health():
         "default_policy_mode": DEFAULT_POLICY_MODE,
         "time_utc": datetime.now(timezone.utc).isoformat(),
     }), 200
-    @app.route("/api/score", methods=["POST", "OPTIONS"])
+
+@app.route("/api/score", methods=["POST", "OPTIONS"])
 def api_score():
     try:
+        # Preflight
         if request.method == "OPTIONS":
             return ("", 204)
 
         start = time.time()
 
         payload = request.get_json(silent=True) or {}
-
         text = (payload.get("text") or "").strip()
         evidence = (payload.get("evidence") or "").strip()
         policy_mode = (payload.get("policy_mode") or DEFAULT_POLICY_MODE).strip().lower()
@@ -269,29 +270,32 @@ def api_score():
         if not text:
             return json_error("MISSING_TEXT", "Missing 'text' in request body", 400)
 
-        # Deterministic ids (demo-friendly)
+        # Deterministic request id (stable for screenshots / reproducibility)
         request_id = make_request_id(text=text, evidence=evidence, policy_mode=policy_mode)
 
-        # Execution-bound audit fingerprint (stable for same inputs)
+        # Execution-bound audit fingerprint (stable for same inputs + policy)
         audit_base = f"{text}||{evidence}||{policy_mode}||{POLICY_VERSION}"
         audit_sha = hashlib.sha256(audit_base.encode("utf-8")).hexdigest()
 
         event_id = request_id
         ts = datetime.now(timezone.utc).isoformat()
 
+        # Claims (MVP: single-claim passthrough)
         claims = [{"text": text}]
 
+        # Scoring
         score, verdict, explanation, signals, references = heuristic_score(
             text=text,
             evidence=evidence,
             policy_mode=policy_mode,
         )
 
+        # Canonical decision gate
         action, reason = decision_gate(int(score), signals, policy_mode=policy_mode)
 
-        # Demo override (keeps screenshots consistent)
+        # Demo override (keeps screenshots consistent / matches your UI copy)
         if DEMO_MODE:
-            has_refs = bool(signals.get("has_references")) or (len(references) > 0)
+            has_refs = bool(signals.get("has_references")) or bool(references)
             is_volatile = (signals.get("volatility") == "VOLATILE")
             requires = bool(signals.get("evidence_required_for_allow"))
 
@@ -309,30 +313,24 @@ def api_score():
 
         latency_ms = int((time.time() - start) * 1000)
 
+        # Canonical response: decision is ALWAYS an object (single source of truth)
         decision_obj = {"action": action, "reason": reason}
 
         resp_obj = {
             "schema_version": SCHEMA_VERSION,
             "request_id": request_id,
-            "event_id": event_id,
-            "latency_ms": latency_ms,
-
-            # Canonical outcome
             "decision": decision_obj,
             "decision_action": action,
             "score": int(score),
             "verdict": verdict,
-
-            # Policy metadata
             "policy_mode": policy_mode,
             "policy_version": POLICY_VERSION,
             "policy_hash": policy_hash(policy_mode),
-
-            # Audit artifact
+            "event_id": event_id,
             "audit_fingerprint_sha256": audit_sha,
-            "audit_fingerprint": {"sha256": audit_sha, "timestamp_utc": ts},
+            "latency_ms": latency_ms,
 
-            # Convenience (UI panel)
+            # Convenience fields your UI reads
             "volatility": signals.get("volatility"),
             "volatility_category": signals.get("volatility_category", ""),
             "evidence_validation_status": signals.get("evidence_validation_status"),
@@ -341,27 +339,25 @@ def api_score():
             "risk_flags": signals.get("risk_flags", []),
             "guardrail": signals.get("guardrail"),
 
-            # Validation details (THIS is your “validation section”)
+            # Validation details section (this IS your “validation” block)
+            "audit_fingerprint": {"sha256": audit_sha, "timestamp_utc": ts},
             "claims": claims,
             "references": references,
             "signals": signals,
             "explanation": explanation,
         }
 
-        # If you ever want a compact investor view: /api/score?demo=1
-        if request.args.get("demo") == "1":
-            return jsonify(shape_demo_response(resp_obj)), 200
-
-        return jsonify(resp_obj), 200
+        # Investor-facing shaping (keeps internal fields intact)
+        shaped = shape_demo_response(resp_obj)
+        return jsonify(shaped), 200
 
     except Exception as e:
         return json_error(
             "SERVER_EXCEPTION",
             str(e),
             500,
-            hint="Backend exception. If you recently pasted blocks, check for missing/extra indentation or partial paste.",
+            hint="Likely indentation/paste error OR a missing helper above this section.",
         )
-
 
 if __name__ == "__main__":
     # Local only (Render uses gunicorn)
