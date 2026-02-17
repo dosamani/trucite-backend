@@ -43,6 +43,7 @@
     if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
     else fallbackCopy(text);
   }
+
   function fallbackCopy(text) {
     const ta = document.createElement("textarea");
     ta.value = text;
@@ -132,83 +133,95 @@
     setText(apiMeta, "server —ms · /api/score");
     if (resultPre) resultPre.textContent = debugText ? `Backend error:\n${debugText}` : (userMsg || "Backend error.");
   }
-  
-function buildDecisionPayload(data) {
-  const sig = data?.signals || {};
-  const ev = sig?.evidence_validation || {};
 
-  // --- Normalize decision (string OR object) ---
-  const rawDecision = data?.decision;
-  const decisionObj =
-    (rawDecision && typeof rawDecision === "object")
-      ? rawDecision
-      : {
-          action: (typeof rawDecision === "string" ? rawDecision : null) || "REVIEW",
-          reason:
-            data?.decision_detail?.reason ||
-            data?.decision_reason ||
-            data?.reason ||
-            ""
-        };
+  // Normalizes decision fields across:
+  // - decision: {action, reason}
+  // - decision: "ALLOW" + decision_detail: {action, reason}
+  // - shaped: decision: {action, reason} and policy/audit nested
+  function normalizeDecision(data) {
+    const rawDecision = data?.decision;
 
-  // Prefer top-level fields first (backend truth), then signals fallbacks.
-  const volatility =
-    (data?.volatility ?? sig?.volatility ?? "LOW");
+    // Case 1: decision is already an object
+    if (rawDecision && typeof rawDecision === "object") {
+      return {
+        action: rawDecision.action || "REVIEW",
+        reason: rawDecision.reason || ""
+      };
+    }
 
-  const volatilityCategory =
-    (data?.volatility_category ?? sig?.volatility_category ?? "");
+    // Case 2: decision is a string (ALLOW/REVIEW/BLOCK)
+    const action = (typeof rawDecision === "string" ? rawDecision : null) || "REVIEW";
+    const reason =
+      data?.decision_detail?.reason ||
+      data?.decision_reason ||
+      data?.reason ||
+      data?.decision_detail?.message || // occasional alt key
+      "";
 
-  const evidenceStatus =
-    (data?.evidence_validation_status ??
-     sig?.evidence_validation_status ??
-     ev?.status ??
-     "NONE");
+    return { action, reason };
+  }
 
-  const evidenceTrustTier =
-    (data?.evidence_trust_tier ??
-     sig?.evidence_trust_tier ??
-     ev?.trust_tier ??
-     "C");
+  function buildDecisionPayload(data) {
+    const sig = data?.signals || {};
+    const ev = sig?.evidence_validation || {};
 
-  const evidenceConfidence =
-    (typeof data?.evidence_confidence === "number") ? data.evidence_confidence :
-    (typeof sig?.evidence_confidence === "number") ? sig.evidence_confidence :
-    (typeof ev?.confidence === "number") ? ev.confidence :
-    null;
+    const decisionObj = normalizeDecision(data);
 
-  return {
-    schema_version: data?.schema_version || "2.0",
-    request_id: data?.request_id || "",
+    // Prefer top-level fields first (backend truth), then signals fallbacks.
+    const volatility = (data?.volatility ?? sig?.volatility ?? "LOW");
+    const volatilityCategory = (data?.volatility_category ?? sig?.volatility_category ?? "");
 
-    // ✅ ALWAYS consistent with UI
-    decision: decisionObj.action || "REVIEW",
+    const evidenceStatus =
+      (data?.evidence_validation_status ??
+       sig?.evidence_validation_status ??
+       ev?.status ??
+       "NONE");
 
-    score: data?.score ?? "--",
-    verdict: data?.verdict || "",
+    const evidenceTrustTier =
+      (data?.evidence_trust_tier ??
+       sig?.evidence_trust_tier ??
+       ev?.trust_tier ??
+       "C");
 
-    policy_mode: data?.policy_mode || data?.policy?.mode || CONFIG.POLICY_MODE,
-    policy_version: data?.policy_version || data?.policy?.version || "",
-    policy_hash: data?.policy_hash || data?.policy?.hash || "",
+    const evidenceConfidence =
+      (typeof data?.evidence_confidence === "number") ? data.evidence_confidence :
+      (typeof sig?.evidence_confidence === "number") ? sig.evidence_confidence :
+      (typeof ev?.confidence === "number") ? ev.confidence :
+      null;
 
-    event_id: data?.event_id || data?.audit?.event_id || "",
-    audit_fingerprint_sha256:
-      data?.audit_fingerprint?.sha256 ||
-      data?.audit_fingerprint_sha256 ||
-      data?.audit?.audit_fingerprint_sha256 ||
-      "",
+    return {
+      schema_version: data?.schema_version || data?.contract?.schema_version || "2.0",
+      request_id: data?.request_id || "",
 
-    latency_ms: (typeof data?.latency_ms === "number") ? data.latency_ms : null,
+      // Canonical single-field action for the compact payload
+      decision: decisionObj.action || "REVIEW",
 
-    volatility: String(volatility).toUpperCase(),
-    volatility_category: volatilityCategory,
-    evidence_validation_status: evidenceStatus,
-    evidence_trust_tier: evidenceTrustTier,
-    evidence_confidence: evidenceConfidence,
+      score: data?.score ?? "--",
+      verdict: data?.verdict || "",
 
-    risk_flags: data?.risk_flags || sig?.risk_flags || [],
-    guardrail: data?.guardrail ?? sig?.guardrail ?? null
-  };
-}
+      policy_mode: data?.policy_mode || data?.policy?.mode || CONFIG.POLICY_MODE,
+      policy_version: data?.policy_version || data?.policy?.version || "",
+      policy_hash: data?.policy_hash || data?.policy?.hash || "",
+
+      event_id: data?.event_id || data?.audit?.event_id || "",
+      audit_fingerprint_sha256:
+        data?.audit_fingerprint?.sha256 ||
+        data?.audit_fingerprint_sha256 ||
+        data?.audit?.audit_fingerprint_sha256 ||
+        "",
+
+      latency_ms: (typeof data?.latency_ms === "number") ? data.latency_ms : null,
+
+      volatility: String(volatility).toUpperCase(),
+      volatility_category: volatilityCategory,
+      evidence_validation_status: evidenceStatus,
+      evidence_trust_tier: evidenceTrustTier,
+      evidence_confidence: evidenceConfidence,
+
+      risk_flags: data?.risk_flags || sig?.risk_flags || [],
+      guardrail: data?.guardrail ?? sig?.guardrail ?? null
+    };
+  }
 
   function renderResponse(data) {
     lastResponse = data;
@@ -218,35 +231,24 @@ function buildDecisionPayload(data) {
     setText(scoreVerdict, data?.verdict || "");
     updateGauge(score);
 
-const sig = data?.signals || {};
+    const sig = data?.signals || {};
 
-// ✅ Prefer top-level volatility (your backend emits it)
-const vol = (data?.volatility ?? sig?.volatility ?? "LOW").toString().toUpperCase();
-setText(volatilityValue, vol);
+    // Volatility: prefer top-level, then signals
+    const vol = (data?.volatility ?? sig?.volatility ?? "LOW").toString().toUpperCase();
+    setText(volatilityValue, vol);
 
-// ✅ Policy fallbacks (some shaped responses put policy inside data.policy)
-const pMode = data?.policy_mode || data?.policy?.mode || CONFIG.POLICY_MODE;
-const pVer  = data?.policy_version || data?.policy?.version || "";
-const pHash = data?.policy_hash || data?.policy?.hash || "";
-setText(policyValue, pVer ? `${pMode} v${pVer} (hash: ${pHash})` : `${pMode}`);
+    // Policy fallbacks (some shaped responses put policy inside data.policy)
+    const pMode = data?.policy_mode || data?.policy?.mode || CONFIG.POLICY_MODE;
+    const pVer  = data?.policy_version || data?.policy?.version || "";
+    const pHash = data?.policy_hash || data?.policy?.hash || "";
+    const policyLabel = pVer ? `${pMode} v${pVer}` + (pHash ? ` (hash: ${pHash})` : "") : `${pMode}`;
+    setText(policyValue, policyLabel);
 
-// ✅ Normalize decision (string OR object)
-const rawDecision = data?.decision;
-const decisionObj =
-  (rawDecision && typeof rawDecision === "object")
-    ? rawDecision
-    : {
-        action: (typeof rawDecision === "string" ? rawDecision : null) || "REVIEW",
-        reason:
-          data?.decision_detail?.reason ||
-          data?.decision_reason ||
-          data?.reason ||
-          ""
-      };
+    // Decision normalization (string OR object)
+    const decisionObj = normalizeDecision(data);
+    const action = (decisionObj.action || "REVIEW").toUpperCase();
+    const reason = decisionObj.reason || "";
 
-const action = decisionObj.action || "REVIEW";
-const reason = decisionObj.reason || "";
-    
     if (decisionCard) show(decisionCard, true);
     setText(decisionAction, action);
     applyDecisionColor(action);
@@ -339,10 +341,12 @@ const reason = decisionObj.reason || "";
     if (!lastPayload) return alert("Run a verification first.");
     copyToClipboard(safeJson(lastPayload));
   };
+
   window.copyResponse = function () {
     if (!lastResponse) return alert("Run a verification first.");
     copyToClipboard(safeJson(lastResponse));
   };
+
   window.copyCurl = function () {
     if (!lastPayload) return alert("Run a verification first.");
     const curl = `curl -X POST "${location.origin}/api/score" -H "Content-Type: application/json" -d '${JSON.stringify(lastPayload)}'`;
