@@ -40,12 +40,14 @@ def json_error(code: str, message: str, status: int = 400, hint: str = None, ext
         "error_code": code,
         "message": message,
     }
+
     if hint:
         payload["hint"] = hint
+
     if extra and isinstance(extra, dict):
         payload.update(extra)
+
     return jsonify(payload), status
-return jsonify(payload), status
 
 
 def policy_hash(policy_mode: str) -> str:
