@@ -219,7 +219,8 @@
       evidence_confidence: evidenceConfidence,
 
       risk_flags: data?.risk_flags || sig?.risk_flags || [],
-      guardrail: data?.guardrail ?? sig?.guardrail ?? null
+      guardrail: data?.guardrail ?? sig?.guardrail ?? null,
+      execution_boundary: data?.execution_boundary ?? false
     };
   }
 
