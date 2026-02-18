@@ -251,6 +251,27 @@
     const pHash = data?.policy_hash || data?.policy?.hash || "";
     const policyLabel = pVer ? `${pMode} v${pVer}` + (pHash ? ` (hash: ${pHash})` : "") : `${pMode}`;
     setText(policyValue, policyLabel);
+    // ---- Execution Commit (downstream enforcement artifact) ----
+    const exec = data?.execution_commit || data?.executionCommit || null;
+
+    const execCard = document.getElementById("execCommitCard");
+    const execAuthorized = document.getElementById("execAuthorized");
+    const execAction = document.getElementById("execAction");
+    const execEventId = document.getElementById("execEventId");
+    const execPolicyHash = document.getElementById("execPolicyHash");
+    const execAudit = document.getElementById("execAudit");
+
+    if (exec && exec.authorized !== undefined) {
+     execCard.style.display = "block";
+
+     setText(execAuthorized, exec.authorized ? "YES" : "NO");
+     setText(execAction, exec.action || "—");
+     setText(execEventId, exec.event_id || "—");
+     setText(execPolicyHash, exec.policy_hash || "—");
+     setText(execAudit, exec.audit_fingerprint_sha256 || "—");
+    } else {
+      execCard.style.display = "none";
+    }
 
     // Decision normalization (string OR object)
     const decisionObj = normalizeDecision(data);
