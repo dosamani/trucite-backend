@@ -407,7 +407,7 @@ def api_score():
             "references": references,
             "signals": signals,
             "explanation": explanation,
-            "execution_boundary": True,
+            "execution_boundary": (action == "ALLOW"),
         }
 
         # ✅ DEMO returns ONE canonical shaped object (prevents ALLOW/REVIEW mismatches)
