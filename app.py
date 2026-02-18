@@ -304,6 +304,13 @@ def shape_demo_response(resp_obj: dict) -> dict:
         "signals": resp_obj.get("signals", {}),
         "explanation": resp_obj.get("explanation", ""),
         "execution_boundary": resp_obj.get("execution_boundary", False),
+        "execution_commit": resp_obj.get("execution_commit", {
+          "authorized": False,
+          "action": None,
+          "event_id": None,
+          "policy_hash": None,
+          "audit_fingerprint_sha256": None
+        }),
     }
 
     return shaped
@@ -409,6 +416,13 @@ def api_score():
             "signals": signals,
             "explanation": explanation,
             "execution_boundary": (action == "ALLOW"),
+            "execution_commit": {
+              "authorized": action == "ALLOW",
+              "action": action,
+              "event_id": event_id,
+              "policy_hash": policy_hash(policy_mode),
+              "audit_fingerprint_sha256": sha
+            },
         }
 
         # ✅ DEMO returns ONE canonical shaped object (prevents ALLOW/REVIEW mismatches)
