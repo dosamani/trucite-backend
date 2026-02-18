@@ -303,6 +303,7 @@ def shape_demo_response(resp_obj: dict) -> dict:
         "references": resp_obj.get("references", []),
         "signals": resp_obj.get("signals", {}),
         "explanation": resp_obj.get("explanation", ""),
+        "execution_boundary": resp_obj.get("execution_boundary", False),
     }
 
     return shaped
