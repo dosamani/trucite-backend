@@ -220,8 +220,15 @@
 
       risk_flags: data?.risk_flags || sig?.risk_flags || [],
       guardrail: data?.guardrail ?? sig?.guardrail ?? null,
-      execution_boundary: data?.execution_boundary ?? false
-    };
+      execution_boundary: data?.execution_boundary ?? false,
+      execution_commit: data?.execution_commit ?? {
+       authorized: false,
+       action: null,
+       event_id: null,
+       policy_hash: null,
+       audit_fingerprint_sha256: null
+      }
+      };
   }
 
   function renderResponse(data) {
