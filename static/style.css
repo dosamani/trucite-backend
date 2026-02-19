@@ -940,3 +940,11 @@ details[open] summary::after { content: "▲"; }
   line-height: 1.5;
 }
 
+.mvp-forward-signal {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #bdbdbd;
+  text-align: center;
+  opacity: 0.9;
+  letter-spacing: 0.02em;
+}
