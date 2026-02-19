@@ -904,3 +904,12 @@ details[open] summary::after { content: "▲"; }
   margin-top: 6px;
   text-align: center;
 }
+
+/* =========================
+   MVP Badge – Rectangular Variant
+   ========================= */
+
+.mvp-badge {
+  border-radius: 12px;  /* was likely 999px */
+  padding: 22px 28px;
+}
