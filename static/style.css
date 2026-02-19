@@ -533,6 +533,12 @@ details[open] summary::after { content: "▲"; }
   margin-top: 12px;
 }
 
+   /* ==== Execution Commit Gold Accent ==== */
+#execCommitCard {
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.06) inset;
+}
+
 .cardTitle {
   font-weight: 600;
   margin-bottom: 10px;
@@ -557,6 +563,11 @@ details[open] summary::after { content: "▲"; }
 
 .kv .mono {
   font-family: monospace;
+}
+
+.kv .v.mono, .mono {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
    
 }
