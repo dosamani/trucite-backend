@@ -865,3 +865,21 @@ details[open] summary::after { content: "▲"; }
   width: fit-content;
   max-width: 92%;
 }
+
+/* ================================
+   Hero Hook + Tagline
+   Paste at END of CSS file
+================================ */
+
+.hero-hook {
+  margin: 22px 0 10px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.hero-tagline {
+  margin: 0 0 18px;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  opacity: 0.9;
+}
