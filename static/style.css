@@ -988,3 +988,39 @@ details[open] summary::after { content: "▲"; }
   opacity: 0.9;
 }
 
+#api {
+  margin-top: 70px;
+  text-align: center;
+}
+
+.api-block {
+  margin-top: 18px;
+  border: 1px solid rgba(255,215,0,0.35);
+  border-radius: 16px;
+  padding: 18px;
+  background: rgba(0,0,0,0.65);
+  box-shadow: 0 0 18px rgba(255,215,0,0.08);
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.api-endpoint {
+  font-weight: 900;
+  color: #FFD700;
+  margin-bottom: 10px;
+}
+
+.api-code {
+  text-align: left;
+  font-size: 0.85rem;
+  overflow-x: auto;
+  color: #e5e7eb;
+}
+
+.api-note {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: #bdbdbd;
+}
+
