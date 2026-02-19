@@ -569,6 +569,29 @@ details[open] summary::after { content: "▲"; }
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+
+   /* === Exec Commit: force same gold accent + mobile-safe wrapping === */
+#execCommitCard{
+  border: 1px solid rgba(255, 215, 0, 0.35) !important;
+  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.08) inset !important;
+}
+
+/* Long hashes/IDs: wrap on mobile */
+#execCommitCard .kv .v,
+#execCommitCard .kv .v.mono,
+#execEventId,
+#execPolicyHash,
+#execAudit{
+  max-width: 100%;
+  display: block;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+/* If a device STILL won’t wrap, allow scroll instead of clipping */
+#execCommitCard .kvGrid{
+  overflow-x: auto;
+}
    
 }
 
