@@ -270,6 +270,7 @@ def shape_demo_response(resp_obj: dict) -> dict:
     Produces a clean, investor-facing response while keeping internal scoring intact.
     Ensures decision is always an object: {"action": "...", "reason": "..."}
     """
+
     raw_decision = resp_obj.get("decision")
 
     if isinstance(raw_decision, dict):
@@ -280,37 +281,39 @@ def shape_demo_response(resp_obj: dict) -> dict:
             "reason": resp_obj.get("decision_detail", {}).get("reason"),
         }
 
+    event_id = resp_obj.get("event_id") or resp_obj.get("request_id")
+
     shaped = {
         "contract": {
             "name": "TruCite Runtime Execution Reliability",
             "contract_version": DEMO_CONTRACT_VERSION,
             "schema_version": resp_obj.get("schema_version"),
+            "request_id": event_id,   # ✅ FIX
         },
+
         "decision": decision_obj,
         "decision_action": decision_obj.get("action"),
         "score": resp_obj.get("score"),
         "verdict": resp_obj.get("verdict"),
+
         "policy": {
             "mode": resp_obj.get("policy_mode"),
             "version": resp_obj.get("policy_version"),
             "hash": resp_obj.get("policy_hash"),
         },
+
         "audit": {
-            "event_id": resp_obj.get("event_id"),
+            "event_id": event_id,
             "audit_fingerprint_sha256": resp_obj.get("audit_fingerprint_sha256"),
         },
+
         "latency_ms": resp_obj.get("latency_ms"),
         "references": resp_obj.get("references", []),
         "signals": resp_obj.get("signals", {}),
         "explanation": resp_obj.get("explanation", ""),
+
         "execution_boundary": resp_obj.get("execution_boundary", False),
-        "execution_commit": resp_obj.get("execution_commit", {
-          "authorized": False,
-          "action": None,
-          "event_id": None,
-          "policy_hash": None,
-          "audit_fingerprint_sha256": None
-        }),
+        "execution_commit": resp_obj.get("execution_commit", {}),
     }
 
     return shaped
