@@ -648,3 +648,54 @@ details[open] summary::after { content: "▲"; }
   color: #2fe57a;
   font-weight: 900;
 }
+/* =======================
+   ROADMAP DIAGRAM STYLES
+======================= */
+
+.bp-card{
+  border: 1px solid rgba(255,215,0,0.45);
+  border-radius: 18px;
+  background: rgba(0,0,0,0.65);
+  box-shadow: 0 0 18px rgba(255,215,0,0.10);
+  padding: 18px;
+  margin: 14px 0;
+}
+
+.bp-label{
+  font-weight: 900;
+  color: #FFD700;
+  margin-bottom: 14px;
+  font-size: 1.05rem;
+  text-align: center;
+}
+
+.bp-diagram{
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+}
+
+.bp-node{
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,215,0,0.35);
+  background: rgba(255,215,0,0.10);
+  color: #FFD700;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.bp-arrow{
+  color: #aaa;
+  font-weight: 900;
+}
+
+/* Mobile tightening */
+@media (max-width: 560px){
+  .bp-node{ font-size: 0.88rem; }
+  .bp-diagram{ gap: 8px; }
+}
