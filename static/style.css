@@ -607,6 +607,31 @@ details[open] summary::after { content: "▲"; }
   word-break: break-word !important;
 }
 
+   /* === FORCE: Exec Commit card should look like other gold blocks (mobile-safe) === */
+#execCommitCard.card {
+  border: 1px solid rgba(255, 215, 0, 0.35) !important;
+  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.10) inset !important;
+}
+
+/* Grid children must be allowed to shrink/wrap in CSS Grid */
+#execCommitCard .kvGrid { overflow-x: auto; }
+#execCommitCard .kv,
+#execCommitCard .k,
+#execCommitCard .v { min-width: 0; }
+
+/* Force long IDs/hashes to wrap instead of clipping */
+#execCommitCard .v,
+#execCommitCard .v.mono,
+#execEventId,
+#execPolicyHash,
+#execAudit {
+  display: block;
+  max-width: 100%;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-all !important; /* strongest for long hex */
+}
+
 
 
 
