@@ -251,31 +251,48 @@
     const pHash = data?.policy_hash || data?.policy?.hash || "";
     const policyLabel = pVer ? `${pMode} v${pVer}` + (pHash ? ` (hash: ${pHash})` : "") : `${pMode}`;
     setText(policyValue, policyLabel);
-    // ---- Execution Commit (downstream enforcement artifact) ----
-    const exec = data?.execution_commit || data?.executionCommit || null;
+// ---- Execution Commit (downstream enforcement artifact) ----
+const exec = data.execution_commit || data?.executionCommit || null;
 
-    const execCard = document.getElementById("execCommitCard");
-    const execAuthorized = document.getElementById("execAuthorized");
-    const execAction = document.getElementById("execAction");
-    const execEventId = document.getElementById("execEventId");
-    const execPolicyHash = document.getElementById("execPolicyHash");
-    const execAudit = document.getElementById("execAudit");
+const execCard = document.getElementById("execCommitCard");
+const execBoundary = document.getElementById("execBoundary");
+const execAuthorized = document.getElementById("execAuthorized");
+const execAction = document.getElementById("execAction");
+const execEventId = document.getElementById("execEventId");
+const execPolicyHash = document.getElementById("execPolicyHash");
+const execAudit = document.getElementById("execAudit");
 
-    if (exec && exec.authorized !== undefined) {
-     execCard.style.display = "block";
+// Always reflect execution boundary (top-level)
+if (execBoundary) {
+  const boundary = data.execution_boundary === true;
+  execBoundary.textContent = boundary ? "TRUE" : "FALSE";
+  execBoundary.style.color = boundary ? "#10b981" : "#ef4444";
+  execBoundary.style.fontWeight = "700";
+}
 
-     const authorized = exec.authorized === true;
+if (exec && exec.authorized !== undefined) {
+  execCard.style.display = "block";
 
-     setText(execAuthorized, authorized ? "YES" : "NO");
-     execAuthorized.style.color = authorized ? "#10b981" : "#ef4444";
-     execAuthorized.style.fontWeight = "700";
-     setText(execAction, exec.action || "—");
-     setText(execEventId, exec.event_id || "—");
-     setText(execPolicyHash, exec.policy_hash || "—");
-     setText(execAudit, exec.audit_fingerprint_sha256 || "—");
-    } else {
-      execCard.style.display = "none";
-    }
+  const authorized = exec.authorized === true;
+
+  execAuthorized.textContent = authorized ? "YES" : "NO";
+  execAuthorized.style.color = authorized ? "#10b981" : "#ef4444";
+  execAuthorized.style.fontWeight = "700";
+
+  execAction.textContent = exec.action || "—";
+  execEventId.textContent = exec.event_id || "—";
+  execPolicyHash.textContent = exec.policy_hash || "—";
+
+  // FIX: fall back to top-level audit fingerprint if missing
+  execAudit.textContent =
+    exec.audit_fingerprint_sha256 ||
+    data.audit_fingerprint_sha256 ||
+    data?.audit?.audit_fingerprint_sha256 ||
+    "—";
+
+} else {
+  if (execCard) execCard.style.display = "none";
+}
 
     // Decision normalization (string OR object)
     const decisionObj = normalizeDecision(data);
