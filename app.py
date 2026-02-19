@@ -396,6 +396,26 @@ def _liability_tier(text_lc: str) -> str:
         return "medium"
     return "low"
 
+def _volatility_category(text_lc: str) -> str:
+    t = (text_lc or "").lower()
+
+    if any(k in t for k in ["today", "announced", "resigned", "acquired", "merger", "breaking"]):
+        return "NEWS"
+
+    if any(k in t for k in ["ceo", "board", "corporate", "earnings"]):
+        return "CORPORATE"
+
+    if any(k in t for k in ["dose", "drug", "clinical", "patient", "treatment"]):
+        return "MEDICAL"
+
+    if any(k in t for k in ["statute", "case law", "precedent", "court"]):
+        return "LEGAL"
+
+    if any(k in t for k in ["bank", "transfer", "payment", "revenue"]):
+        return "FINANCIAL"
+
+    return "GENERAL"
+
 
 # ---- API: /api/score ----
 
@@ -445,7 +465,7 @@ def api_score():
         elif action == "BLOCK":
             verdict = "Likely false / inconsistent"
 
-        latency_ms = int((time.time() - start) * 1000)
+        latency_ms = max(5, int((time.time() - start) * 1000))
         text_lc = (payload.get("text") or payload.get("claim") or "").strip().lower()
 
         resp_obj = {
@@ -469,6 +489,7 @@ def api_score():
             "references": references,
             "signals": signals,
             "explanation": explanation,
+            "volatility_category": _volatility_category(text_lc),
 
             "execution_boundary": (action == "ALLOW"),
             "execution_commit": {
