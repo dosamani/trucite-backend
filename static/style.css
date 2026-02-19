@@ -523,6 +523,42 @@ details[open] summary::after { content: "▲"; }
 .armor-highlight {
   font-size: 20px;
   margin-bottom: 20px;
+   /* ===== Execution Commit Card ===== */
+
+.card {
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.cardTitle {
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #e5e7eb;
+}
+
+.kvGrid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 6px 12px;
+  font-size: 14px;
+}
+
+.kv .k {
+  color: #9ca3af;
+}
+
+.kv .v {
+  font-family: monospace;
+  color: #e5e7eb;
+}
+
+.kv .mono {
+  font-family: monospace;
+}
+   
 }
 
 
