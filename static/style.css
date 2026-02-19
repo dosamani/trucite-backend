@@ -22,7 +22,7 @@ details { outline: none; }
 details, summary { -webkit-tap-highlight-color: transparent; }
 
 /* =======================
-   TOP NAV  ✅ UPDATED
+   TOP NAV
 ======================= */
 .top-nav {
   position: sticky;
@@ -39,11 +39,10 @@ details, summary { -webkit-tap-highlight-color: transparent; }
   margin: 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;   /* ✅ desktop: left + right */
-  gap: 12px;                        /* ✅ prevents overlap */
+  justify-content: space-between;
+  gap: 12px;
 }
 
-/* CTA buttons (same style as before) */
 .top-nav-cta {
   font-weight: 800;
   font-size: 0.95rem;
@@ -57,7 +56,6 @@ details, summary { -webkit-tap-highlight-color: transparent; }
 }
 .top-nav-cta:hover { text-decoration: none; filter: brightness(1.08); }
 
-/* ✅ Subtext line (centered BETWEEN the two buttons on desktop + mobile) */
 .api-subnote{
   width: 100%;
   max-width: 920px;
@@ -69,26 +67,21 @@ details, summary { -webkit-tap-highlight-color: transparent; }
   opacity: 0.9;
 }
 
-/* ✅ Mobile: stack buttons cleanly */
 @media (max-width: 560px){
   .top-nav-inner{
     flex-direction: column;
     align-items: stretch;
   }
-
   .top-nav-cta{
     width: 100%;
     text-align: center;
   }
-
-  /* (Optional wrapper support if you have it in HTML) */
   .api-cta-wrapper{
     display: flex;
     flex-direction: column;
     align-items: center;
     width: 100%;
   }
-
   .api-subnote{
     width: 100%;
     text-align: center;
@@ -123,9 +116,7 @@ details, summary { -webkit-tap-highlight-color: transparent; }
   color: #ccc;
 }
 
-.hero-subtitle-tight {
-  margin-top: 6px;
-}
+.hero-subtitle-tight { margin-top: 6px; }
 
 .hero-missing-layer{
   margin: 12px auto 0;
@@ -136,9 +127,7 @@ details, summary { -webkit-tap-highlight-color: transparent; }
   text-shadow: 0 0 14px rgba(255,215,0,0.25);
 }
 
-.hero-mini-links{
-  margin-top: 10px;
-}
+.hero-mini-links{ margin-top: 10px; }
 
 /* =======================
    MAIN
@@ -166,7 +155,6 @@ main {
   font-size: 0.95rem;
   text-align: center;
 }
-
 /* =======================
    VERIFY / INPUT
 ======================= */
@@ -192,7 +180,6 @@ textarea:focus {
   box-shadow: 0 0 26px rgba(255,215,0,0.22);
 }
 
-/* Glow also when user has typed (not only focus) */
 textarea:not(:placeholder-shown) {
   border-color: rgba(255,215,0,0.85);
   box-shadow: 0 0 26px rgba(255,215,0,0.18);
@@ -270,6 +257,10 @@ textarea:not(:placeholder-shown) {
 }
 #scoreVerdict { margin-top: 6px; font-size: 0.95rem; color: #ccc; }
 
+#gaugeFill {
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* =======================
    RESULT BOX
 ======================= */
@@ -291,7 +282,6 @@ pre#result {
   overflow: auto;
   box-shadow: 0 0 18px rgba(255,215,0,0.06);
 }
-
 /* =======================
    CARDS (How + Wins)
 ======================= */
@@ -314,7 +304,6 @@ pre#result {
 
 .bp-card p { margin: 0; color: #d9d9d9; font-size: 1.02rem; line-height: 1.55; }
 
-/* Diagram pills */
 .bp-diagram { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: center; }
 .bp-node {
   display: inline-block;
@@ -328,7 +317,6 @@ pre#result {
 }
 .bp-arrow { color: #aaa; font-weight: 900; }
 
-/* Wins / Use cases grid helpers */
 .wins-grid, .blueprint-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -338,9 +326,7 @@ pre#result {
 }
 
 @media (min-width: 780px){
-  .wins-grid, .blueprint-grid {
-    grid-template-columns: 1fr 1fr;
-  }
+  .wins-grid, .blueprint-grid { grid-template-columns: 1fr 1fr; }
 }
 
 /* =======================
@@ -386,7 +372,6 @@ details[open] summary::after { content: "▲"; }
   line-height: 1.55;
 }
 
-/* FAQ "See full..." centered */
 .faq-more {
   text-align: center !important;
   width: 100% !important;
@@ -435,7 +420,6 @@ details[open] summary::after { content: "▲"; }
   line-height: 1.55;
 }
 
-/* Decision action colors */
 .allow { color: #2fe57a !important; font-weight: 1000; }
 .review { color: #FFD700 !important; font-weight: 1000; }
 .block { color: #ff4d4d !important; font-weight: 1000; }
@@ -461,16 +445,7 @@ details[open] summary::after { content: "▲"; }
   opacity: 0.85;
 }
 
-/* Desktop alignment fix for input boxes */
-.verify-section textarea {
-  width: 100%;
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
-  display: block;
-}
-
-/* ===== TruCite desktop alignment fix (textarea stack) ===== */
+/* Desktop alignment fix (textarea/buttons) */
 .verify-section textarea {
   width: 100%;
   max-width: 900px;
@@ -480,7 +455,6 @@ details[open] summary::after { content: "▲"; }
   box-sizing: border-box;
 }
 
-/* If the button + copy row look offset on desktop, center them too */
 .verify-section .primary-btn,
 .verify-section .copy-row {
   max-width: 900px;
@@ -489,13 +463,13 @@ details[open] summary::after { content: "▲"; }
   box-sizing: border-box;
 }
 
-/* If your COPY buttons wrap weirdly on desktop, this keeps them tidy */
 .verify-section .copy-row {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   justify-content: center;
 }
+
 .policy-mode-note{
   margin-top: 6px;
   font-size: 0.78rem;
@@ -503,10 +477,8 @@ details[open] summary::after { content: "▲"; }
   opacity: 0.85;
   letter-spacing: 0.04em;
 }
-#gaugeFill {
-  transition: stroke-dashoffset 0.9s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
+/* Positioning block */
 .positioning-armor {
   max-width: 900px;
   margin: 80px auto;
@@ -523,8 +495,15 @@ details[open] summary::after { content: "▲"; }
 .armor-highlight {
   font-size: 20px;
   margin-bottom: 20px;
-   /* ===== Execution Commit Card ===== */
+} /* ✅ important: closes properly so Exec Commit CSS works */
+/* =======================
+   EXECUTION COMMIT CARD ✅ FINAL
+   - Gold border like other blocks
+   - Long hashes WRAP inside on mobile
+   - No wrap “outside” the border
+======================= */
 
+/* Base card style (shared) */
 .card {
   background: #111827;
   border: 1px solid #1f2937;
@@ -533,21 +512,13 @@ details[open] summary::after { content: "▲"; }
   margin-top: 12px;
 }
 
-   /* ==== Execution Commit Gold Accent ==== */
-#execCommitCard{
-  border: 2px solid #FF00FF !important;   /* TEMP: bright pink */
-  box-shadow: none !important;
-  background: rgba(255, 215, 0, 0.04) !important;
-  border-radius: 16px !important;
-}
-
-#execCommitCard {
-  border-radius: 16px !important;
-  background: rgba(255, 215, 0, 0.04) !important; /* faint warm tint */
-}
-
-#execCommitCard * {
-  white-space: normal !important;
+/* Exec Commit: gold accent + containment */
+#execCommitCard.card{
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.10) inset;
+  background: rgba(255, 215, 0, 0.04);
+  border-radius: 16px;
+  overflow: hidden; /* keeps wrap INSIDE the border */
 }
 
 .cardTitle {
@@ -556,6 +527,7 @@ details[open] summary::after { content: "▲"; }
   color: #e5e7eb;
 }
 
+/* 2-col key/value grid */
 .kvGrid{
   display: grid;
   grid-template-columns: 140px minmax(0, 1fr);
@@ -563,102 +535,33 @@ details[open] summary::after { content: "▲"; }
   font-size: 14px;
 }
 
-   /* Make .k and .v become the grid items (label/value pairs) */
+/* Each .kv becomes two grid cells */
 .kvGrid .kv{
   display: contents;
 }
 
-/* ensure grid items can shrink inside the card */
+/* Allow shrinking/wrapping inside grid */
 .kvGrid .k,
 .kvGrid .v{
   min-width: 0;
 }
 
-.kvGrid .v.mono{
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-#execCommitCard{
-  overflow: hidden;
-}
-
-.kv .k {
-  color: #9ca3af;
-}
+.kv .k { color: #9ca3af; }
 
 .kv .v {
   font-family: monospace;
   color: #e5e7eb;
 }
 
-.kv .v{
-  min-width: 0;
-}
-
-.kv .mono {
-  font-family: monospace;
-}
-
-.kv .v.mono, .mono {
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-#execCommitCard .kvGrid{
-  overflow-x: auto;
-}
-
-#execCommitCard .kvGrid::-webkit-scrollbar{
-  height: 6px;
-}
-
-   /* === Exec Commit: force same gold accent + mobile-safe wrapping === */
-#execCommitCard{
-  border: 1px solid rgba(255, 215, 0, 0.35) !important;
-  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.08) inset !important;
-}
-
-/* Long hashes/IDs: wrap on mobile */
-#execCommitCard .kv .v,
-#execCommitCard .kv .v.mono,
-#execEventId,
-#execPolicyHash,
-#execAudit{
-  max-width: 100%;
-  display: block;
-  overflow-wrap: anywhere !important;
-  word-break: break-word !important;
-}
-
-   /* === FORCE: Exec Commit card should look like other gold blocks (mobile-safe) === */
-#execCommitCard.card {
-  border: 1px solid rgba(255, 215, 0, 0.35) !important;
-  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.10) inset !important;
-}
-
-/* Grid children must be allowed to shrink/wrap in CSS Grid */
-#execCommitCard .kvGrid { overflow-x: auto; }
-#execCommitCard .kv,
-#execCommitCard .k,
-#execCommitCard .v { min-width: 0; }
-
-/* Force long IDs/hashes to wrap instead of clipping */
+/* Long hashes/IDs: wrap inside */
 #execCommitCard .v,
 #execCommitCard .v.mono,
 #execEventId,
 #execPolicyHash,
-#execAudit {
+#execAudit{
   display: block;
   max-width: 100%;
-  white-space: normal !important;
-  overflow-wrap: anywhere !important;
-  word-break: break-all !important; /* strongest for long hex */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
-
-
-
-
-
-
-
