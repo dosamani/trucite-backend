@@ -264,7 +264,11 @@
     if (exec && exec.authorized !== undefined) {
      execCard.style.display = "block";
 
-     setText(execAuthorized, exec.authorized ? "YES" : "NO");
+     const authorized = exec.authorized === true;
+
+     setText(execAuthorized, authorized ? "YES" : "NO");
+     execAuthorized.style.color = authorized ? "#10b981" : "#ef4444";
+     execAuthorized.style.fontWeight = "700";
      setText(execAction, exec.action || "—");
      setText(execEventId, exec.event_id || "—");
      setText(execPolicyHash, exec.policy_hash || "—");
