@@ -834,3 +834,34 @@ details[open] summary::after { content: "▲"; }
   max-width: 720px;
   margin: 0 auto 18px auto;
 }
+
+/* ================================
+   TruCite Hero Centering Fix
+   Paste at END of CSS file
+================================ */
+
+/* 1) Ensure the hero stack centers everything */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* 2) Ensure logo block + pill share same centering rules */
+.hero .logo,
+.hero .wordmark,
+.hero .live-pill,
+.hero .live-pill * {
+  text-align: center;
+}
+
+/* 3) Force pill to be truly centered under the wordmark */
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 16px auto 0 auto;
+  width: fit-content;
+  max-width: 92%;
+}
