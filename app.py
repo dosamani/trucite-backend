@@ -447,6 +447,8 @@ def api_score():
             policy_mode=policy_mode,
         )
 
+        signals["volatility_category"] = _volatility_category(text.lower())
+
         # Decision gate (must return action, reason)
         action, reason = decision_gate(
             int(score),
