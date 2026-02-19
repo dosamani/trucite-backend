@@ -191,7 +191,7 @@
 
     return {
       schema_version: data?.schema_version || data?.contract?.schema_version || "2.0",
-      request_id: data.request_id || data.event_id || null,
+      request_id: data?.request_id || data?.contract?.request_id || data?.event_id || data?.audit?.event_id || null,
 
       // Canonical single-field action for the compact payload
       decision: decisionObj.action || "REVIEW",
