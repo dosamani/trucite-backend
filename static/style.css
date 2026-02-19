@@ -913,3 +913,30 @@ details[open] summary::after { content: "▲"; }
   border-radius: 12px;  /* was likely 999px */
   padding: 22px 28px;
 }
+/* =======================
+   WEDGE STRIP (Legal AI)
+======================= */
+.wedge-strip{
+  max-width: 920px;
+  margin: 14px auto 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(255,215,0,0.40);
+  border-radius: 14px;
+  background: rgba(0,0,0,0.55);
+  box-shadow: 0 0 16px rgba(255,215,0,0.08);
+  text-align: center;
+}
+
+.wedge-title{
+  font-weight: 1000;
+  color: #FFD700;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+
+.wedge-body{
+  color: #d9d9d9;
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
