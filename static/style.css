@@ -563,6 +563,26 @@ details[open] summary::after { content: "▲"; }
   font-size: 14px;
 }
 
+   /* Make .k and .v become the grid items (label/value pairs) */
+.kvGrid .kv{
+  display: contents;
+}
+
+/* ensure grid items can shrink inside the card */
+.kvGrid .k,
+.kvGrid .v{
+  min-width: 0;
+}
+
+.kvGrid .v.mono{
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+#execCommitCard{
+  overflow: hidden;
+}
+
 .kv .k {
   color: #9ca3af;
 }
