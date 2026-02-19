@@ -556,9 +556,9 @@ details[open] summary::after { content: "▲"; }
   color: #e5e7eb;
 }
 
-.kvGrid {
+.kvGrid{
   display: grid;
-  grid-template-columns: 140px 1fr;
+  grid-template-columns: 140px minmax(0, 1fr);
   gap: 6px 12px;
   font-size: 14px;
 }
@@ -570,6 +570,10 @@ details[open] summary::after { content: "▲"; }
 .kv .v {
   font-family: monospace;
   color: #e5e7eb;
+}
+
+.kv .v{
+  min-width: 0;
 }
 
 .kv .mono {
