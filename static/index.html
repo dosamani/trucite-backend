@@ -31,6 +31,12 @@
   <header class="hero" aria-label="Hero">
   <img src="/static/logo.jpg?v=2" alt="TruCite Logo" class="logo" />
 <h1>TruCite.ai<span class="tm">™</span></h1>
+    <!-- MVP Live Badge -->
+<div class="mvp-badge" role="status" aria-label="MVP status">
+  <span class="mvp-dot"></span>
+  <span class="mvp-text">Now Live: TruCite Runtime v2.0</span>
+  <span class="mvp-sub">Deterministic Execution Contract + /api/score</span>
+</div>
 
 <div class="hero-tagline">AI Execution Reliability Control Plane</div>
 
@@ -294,6 +300,35 @@ a runtime enforcement layer becomes foundational infrastructure.
   </div>
 
 </section>
+
+  <!-- Runtime Artifact Preview (Credibility Strip) -->
+<section class="artifact-preview" id="runtime-artifact-preview">
+  <div class="container">
+    <h2>Runtime Artifact Preview</h2>
+    <p class="sub">
+      TruCite emits an enforcement-ready decision object designed for downstream execution systems.
+    </p>
+
+    <div class="artifact-grid">
+      <div class="artifact-card">
+        <h3>Deterministic Contract</h3>
+        <p>Canonical response shape for runtime enforcement, not dashboards.</p>
+      </div>
+      <div class="artifact-card">
+        <h3>Execution Commit</h3>
+        <p><code>execution_commit</code> binds the decision to an auditable downstream action.</p>
+      </div>
+      <div class="artifact-card">
+        <h3>Policy-Hashed Decision</h3>
+        <p>Every decision is tied to <code>policy_hash</code> for reproducibility.</p>
+      </div>
+      <div class="artifact-card">
+        <h3>Audit Fingerprint</h3>
+        <p>Immutable <code>sha256</code> fingerprint for traceability.</p>
+      </div>
+    </div>
+  </div>
+</section>
   
 <!-- VERIFY -->
   <section class="verify-section" id="verify">
@@ -394,6 +429,23 @@ a runtime enforcement layer becomes foundational infrastructure.
        </div>
        
   </section>
+
+  <!-- Enterprise CTA -->
+<section class="enterprise-cta" id="enterprise-cta">
+  <div class="container enterprise-cta-inner">
+    <div>
+      <h2>Request the Enterprise Runtime Spec</h2>
+      <p class="sub">
+        Get the enforcement contract outline (payload shape, decision semantics, policy hashing, audit fingerprinting).
+      </p>
+    </div>
+
+    <!-- simplest: mailto (no backend work) -->
+    <a class="btn btn-primary" href="mailto:founder.aimhired@gmail.com?subject=TruCite%20Enterprise%20Runtime%20Spec%20Request&body=Hi%20TruCite%20team%2C%0A%0AI%27d%20like%20the%20Enterprise%20Runtime%20Spec.%20Here%27s%20my%20context%3A%0A%0A-Company%3A%20%0A-Use%20case%3A%20%0A-Industry%3A%20%0A%0AThanks.">
+      Request Spec
+    </a>
+  </div>
+</section>
 
   <section class="clarification-block" aria-label="Not a Security Tool">
   <h3>TruCite Is Not a Security Gateway</h3>
