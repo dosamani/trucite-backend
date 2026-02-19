@@ -423,7 +423,11 @@ def api_score():
               "policy_hash": policy_hash(policy_mode),
               "audit_fingerprint_sha256": sha
             },
-        }
+            "claim_profile": {
+              "claim_type": _claim_type(text_lc),
+              "liability_tier": _liability_tier(text_lc),
+              "regulatory_context": "auto"
+            },
 
         # ✅ DEMO returns ONE canonical shaped object (prevents ALLOW/REVIEW mismatches)
         if DEMO_MODE:
