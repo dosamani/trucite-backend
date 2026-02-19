@@ -481,6 +481,30 @@ Enterprises increasingly require separation between model generation and executi
        
   </section>
 
+  <section id="api">
+  <h2 class="section-title">API</h2>
+
+  <p class="section-subtitle">
+    TruCite exposes a single runtime scoring endpoint for downstream execution systems.
+  </p>
+
+  <div class="api-block">
+    <div class="api-endpoint">POST /api/score</div>
+
+    <pre class="api-code">
+{
+  "text": "AI-generated output",
+  "evidence": "optional URLs",
+  "policy_mode": "enterprise"
+}
+    </pre>
+  </div>
+
+  <div class="api-note">
+    Returns: score + ALLOW / REVIEW / BLOCK decision + execution audit fingerprint.
+  </div>
+  </section>
+
   <!-- Enterprise CTA -->
 <hr class="section-divider">
 
