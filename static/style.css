@@ -883,3 +883,24 @@ details[open] summary::after { content: "▲"; }
   letter-spacing: 0.6px;
   opacity: 0.9;
 }
+
+/* =========================
+   MVP Pill Centering Fix
+   ========================= */
+
+.mvp-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;   /* center children horizontally */
+  text-align: center;    /* center text */
+}
+
+.mvp-text {
+  font-weight: 600;
+}
+
+.mvp-sub {
+  opacity: 0.85;
+  margin-top: 6px;
+  text-align: center;
+}
