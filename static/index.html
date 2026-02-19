@@ -30,25 +30,31 @@
 <!-- HERO -->
   <header class="hero" aria-label="Hero">
   <img src="/static/logo.jpg?v=2" alt="TruCite Logo" class="logo" />
-  <h1>TruCite.ai<sup class="tm">™</sup></h1>
-  <p class="hero-tagline">Runtime Execution Reliability Control Plane for AI Systems</p>
+<h1>TruCite.ai<span class="tm">™</span></h1>
 
-  <p class="hero-subtitle hero-subtitle-tight">
-    TruCite is a <strong>model-agnostic runtime execution reliability control plane</strong> that assigns a deterministic risk score to AI output before it triggers downstream action — issuing a machine-enforceable <strong>ALLOW / REVIEW / BLOCK</strong> decision with an execution-bound audit fingerprint.
-  </p>
+<div class="hero-tagline">
+Runtime Enforcement Layer for AI Systems
+</div>
 
-  <p class="hero-subtitle hero-subtitle-tight">
-    Architecturally independent of model vendors, orchestration layers, and security gateways, TruCite provides a neutral reliability signal across heterogeneous AI stacks.
-  </p>
+<p class="hero-subtitle">
+TruCite is a model-agnostic runtime execution control plane that evaluates AI output 
+before downstream action — issuing a machine-enforceable <strong>ALLOW / REVIEW / BLOCK</strong> 
+decision with an execution-bound audit fingerprint.
+</p>
 
-  <p class="hero-subtitle hero-subtitle-tight">
-    As AI systems transition from generating content to initiating real-world actions, a runtime execution reliability boundary becomes foundational infrastructure.
-  </p>
+<p class="hero-subtitle">
+Independent of model vendors, orchestration layers, and security gateways, 
+TruCite introduces a deterministic reliability boundary for AI systems operating 
+in high-liability environments.
+</p>
 
-  <p class="hero-subtitle hero-subtitle-tight">
-    Built for high-liability workflows (healthcare, legal, finance, government): evidence is required to reach <strong>ALLOW</strong> for numeric, volatile, or high-impact assertions.
-  </p>
+<p class="hero-subtitle hero-subtitle-tight">
+As AI transitions from content generation to real-world execution, 
+a runtime enforcement layer becomes foundational infrastructure.
+</p>
   </header>
+
+  Deterministic runtime scoring • Execution-bound decision artifacts • Enforcement-ready output
 
 <main>
 
@@ -565,6 +571,38 @@
   </div>
   </section>
 
+  <!-- =======================
+     ROADMAP (Signal Amplifier)
+======================= -->
+<h2 class="section-title" id="roadmap">Roadmap</h2>
+<p class="section-subtitle">
+A staged build from scoring → evidence → enforcement → enterprise auditability.
+</p>
+
+<div class="bp-card">
+  <div class="bp-label">6-Layer Execution Reliability Stack</div>
+
+  <div class="bp-diagram" aria-label="TruCite roadmap layers diagram">
+    <span class="bp-node">1) Runtime Score</span>
+    <span class="bp-arrow">→</span>
+    <span class="bp-node">2) Evidence Gate</span>
+    <span class="bp-arrow">→</span>
+    <span class="bp-node">3) Policy Rules</span>
+    <span class="bp-arrow">→</span>
+    <span class="bp-node">4) Execution Commit</span>
+    <span class="bp-arrow">→</span>
+    <span class="bp-node">5) Enforcement Hooks</span>
+    <span class="bp-arrow">→</span>
+    <span class="bp-node">6) Audit Ledger</span>
+  </div>
+
+  <p style="margin-top:14px; color:#d9d9d9; line-height:1.55;">
+    Today’s MVP covers <strong>1–4</strong> (score → evidence requirement → policy gate → execution commit artifact).
+    Next phases add <strong>enforcement hooks</strong> (drop-in middleware, SDK, policy-as-code) and an
+    <strong>audit ledger</strong> for enterprise traceability.
+  </p>
+</div>
+
 <!-- POLICY NOTES -->
 <section class="wins-section" id="policy">
   <h2 class="section-title">Policy Notes</h2>
@@ -702,6 +740,38 @@
           <strong>verification layer</strong> weighing evidence before a score is rendered.
         </div>
       </details>
+
+      <details>
+  <summary>Is TruCite a security gateway?</summary>
+  <div class="acc-body">
+    No. TruCite does not encrypt data, manage identity, or replace confidential computing infrastructure.
+    Those layers protect confidentiality and access control.
+    <br><br>
+    TruCite operates at the <strong>decision layer</strong> — evaluating AI output reliability before it triggers downstream action.
+  </div>
+</details>
+
+<details>
+  <summary>Does TruCite “enforce” actions directly?</summary>
+  <div class="acc-body">
+    TruCite emits a machine-readable decision (<strong>ALLOW / REVIEW / BLOCK</strong>) plus an
+    <strong>execution_commit</strong> artifact (event_id, policy_hash, audit_fingerprint) that downstream systems can enforce.
+    <br><br>
+    In production, enforcement happens via policy hooks (SDK / middleware / API gateway integration) controlled by the customer.
+  </div>
+</details>
+
+<details>
+  <summary>What’s next after the MVP?</summary>
+  <div class="acc-body">
+    Two expansions:
+    <br><br>
+    <strong>1) Enforcement Hooks</strong> — drop-in middleware + SDKs (LLM apps, agent orchestration, RAG pipelines)
+    that block or route based on TruCite decisions.
+    <br><br>
+    <strong>2) Audit Ledger</strong> — enterprise-grade traceability (immutable logs, retention policies, exportable compliance reports).
+  </div>
+</details>
 
       <details>
         <summary>How is TruCite different from OpenEvidence?</summary>
