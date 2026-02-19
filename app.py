@@ -341,6 +341,62 @@ def health():
         "default_policy_mode": DEFAULT_POLICY_MODE,
         "time_utc": datetime.now(timezone.utc).isoformat(),
     }), 200
+
+# -----------------------------
+# Claim profiling helpers (MVP)
+# -----------------------------
+def _claim_type(text_lc: str) -> str:
+    """
+    Very lightweight claim-type heuristic for MVP demos.
+    Returns: stable | volatile | numeric | other
+    """
+    if not text_lc:
+        return "other"
+
+    # Volatile / time-sensitive language
+    volatile_markers = [
+        "today", "yesterday", "this week", "this month", "breaking",
+        "just", "right now", "resigned", "appointed", "announced", "acquired",
+        "lawsuit", "recall", "downgrade", "upgrade", "earnings", "sec",
+        "ceo", "cfo", "chairman",
+    ]
+    if any(m in text_lc for m in volatile_markers):
+        return "volatile"
+
+    # Numeric-ish claims (very simple)
+    numeric_markers = ["%", "million", "billion", "trillion", "usd", "$", "mg", "ml", "dose", "dosage"]
+    has_digit = any(ch.isdigit() for ch in text_lc)
+    if has_digit or any(m in text_lc for m in numeric_markers):
+        return "numeric"
+
+    # Default
+    return "stable"
+
+
+def _liability_tier(text_lc: str) -> str:
+    """
+    MVP liability heuristic.
+    Returns: high | medium | low
+    """
+    if not text_lc:
+        return "low"
+
+    high_markers = [
+        "dose", "dosage", "mg", "ml", "prescribe", "diagnose", "treat",
+        "clinical", "patient", "surgery", "contraindication",
+        "legal", "lawsuit", "contract", "filing", "court", "precedent",
+        "wire", "transfer", "payment", "bank", "loan", "interest rate",
+        "fraud", "regulatory", "compliance", "sec",
+    ]
+    medium_markers = ["policy", "security", "incident", "breach", "risk", "finance", "healthcare", "law"]
+
+    if any(m in text_lc for m in high_markers):
+        return "high"
+    if any(m in text_lc for m in medium_markers):
+        return "medium"
+    return "low"
+
+
 # ---- API: /api/score ----
 
 @app.route("/api/score", methods=["POST", "OPTIONS"])
