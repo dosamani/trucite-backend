@@ -396,23 +396,20 @@ def _liability_tier(text_lc: str) -> str:
         return "medium"
     return "low"
 
-def _volatility_category(text_lc: str) -> str:
-    t = (text_lc or "").lower()
+def _volatility_category(t: str) -> str:
+    t = t.lower()
 
-    if any(k in t for k in ["today", "announced", "resigned", "acquired", "merger", "breaking"]):
-        return "NEWS"
-
-    if any(k in t for k in ["ceo", "board", "corporate", "earnings"]):
-        return "CORPORATE"
-
-    if any(k in t for k in ["dose", "drug", "clinical", "patient", "treatment"]):
+    if any(k in t for k in ["diagnosis", "treatment", "medication", "dose", "clinical"]):
         return "MEDICAL"
 
-    if any(k in t for k in ["statute", "case law", "precedent", "court"]):
+    if any(k in t for k in ["court", "statute", "legal", "regulation", "lawsuit"]):
         return "LEGAL"
 
-    if any(k in t for k in ["bank", "transfer", "payment", "revenue"]):
+    if any(k in t for k in ["earnings", "revenue", "stock", "market", "ipo"]):
         return "FINANCIAL"
+
+    if any(k in t for k in ["resigned", "announced", "today", "yesterday", "breaking"]):
+        return "NEWS"
 
     return "GENERAL"
 
