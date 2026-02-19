@@ -32,9 +32,7 @@
   <img src="/static/logo.jpg?v=2" alt="TruCite Logo" class="logo" />
 <h1>TruCite.ai<span class="tm">™</span></h1>
 
-<div class="hero-tagline">
-Runtime Enforcement Layer for AI Systems
-</div>
+<div class="hero-tagline">AI Execution Reliability Control Plane</div>
 
 <p class="hero-subtitle">
 TruCite is a model-agnostic runtime execution control plane that evaluates AI output 
@@ -54,7 +52,9 @@ a runtime enforcement layer becomes foundational infrastructure.
 </p>
   </header>
 
-  Deterministic runtime scoring • Execution-bound decision artifacts • Enforcement-ready output
+  <div class="hero-mini-links">
+  Deterministic runtime scoring · Execution-bound decision artifacts · Enforcement-ready output
+  </div>
 
 <main>
 
@@ -601,6 +601,10 @@ A staged build from scoring → evidence → enforcement → enterprise auditabi
     Next phases add <strong>enforcement hooks</strong> (drop-in middleware, SDK, policy-as-code) and an
     <strong>audit ledger</strong> for enterprise traceability.
   </p>
+
+  <p class="policy-mode-note" style="margin-top:10px;">
+  Enforcement Hooks = API middleware, SDK interceptors, policy-as-code adapters (next phase).
+  </p>
 </div>
 
 <!-- POLICY NOTES -->
@@ -750,6 +754,13 @@ A staged build from scoring → evidence → enforcement → enterprise auditabi
     TruCite operates at the <strong>decision layer</strong> — evaluating AI output reliability before it triggers downstream action.
   </div>
 </details>
+
+      <details>
+  <summary>How is TruCite different from “guardrails” or moderation APIs?</summary>
+  <div class="acc-body">
+    Guardrails filter or steer model outputs. TruCite produces deterministic execution decisions with audit-grade metadata (policy hash, event ID, audit fingerprint) so high-liability workflows can gate downstream actions in a machine-enforceable way.
+  </div>
+      </details>
 
 <details>
   <summary>Does TruCite “enforce” actions directly?</summary>
