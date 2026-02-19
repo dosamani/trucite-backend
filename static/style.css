@@ -534,9 +534,20 @@ details[open] summary::after { content: "▲"; }
 }
 
    /* ==== Execution Commit Gold Accent ==== */
+#execCommitCard{
+  border: 2px solid #FF00FF !important;   /* TEMP: bright pink */
+  box-shadow: none !important;
+  background: rgba(255, 215, 0, 0.04) !important;
+  border-radius: 16px !important;
+}
+
 #execCommitCard {
-  border: 1px solid rgba(255, 215, 0, 0.35);
-  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.06) inset;
+  border-radius: 16px !important;
+  background: rgba(255, 215, 0, 0.04) !important; /* faint warm tint */
+}
+
+#execCommitCard * {
+  white-space: normal !important;
 }
 
 .cardTitle {
@@ -570,6 +581,14 @@ details[open] summary::after { content: "▲"; }
   word-break: break-word;
 }
 
+#execCommitCard .kvGrid{
+  overflow-x: auto;
+}
+
+#execCommitCard .kvGrid::-webkit-scrollbar{
+  height: 6px;
+}
+
    /* === Exec Commit: force same gold accent + mobile-safe wrapping === */
 #execCommitCard{
   border: 1px solid rgba(255, 215, 0, 0.35) !important;
@@ -588,12 +607,8 @@ details[open] summary::after { content: "▲"; }
   word-break: break-word !important;
 }
 
-/* If a device STILL won’t wrap, allow scroll instead of clipping */
-#execCommitCard .kvGrid{
-  overflow-x: auto;
-}
-   
-}
+
+
 
 
 
