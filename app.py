@@ -380,10 +380,8 @@ def api_score():
             signals,
             policy_mode=policy_mode,
         )
-        # -----------------------------
-    # Normalize verdict to decision
-    # (prevents ALLOW + "needs review" mismatch)
-    # -----------------------------
+
+        # Normalize verdict to decision (prevents ALLOW + "needs review" mismatch)
         if action == "ALLOW":
             verdict = "Likely true / consistent"
         elif action == "REVIEW":
@@ -392,51 +390,47 @@ def api_score():
             verdict = "Likely false / inconsistent"
 
         latency_ms = int((time.time() - start) * 1000)
-        
-            resp_obj = {
-                "schema_version": SCHEMA_VERSION,
-                "request_id": event_id,
-                "latency_ms": latency_ms,
+        text_lc = (payload.get("text") or payload.get("claim") or "").strip().lower()
 
-                "verdict": verdict,
-                "score": int(score),
+        resp_obj = {
+            "schema_version": SCHEMA_VERSION,
+            "request_id": event_id,
+            "latency_ms": latency_ms,
 
-                "decision": {"action": action, "reason": reason},
+            "verdict": verdict,
+            "score": int(score),
+            "decision": {"action": action, "reason": reason},
 
-                "policy_mode": policy_mode,
-                "policy_version": POLICY_VERSION,
-                "policy_hash": policy_hash(policy_mode),
+            "policy_mode": policy_mode,
+            "policy_version": POLICY_VERSION,
+            "policy_hash": policy_hash(policy_mode),
 
+            "event_id": event_id,
+            "audit_fingerprint_sha256": sha,
+            "audit_fingerprint": {"sha256": sha, "timestamp_utc": ts},
+
+            "claims": claims,
+            "references": references,
+            "signals": signals,
+            "explanation": explanation,
+
+            "execution_boundary": (action == "ALLOW"),
+            "execution_commit": {
+                "authorized": (action == "ALLOW"),
+                "action": action,
                 "event_id": event_id,
+                "policy_hash": policy_hash(policy_mode),
                 "audit_fingerprint_sha256": sha,
-                "audit_fingerprint": {
-                "sha256": sha,
-                "timestamp_utc": ts
-        },
+            },
 
-                "claims": claims,
-                "references": references,
-                "signals": signals,
-                "explanation": explanation,
-
-                "execution_boundary": (action == "ALLOW"),
-
-                "execution_commit": {
-                  "authorized": action == "ALLOW",
-                  "action": action,
-                  "event_id": event_id,
-                  "policy_hash": policy_hash(policy_mode),
-                  "audit_fingerprint_sha256": sha
-        },
-
-                "claim_profile": {
-                  "claim_type": _claim_type(text_lc),
-                  "liability_tier": _liability_tier(text_lc),
-                  "regulatory_context": "auto"
-        },
+            "claim_profile": {
+                "claim_type": _claim_type(text_lc),
+                "liability_tier": _liability_tier(text_lc),
+                "regulatory_context": "auto",
+            },
         }
 
-        # ✅ DEMO returns ONE canonical shaped object (prevents ALLOW/REVIEW mismatches)
+        # DEMO returns ONE canonical shaped object
         if DEMO_MODE:
             return jsonify(shape_demo_response(resp_obj)), 200
 
@@ -450,8 +444,10 @@ def api_score():
             hint="Likely indentation/paste error OR missing helper above this section.",
         )
 
+
 if __name__ == "__main__":
     # Local only (Render uses gunicorn)
     port = int(os.environ.get("PORT", "10000"))
     app.run(host="0.0.0.0", port=port, debug=True)
+
     
