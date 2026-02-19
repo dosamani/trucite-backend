@@ -371,17 +371,19 @@
       <pre id="result"></pre>
     </div>
     <!-- Execution Commit (downstream enforcement artifact) -->
-<div id="execCommitCard" class="card" style="display:none; margin-top:14px;">
-  <div class="cardTitle">Execution Commit</div>
+    <div id="execCommitCard" class="card" style="display:none; margin-top:14px;">
+      <div class="cardTitle">Execution Commit</div>
+    <div class="kvGrid">
+      
+       <div class="kv"><div class="k">Execution Boundary</div><div class="v" id="execBoundary">—</div></div>
+       <div class="kv"><div class="k">Authorized</div><div class="v" id="execAuthorized">—</div></div>
+      
+       <div class="kv"><div class="k">Action</div><div class="v" id="execAction">—</div></div>
 
-  <div class="kvGrid">
-    <div class="kv"><div class="k">Authorized</div><div class="v" id="execAuthorized">—</div></div>
-    <div class="kv"><div class="k">Action</div><div class="v" id="execAction">—</div></div>
-    <div class="kv"><div class="k">Event ID</div><div class="v mono" id="execEventId">—</div></div>
-    <div class="kv"><div class="k">Policy Hash</div><div class="v mono" id="execPolicyHash">—</div></div>
-    <div class="kv"><div class="k">Audit Fingerprint (sha256)</div><div class="v mono" id="execAuditSha">—</div></div>
-  </div>
-</div>
+       <div class="kv"><div class="k">Event ID</div><div class="v mono" id="execEventId">—</div></div>
+       <div class="kv"><div class="k">Policy Hash</div><div class="v mono" id="execPolicyHash">—</div></div>
+       <div class="kv"><div class="k">Audit Fingerprint (sha256)</div><div class="v mono" id="execAudit">—</div></div>
+   </div>
   </section>
 
   <section class="clarification-block" aria-label="Not a Security Tool">
