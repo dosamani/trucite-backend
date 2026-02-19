@@ -1047,3 +1047,20 @@ details[open] summary::after { content: "▲"; }
   font-size: 0.95rem;
 }
 
+/* ===== Hero "Try Live Runtime Scoring" fast-lane link ===== */
+.hero-demo-link{
+  display: inline-block;
+  margin-top: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-decoration: none;
+  color: rgba(255, 215, 0, 0.92);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.35);
+  padding-bottom: 6px;
+}
+
+.hero-demo-link:hover{
+  color: rgba(255, 215, 0, 1);
+  border-bottom-color: rgba(255, 215, 0, 0.7);
+}
+
