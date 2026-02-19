@@ -591,9 +591,21 @@ details[open] summary::after { content: "▲"; }
 /* Grid layout */
 #execCommitCard .kvGrid{
   display: grid;
-  grid-template-columns: 130px minmax(0,1fr);
-  gap: 10px 14px;
+  grid-template-columns: 110px minmax(0,1fr);
+  gap: 10px 12px;
   font-size: 0.95rem;
+}
+
+/* Mobile: stack label above value */
+@media (max-width: 560px){
+  #execCommitCard .kvGrid{
+    grid-template-columns: 1fr;
+    gap: 4px 0;
+  }
+
+  #execCommitCard .k{
+    margin-top: 10px;
+  }
 }
 
 /* Label styling */
