@@ -393,48 +393,48 @@ def api_score():
 
         latency_ms = int((time.time() - start) * 1000)
         
-resp_obj = {
-    "schema_version": SCHEMA_VERSION,
-    "request_id": event_id,
-    "latency_ms": latency_ms,
+            resp_obj = {
+                "schema_version": SCHEMA_VERSION,
+                "request_id": event_id,
+                "latency_ms": latency_ms,
 
-    "verdict": verdict,
-    "score": int(score),
+                "verdict": verdict,
+                "score": int(score),
 
-    "decision": {"action": action, "reason": reason},
+                "decision": {"action": action, "reason": reason},
 
-    "policy_mode": policy_mode,
-    "policy_version": POLICY_VERSION,
-    "policy_hash": policy_hash(policy_mode),
+                "policy_mode": policy_mode,
+                "policy_version": POLICY_VERSION,
+                "policy_hash": policy_hash(policy_mode),
 
-    "event_id": event_id,
-    "audit_fingerprint_sha256": sha,
-    "audit_fingerprint": {
-        "sha256": sha,
-        "timestamp_utc": ts
-    },
+                "event_id": event_id,
+                "audit_fingerprint_sha256": sha,
+                "audit_fingerprint": {
+                "sha256": sha,
+                "timestamp_utc": ts
+        },
 
-    "claims": claims,
-    "references": references,
-    "signals": signals,
-    "explanation": explanation,
+                "claims": claims,
+                "references": references,
+                "signals": signals,
+                "explanation": explanation,
 
-    "execution_boundary": (action == "ALLOW"),
+                "execution_boundary": (action == "ALLOW"),
 
-    "execution_commit": {
-        "authorized": action == "ALLOW",
-        "action": action,
-        "event_id": event_id,
-        "policy_hash": policy_hash(policy_mode),
-        "audit_fingerprint_sha256": sha
-    },
+                "execution_commit": {
+                  "authorized": action == "ALLOW",
+                  "action": action,
+                  "event_id": event_id,
+                  "policy_hash": policy_hash(policy_mode),
+                  "audit_fingerprint_sha256": sha
+        },
 
-    "claim_profile": {
-        "claim_type": _claim_type(text_lc),
-        "liability_tier": _liability_tier(text_lc),
-        "regulatory_context": "auto"
-    },
-}
+                "claim_profile": {
+                  "claim_type": _claim_type(text_lc),
+                  "liability_tier": _liability_tier(text_lc),
+                  "regulatory_context": "auto"
+        },
+        }
 
         # ✅ DEMO returns ONE canonical shaped object (prevents ALLOW/REVIEW mismatches)
         if DEMO_MODE:
