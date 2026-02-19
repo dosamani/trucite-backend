@@ -530,19 +530,9 @@ details[open] summary::after { content: "▲"; }
 /* 2-col key/value grid */
 .kvGrid{
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
+  grid-template-columns: 110px minmax(0, 1fr);
   gap: 6px 12px;
   font-size: 14px;
-}
-@media (max-width: 520px){
-  .kvGrid{
-    grid-template-columns: 1fr;
-  }
-
-  .kvGrid .k{
-    font-weight: 700;
-    margin-top: 8px;
-  }
 }
 
 /* Each .kv becomes two grid cells */
