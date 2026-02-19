@@ -565,3 +565,74 @@ details[open] summary::after { content: "▲"; }
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+/* =========================================
+   EXECUTION COMMIT — FINAL ENTERPRISE POLISH
+========================================= */
+
+/* Slightly stronger card presence */
+#execCommitCard.card{
+  border: 1px solid rgba(255,215,0,0.45) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,215,0,0.10) inset,
+    0 0 20px rgba(255,215,0,0.06);
+  background: rgba(255,215,0,0.035) !important;
+}
+
+/* Title hierarchy */
+#execCommitCard .cardTitle{
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #FFD700;
+  margin-bottom: 14px;
+}
+
+/* Grid layout */
+#execCommitCard .kvGrid{
+  display: grid;
+  grid-template-columns: 130px minmax(0,1fr);
+  gap: 10px 14px;
+  font-size: 0.95rem;
+}
+
+/* Label styling */
+#execCommitCard .k{
+  color: #9ca3af;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Value styling */
+#execCommitCard .v{
+  color: #e5e7eb;
+  font-family: monospace;
+  min-width: 0;
+}
+
+/* Wrap long hashes safely */
+#execCommitCard .v,
+#execEventId,
+#execPolicyHash,
+#execAudit{
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-all !important;
+}
+
+/* Action emphasis */
+#execCommitCard .v:contains("FALSE"),
+#execCommitCard .v:contains("NO"){
+  color: #ff4d4d;
+  font-weight: 900;
+}
+
+#execCommitCard .v:contains("REVIEW"){
+  color: #FFD700;
+  font-weight: 900;
+}
+
+#execCommitCard .v:contains("ALLOW"){
+  color: #2fe57a;
+  font-weight: 900;
+}
