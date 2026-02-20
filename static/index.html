@@ -457,7 +457,7 @@ Enterprises increasingly require separation between model generation and executi
     </p>
 
     <div id="gaugeContainer">
-      <div class="gauge-label">Execution Readiness</div>
+      <div class="gauge-label">Execution Readiness Index</div>
 
       <!-- Keep your existing SVG gauge + stroke-dashoffset animation -->
       <svg id="gauge" width="220" height="120">
@@ -529,10 +529,9 @@ Enterprises increasingly require separation between model generation and executi
   </section>
 
   <section id="api">
-  <h2 class="section-title">API</h2>
-
+  <h2 class="section-title">Runtime Execution API</h2>
   <p class="section-subtitle">
-    TruCite exposes a single runtime scoring endpoint for downstream execution systems.
+    TruCite exposes a deterministic execution validation endpoint for downstream systems.
   </p>
 
   <p class="api-integration-line">
@@ -540,7 +539,7 @@ Enterprises increasingly require separation between model generation and executi
   </p>
 
   <div class="api-block">
-    <div class="api-endpoint">POST /api/score</div>
+    <div class="api-endpoint">POST /api/validate</div>
 
     <pre class="api-code">
 {
@@ -550,10 +549,9 @@ Enterprises increasingly require separation between model generation and executi
 }
     </pre>
   </div>
-
-  <div class="api-note">
-    Returns: score + ALLOW / REVIEW / BLOCK decision + execution audit fingerprint.
-  </div>
+<div class="api-note">
+  Returns: ALLOW / REVIEW / BLOCK decision + execution audit fingerprint.
+</div>
   </section>
 
   <!-- Enterprise CTA -->
