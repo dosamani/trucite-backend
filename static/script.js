@@ -126,7 +126,7 @@
     setText(volatilityValue, "—");
     setText(policyValue, "—");
     // UI language stays decision-gate oriented
-    setText(apiMeta, "server —ms · /api/score");
+    setText(apiMeta, "runtime gate · server —ms");
   }
 
   function setErrorUI(userMsg, debugText) {
@@ -136,7 +136,7 @@
     setText(decisionAction, "REVIEW");
     applyDecisionColor("REVIEW");
     setText(decisionReason, userMsg || "Backend error.");
-    setText(apiMeta, "server —ms · /api/score");
+    setText(apiMeta, "runtime gate · server —ms");
     if (resultPre) resultPre.textContent = debugText ? `Backend error:\n${debugText}` : (userMsg || "Backend error.");
   }
 
@@ -322,16 +322,17 @@
     setText(decisionReason, reason || reasonFallback);
 
     const ms = (typeof data?.latency_ms === "number") ? data.latency_ms : "—";
-    setText(apiMeta, `server ${ms}ms · /api/score`);
+    setText(apiMeta, `runtime gate · server ${ms}ms`);
 
     const decisionPayload = buildDecisionPayload(data);
 
     // Debug panel remains (useful for pilots / partners)
     const fullText =
-      `Decision Payload (live) ${apiMeta?.textContent || ""}\n` +
-      `${safeJson(decisionPayload)}\n\n` +
-      `Validation details, explanation & references\n` +
-      `${safeJson(data)}`;
+     `Execution Decision Artifact (live)\n` +
+     `Latency: ${ms}ms\n\n` +
+     `${safeJson(decisionPayload)}\n\n` +
+     `Validation details, explanation & references\n` +
+     `${safeJson(data)}`;
 
     if (resultPre) resultPre.textContent = fullText;
   }
