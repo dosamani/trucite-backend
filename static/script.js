@@ -1,9 +1,9 @@
 (() => {
-  // ==========================================
+  // ================================
   // TruCite Frontend Script (MVP)
-  // Runtime Decision Gate UI (non-scoring UX)
-  // Backend route remains: /api/score (schema v2.0+)
-  // ==========================================
+  // Uses POST /api/score (contract v2.0+)
+  // UI language prefers "readiness_signal" over "score"
+  // ================================
 
   const CONFIG = {
     API_BASE: "",              // same host
@@ -67,8 +67,8 @@
   const claimBox = pick("inputText", "#inputText", "textarea");
   const evidenceBox = pick("evidenceText", "#evidenceText");
 
-  // NOTE: We keep these IDs for compatibility with your HTML,
-  // but we render them as "readiness/decision" instead of "score".
+  // UI labels that used to show "score"
+  // We keep the IDs but treat the value as "readiness_signal"
   const scoreDisplay = pick("scoreDisplay", "#scoreDisplay");
   const scoreVerdict = pick("scoreVerdict", "#scoreVerdict");
   const gaugeFill = pick("gaugeFill", "#gaugeFill");
@@ -96,11 +96,9 @@
   }
 
   // Gauge animation (stroke-dashoffset)
-  // We still use the numeric value (if backend returns it),
-  // but we treat it as "Execution Readiness" signal, not a product score.
-  function updateGauge(score) {
+  function updateGauge(signal) {
     if (!gaugeFill) return;
-    const s = Math.max(0, Math.min(100, Number(score) || 0));
+    const s = Math.max(0, Math.min(100, Number(signal) || 0));
     const total = 260;
 
     gaugeFill.style.transition = "none";
@@ -114,18 +112,25 @@
     });
   }
 
+  function getReadinessSignal(data) {
+    // Prefer readiness_signal (new), fall back to score (legacy)
+    const v = (data?.readiness_signal ?? data?.readinessSignal ?? data?.score ?? null);
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+
   function setPendingUI() {
     setText(scoreDisplay, "--");
-    setText(scoreVerdict, "Decision pending…");
+    setText(scoreVerdict, "Readiness pending…");
     if (decisionCard) show(decisionCard, true);
     setText(decisionAction, "—");
-    setText(decisionReason, "Awaiting verification…");
+    setText(decisionReason, "Awaiting evaluation…");
     updateGauge(0);
     if (resultPre) resultPre.textContent = "";
 
     setText(volatilityValue, "—");
     setText(policyValue, "—");
-    // UI language stays decision-gate oriented
+    // Remove endpoint from the status line (you called this out)
     setText(apiMeta, "runtime gate · server —ms");
   }
 
@@ -139,15 +144,12 @@
     setText(apiMeta, "runtime gate · server —ms");
     if (resultPre) resultPre.textContent = debugText ? `Backend error:\n${debugText}` : (userMsg || "Backend error.");
   }
-
   // Normalizes decision fields across:
   // - decision: {action, reason}
-  // - decision: "ALLOW" + decision_detail: {action, reason}
-  // - shaped: decision: {action, reason} and policy/audit nested
+  // - decision: "ALLOW" + decision_detail: {reason}
   function normalizeDecision(data) {
     const rawDecision = data?.decision;
 
-    // Case 1: decision is already an object
     if (rawDecision && typeof rawDecision === "object") {
       return {
         action: rawDecision.action || "REVIEW",
@@ -155,13 +157,12 @@
       };
     }
 
-    // Case 2: decision is a string (ALLOW/REVIEW/BLOCK)
     const action = (typeof rawDecision === "string" ? rawDecision : null) || "REVIEW";
     const reason =
       data?.decision_detail?.reason ||
       data?.decision_reason ||
       data?.reason ||
-      data?.decision_detail?.message || // occasional alt key
+      data?.decision_detail?.message ||
       "";
 
     return { action, reason };
@@ -169,64 +170,78 @@
 
   function buildDecisionPayload(data) {
     const sig = data?.signals || {};
-    const ev = sig?.evidence_validation || {};
-
     const decisionObj = normalizeDecision(data);
 
-    // Prefer top-level fields first (backend truth), then signals fallbacks.
-    const volatility = (data?.volatility ?? sig?.volatility ?? "LOW");
-    const volatilityCategory = (data?.volatility_category ?? sig?.volatility_category ?? "");
+    const volatility = (sig?.volatility ?? data?.volatility ?? "STABLE");
+    const volatilityCategory =
+      (sig?.volatility_category ??
+       data?.volatility_category ??
+       data?.volatilityCategory ??
+       "");
 
     const evidenceStatus =
-      (data?.evidence_validation_status ??
-       sig?.evidence_validation_status ??
-       ev?.status ??
+      (sig?.evidence_validation_status ??
+       data?.evidence_validation_status ??
        "NONE");
 
     const evidenceTrustTier =
-      (data?.evidence_trust_tier ??
-       sig?.evidence_trust_tier ??
-       ev?.trust_tier ??
+      (sig?.evidence_trust_tier ??
+       data?.evidence_trust_tier ??
        "C");
 
     const evidenceConfidence =
-      (typeof data?.evidence_confidence === "number") ? data.evidence_confidence :
       (typeof sig?.evidence_confidence === "number") ? sig.evidence_confidence :
-      (typeof ev?.confidence === "number") ? ev.confidence :
+      (typeof data?.evidence_confidence === "number") ? data.evidence_confidence :
       null;
+
+    // Policy fallbacks (demo response uses data.policy.*)
+    const pMode = data?.policy_mode || data?.policy?.mode || CONFIG.POLICY_MODE;
+    const pVer  = data?.policy_version || data?.policy?.version || "";
+    const pHash = data?.policy_hash || data?.policy?.hash || "";
+
+    // Audit fallbacks (demo response uses data.audit.*)
+    const eventId = data?.event_id || data?.audit?.event_id || data?.request_id || data?.contract?.request_id || null;
+    const auditSha =
+      data?.audit_fingerprint_sha256 ||
+      data?.audit?.audit_fingerprint_sha256 ||
+      data?.audit_fingerprint?.sha256 ||
+      "";
+
+    const ms = (typeof data?.latency_ms === "number") ? data.latency_ms : null;
+
+    const readiness = getReadinessSignal(data);
 
     return {
       schema_version: data?.schema_version || data?.contract?.schema_version || "2.0",
-      request_id: data?.request_id || data?.contract?.request_id || data?.event_id || data?.audit?.event_id || null,
+      request_id: data?.request_id || data?.contract?.request_id || eventId || null,
 
-      // Canonical single-field action for the compact payload
-      decision: decisionObj.action || "REVIEW",
+      // Canonical enforcement output
+      decision: (decisionObj.action || "REVIEW").toUpperCase(),
 
-      // Keep backend field for debugging/telemetry; UI treats as readiness signal.
-      readiness_signal: data?.score ?? "--",
+      // Preferred naming (anti-"scoring")
+      readiness_signal: readiness,
+
       verdict: data?.verdict || "",
 
-      policy_mode: data?.policy_mode || data?.policy?.mode || CONFIG.POLICY_MODE,
-      policy_version: data?.policy_version || data?.policy?.version || "",
-      policy_hash: data?.policy_hash || data?.policy?.hash || "",
+      policy_mode: pMode,
+      policy_version: pVer,
+      policy_hash: pHash,
 
-      event_id: data?.event_id || data?.audit?.event_id || "",
-      audit_fingerprint_sha256:
-        data?.audit_fingerprint?.sha256 ||
-        data?.audit_fingerprint_sha256 ||
-        data?.audit?.audit_fingerprint_sha256 ||
-        "",
+      event_id: eventId,
+      audit_fingerprint_sha256: auditSha,
 
-      latency_ms: (typeof data?.latency_ms === "number") ? data.latency_ms : null,
+      latency_ms: ms,
 
       volatility: String(volatility).toUpperCase(),
       volatility_category: volatilityCategory,
+
       evidence_validation_status: evidenceStatus,
       evidence_trust_tier: evidenceTrustTier,
       evidence_confidence: evidenceConfidence,
 
-      risk_flags: data?.risk_flags || sig?.risk_flags || [],
-      guardrail: data?.guardrail ?? sig?.guardrail ?? null,
+      risk_flags: sig?.risk_flags || data?.risk_flags || [],
+      guardrail: sig?.guardrail ?? data?.guardrail ?? null,
+
       execution_boundary: data?.execution_boundary ?? false,
       execution_commit: data?.execution_commit ?? {
         authorized: false,
@@ -241,20 +256,19 @@
   function renderResponse(data) {
     lastResponse = data;
 
-    // We still read numeric value from backend but present it as readiness.
-    const readiness = data?.score ?? "--";
-    setText(scoreDisplay, readiness);
-    // This label is UX reframed away from "scoring"
-    setText(scoreVerdict, data?.verdict || "Execution readiness signal");
+    const readiness = getReadinessSignal(data);
+
+    setText(scoreDisplay, String(readiness));
+    setText(scoreVerdict, data?.verdict || "");
     updateGauge(readiness);
 
     const sig = data?.signals || {};
 
-    // Volatility: prefer top-level, then signals
-    const vol = (data?.volatility ?? sig?.volatility ?? "LOW").toString().toUpperCase();
+    // Volatility
+    const vol = (sig?.volatility ?? data?.volatility ?? "STABLE").toString().toUpperCase();
     setText(volatilityValue, vol);
 
-    // Policy fallbacks (some shaped responses put policy inside data.policy)
+    // Policy label
     const pMode = data?.policy_mode || data?.policy?.mode || CONFIG.POLICY_MODE;
     const pVer  = data?.policy_version || data?.policy?.version || "";
     const pHash = data?.policy_hash || data?.policy?.hash || "";
@@ -280,31 +294,34 @@
       execBoundary.style.fontWeight = "700";
     }
 
-    if (execCard) {
-      // Only show if we have an execution commit object
-      execCard.style.display = exec ? "block" : "none";
-    }
+    if (exec && exec.authorized !== undefined) {
+      if (execCard) execCard.style.display = "block";
 
-    if (exec && execAuthorized && execAction && execEventId && execPolicyHash && execAudit) {
       const authorized = exec.authorized === true;
 
-      execAuthorized.textContent = authorized ? "YES" : "NO";
-      execAuthorized.style.color = authorized ? "#10b981" : "#ef4444";
-      execAuthorized.style.fontWeight = "700";
+      if (execAuthorized) {
+        execAuthorized.textContent = authorized ? "YES" : "NO";
+        execAuthorized.style.color = authorized ? "#10b981" : "#ef4444";
+        execAuthorized.style.fontWeight = "700";
+      }
 
-      execAction.textContent = exec.action || "—";
-      execEventId.textContent = exec.event_id || "—";
-      execPolicyHash.textContent = exec.policy_hash || "—";
+      if (execAction) execAction.textContent = exec.action || "—";
+      if (execEventId) execEventId.textContent = exec.event_id || data?.audit?.event_id || data?.event_id || "—";
+      if (execPolicyHash) execPolicyHash.textContent = exec.policy_hash || pHash || "—";
 
-      // fall back to top-level audit fingerprint if missing
-      execAudit.textContent =
-        exec.audit_fingerprint_sha256 ||
-        data?.audit_fingerprint_sha256 ||
-        data?.audit?.audit_fingerprint_sha256 ||
-        "—";
+      if (execAudit) {
+        execAudit.textContent =
+          exec.audit_fingerprint_sha256 ||
+          data?.audit_fingerprint_sha256 ||
+          data?.audit?.audit_fingerprint_sha256 ||
+          data?.audit_fingerprint?.sha256 ||
+          "—";
+      }
+    } else {
+      if (execCard) execCard.style.display = "none";
     }
 
-    // Decision normalization (string OR object)
+    // Decision normalization
     const decisionObj = normalizeDecision(data);
     const action = (decisionObj.action || "REVIEW").toUpperCase();
     const reason = decisionObj.reason || "";
@@ -312,31 +329,23 @@
     if (decisionCard) show(decisionCard, true);
     setText(decisionAction, action);
     applyDecisionColor(action);
-
-    // If backend provides no reason, give a crisp commercial fallback
-    const reasonFallback =
-      (action === "ALLOW") ? "Meets policy + evidence threshold for downstream execution." :
-      (action === "BLOCK") ? "Fails policy or evidence threshold. Block before downstream action." :
-      "Requires human review or additional evidence before execution.";
-
-    setText(decisionReason, reason || reasonFallback);
+    setText(decisionReason, reason);
 
     const ms = (typeof data?.latency_ms === "number") ? data.latency_ms : "—";
+    // Remove endpoint from the status line (you called this out)
     setText(apiMeta, `runtime gate · server ${ms}ms`);
 
     const decisionPayload = buildDecisionPayload(data);
 
-    // Debug panel remains (useful for pilots / partners)
     const fullText =
-     `Execution Decision Artifact (live)\n` +
-     `Latency: ${ms}ms\n\n` +
-     `${safeJson(decisionPayload)}\n\n` +
-     `Validation details, explanation & references\n` +
-     `${safeJson(data)}`;
+      `Execution Decision Artifact (live)\n` +
+      `Latency: ${ms}ms\n\n` +
+      `${safeJson(decisionPayload)}\n\n` +
+      `Validation details, explanation & references\n` +
+      `${safeJson(data)}`;
 
     if (resultPre) resultPre.textContent = fullText;
   }
-
   async function onVerify() {
     const text = (claimBox?.value || "").trim();
     const evidence = (evidenceBox?.value || "").trim();
@@ -368,7 +377,7 @@
       if (!res.ok) {
         let t = "";
         try { t = await res.text(); } catch {}
-        setErrorUI("could not verify. Check backend route and try again.", t || `HTTP ${res.status}`);
+        setErrorUI("could not evaluate. Check backend route and try again.", t || `HTTP ${res.status}`);
         return;
       }
 
@@ -391,7 +400,7 @@
     } catch (e) {
       const msg = (String(e || "").includes("AbortError"))
         ? "Request timed out. Backend may be waking up. Try again."
-        : "could not verify. Network or backend unavailable.";
+        : "could not evaluate. Network or backend unavailable.";
       setErrorUI(msg, String(e));
     }
   }
@@ -400,6 +409,7 @@
   else console.warn("VERIFY button not found. Check id/class.");
 
   // Inline onclick shim (HTML uses onclick="scoreText()")
+  // Keep name for compatibility, but internally it "evaluates"
   window.scoreText = function () {
     if (verifyButton) verifyButton.click();
     else onVerify();
@@ -407,17 +417,17 @@
 
   // Copy helpers
   window.copyJSONPayload = function () {
-    if (!lastPayload) return alert("Run a verification first.");
+    if (!lastPayload) return alert("Run an evaluation first.");
     copyToClipboard(safeJson(lastPayload));
   };
 
   window.copyResponse = function () {
-    if (!lastResponse) return alert("Run a verification first.");
+    if (!lastResponse) return alert("Run an evaluation first.");
     copyToClipboard(safeJson(lastResponse));
   };
 
   window.copyCurl = function () {
-    if (!lastPayload) return alert("Run a verification first.");
+    if (!lastPayload) return alert("Run an evaluation first.");
     const curl = `curl -X POST "${location.origin}/api/score" -H "Content-Type: application/json" -d '${JSON.stringify(lastPayload)}'`;
     copyToClipboard(curl);
   };
