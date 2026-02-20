@@ -753,14 +753,14 @@ Enterprises increasingly require separation between model generation and executi
 ======================= -->
 <h2 class="section-title" id="roadmap">Roadmap</h2>
 <p class="section-subtitle">
-A staged build from scoring → evidence → enforcement → enterprise auditability.
+  A staged build from runtime gating → evidence → enforcement → enterprise auditability.
 </p>
 
 <div class="bp-card">
   <div class="bp-label">6-Layer Execution Reliability Stack</div>
 
   <div class="bp-diagram" aria-label="TruCite roadmap layers diagram">
-    <span class="bp-node">1) Runtime Score</span>
+    <span class="bp-node">1) Execution Risk Signal</span>
     <span class="bp-arrow">→</span>
     <span class="bp-node">2) Evidence Gate</span>
     <span class="bp-arrow">→</span>
@@ -774,9 +774,7 @@ A staged build from scoring → evidence → enforcement → enterprise auditabi
   </div>
 
   <p style="margin-top:14px; color:#d9d9d9; line-height:1.55;">
-    Today’s MVP covers <strong>1–4</strong> (score → evidence requirement → policy gate → execution commit artifact).
-    Next phases add <strong>enforcement hooks</strong> (drop-in middleware, SDK, policy-as-code) and an
-    <strong>audit ledger</strong> for enterprise traceability.
+    Today’s MVP covers the core runtime boundary: risk signal → evidence requirement → policy gate → execution commit artifact.
   </p>
 
   <p class="policy-mode-note" style="margin-top:10px;">
