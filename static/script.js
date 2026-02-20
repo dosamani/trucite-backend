@@ -1,8 +1,9 @@
 (() => {
-  // ================================
+  // ==========================================
   // TruCite Frontend Script (MVP)
-  // Uses /api/score (schema v2.0+)
-  // ================================
+  // Runtime Decision Gate UI (non-scoring UX)
+  // Backend route remains: /api/score (schema v2.0+)
+  // ==========================================
 
   const CONFIG = {
     API_BASE: "",              // same host
@@ -66,6 +67,8 @@
   const claimBox = pick("inputText", "#inputText", "textarea");
   const evidenceBox = pick("evidenceText", "#evidenceText");
 
+  // NOTE: We keep these IDs for compatibility with your HTML,
+  // but we render them as "readiness/decision" instead of "score".
   const scoreDisplay = pick("scoreDisplay", "#scoreDisplay");
   const scoreVerdict = pick("scoreVerdict", "#scoreVerdict");
   const gaugeFill = pick("gaugeFill", "#gaugeFill");
@@ -93,6 +96,8 @@
   }
 
   // Gauge animation (stroke-dashoffset)
+  // We still use the numeric value (if backend returns it),
+  // but we treat it as "Execution Readiness" signal, not a product score.
   function updateGauge(score) {
     if (!gaugeFill) return;
     const s = Math.max(0, Math.min(100, Number(score) || 0));
@@ -111,7 +116,7 @@
 
   function setPendingUI() {
     setText(scoreDisplay, "--");
-    setText(scoreVerdict, "Score pending…");
+    setText(scoreVerdict, "Decision pending…");
     if (decisionCard) show(decisionCard, true);
     setText(decisionAction, "—");
     setText(decisionReason, "Awaiting verification…");
@@ -120,6 +125,7 @@
 
     setText(volatilityValue, "—");
     setText(policyValue, "—");
+    // UI language stays decision-gate oriented
     setText(apiMeta, "server —ms · /api/score");
   }
 
@@ -196,7 +202,8 @@
       // Canonical single-field action for the compact payload
       decision: decisionObj.action || "REVIEW",
 
-      score: data?.score ?? "--",
+      // Keep backend field for debugging/telemetry; UI treats as readiness signal.
+      readiness_signal: data?.score ?? "--",
       verdict: data?.verdict || "",
 
       policy_mode: data?.policy_mode || data?.policy?.mode || CONFIG.POLICY_MODE,
@@ -222,22 +229,24 @@
       guardrail: data?.guardrail ?? sig?.guardrail ?? null,
       execution_boundary: data?.execution_boundary ?? false,
       execution_commit: data?.execution_commit ?? {
-       authorized: false,
-       action: null,
-       event_id: null,
-       policy_hash: null,
-       audit_fingerprint_sha256: null
+        authorized: false,
+        action: null,
+        event_id: null,
+        policy_hash: null,
+        audit_fingerprint_sha256: null
       }
-      };
+    };
   }
 
   function renderResponse(data) {
     lastResponse = data;
 
-    const score = data?.score ?? "--";
-    setText(scoreDisplay, score);
-    setText(scoreVerdict, data?.verdict || "");
-    updateGauge(score);
+    // We still read numeric value from backend but present it as readiness.
+    const readiness = data?.score ?? "--";
+    setText(scoreDisplay, readiness);
+    // This label is UX reframed away from "scoring"
+    setText(scoreVerdict, data?.verdict || "Execution readiness signal");
+    updateGauge(readiness);
 
     const sig = data?.signals || {};
 
@@ -251,48 +260,49 @@
     const pHash = data?.policy_hash || data?.policy?.hash || "";
     const policyLabel = pVer ? `${pMode} v${pVer}` + (pHash ? ` (hash: ${pHash})` : "") : `${pMode}`;
     setText(policyValue, policyLabel);
-// ---- Execution Commit (downstream enforcement artifact) ----
-const exec = data.execution_commit || data?.executionCommit || null;
 
-const execCard = document.getElementById("execCommitCard");
-const execBoundary = document.getElementById("execBoundary");
-const execAuthorized = document.getElementById("execAuthorized");
-const execAction = document.getElementById("execAction");
-const execEventId = document.getElementById("execEventId");
-const execPolicyHash = document.getElementById("execPolicyHash");
-const execAudit = document.getElementById("execAudit");
+    // ---- Execution Commit (downstream enforcement artifact) ----
+    const exec = data?.execution_commit || data?.executionCommit || null;
 
-// Always reflect execution boundary (top-level)
-if (execBoundary) {
-  const boundary = data.execution_boundary === true;
-  execBoundary.textContent = boundary ? "TRUE" : "FALSE";
-  execBoundary.style.color = boundary ? "#10b981" : "#ef4444";
-  execBoundary.style.fontWeight = "700";
-}
+    const execCard = document.getElementById("execCommitCard");
+    const execBoundary = document.getElementById("execBoundary");
+    const execAuthorized = document.getElementById("execAuthorized");
+    const execAction = document.getElementById("execAction");
+    const execEventId = document.getElementById("execEventId");
+    const execPolicyHash = document.getElementById("execPolicyHash");
+    const execAudit = document.getElementById("execAudit");
 
-if (exec && exec.authorized !== undefined) {
-  execCard.style.display = "block";
+    // Always reflect execution boundary (top-level)
+    if (execBoundary) {
+      const boundary = data?.execution_boundary === true;
+      execBoundary.textContent = boundary ? "TRUE" : "FALSE";
+      execBoundary.style.color = boundary ? "#10b981" : "#ef4444";
+      execBoundary.style.fontWeight = "700";
+    }
 
-  const authorized = exec.authorized === true;
+    if (execCard) {
+      // Only show if we have an execution commit object
+      execCard.style.display = exec ? "block" : "none";
+    }
 
-  execAuthorized.textContent = authorized ? "YES" : "NO";
-  execAuthorized.style.color = authorized ? "#10b981" : "#ef4444";
-  execAuthorized.style.fontWeight = "700";
+    if (exec && execAuthorized && execAction && execEventId && execPolicyHash && execAudit) {
+      const authorized = exec.authorized === true;
 
-  execAction.textContent = exec.action || "—";
-  execEventId.textContent = exec.event_id || "—";
-  execPolicyHash.textContent = exec.policy_hash || "—";
+      execAuthorized.textContent = authorized ? "YES" : "NO";
+      execAuthorized.style.color = authorized ? "#10b981" : "#ef4444";
+      execAuthorized.style.fontWeight = "700";
 
-  // FIX: fall back to top-level audit fingerprint if missing
-  execAudit.textContent =
-    exec.audit_fingerprint_sha256 ||
-    data.audit_fingerprint_sha256 ||
-    data?.audit?.audit_fingerprint_sha256 ||
-    "—";
+      execAction.textContent = exec.action || "—";
+      execEventId.textContent = exec.event_id || "—";
+      execPolicyHash.textContent = exec.policy_hash || "—";
 
-} else {
-  if (execCard) execCard.style.display = "none";
-}
+      // fall back to top-level audit fingerprint if missing
+      execAudit.textContent =
+        exec.audit_fingerprint_sha256 ||
+        data?.audit_fingerprint_sha256 ||
+        data?.audit?.audit_fingerprint_sha256 ||
+        "—";
+    }
 
     // Decision normalization (string OR object)
     const decisionObj = normalizeDecision(data);
@@ -302,13 +312,21 @@ if (exec && exec.authorized !== undefined) {
     if (decisionCard) show(decisionCard, true);
     setText(decisionAction, action);
     applyDecisionColor(action);
-    setText(decisionReason, reason);
+
+    // If backend provides no reason, give a crisp commercial fallback
+    const reasonFallback =
+      (action === "ALLOW") ? "Meets policy + evidence threshold for downstream execution." :
+      (action === "BLOCK") ? "Fails policy or evidence threshold. Block before downstream action." :
+      "Requires human review or additional evidence before execution.";
+
+    setText(decisionReason, reason || reasonFallback);
 
     const ms = (typeof data?.latency_ms === "number") ? data.latency_ms : "—";
     setText(apiMeta, `server ${ms}ms · /api/score`);
 
     const decisionPayload = buildDecisionPayload(data);
 
+    // Debug panel remains (useful for pilots / partners)
     const fullText =
       `Decision Payload (live) ${apiMeta?.textContent || ""}\n` +
       `${safeJson(decisionPayload)}\n\n` +
@@ -349,7 +367,7 @@ if (exec && exec.authorized !== undefined) {
       if (!res.ok) {
         let t = "";
         try { t = await res.text(); } catch {}
-        setErrorUI("could not score. Check backend route and try again.", t || `HTTP ${res.status}`);
+        setErrorUI("could not verify. Check backend route and try again.", t || `HTTP ${res.status}`);
         return;
       }
 
@@ -372,7 +390,7 @@ if (exec && exec.authorized !== undefined) {
     } catch (e) {
       const msg = (String(e || "").includes("AbortError"))
         ? "Request timed out. Backend may be waking up. Try again."
-        : "could not score. Network or backend unavailable.";
+        : "could not verify. Network or backend unavailable.";
       setErrorUI(msg, String(e));
     }
   }
