@@ -89,13 +89,14 @@ def heuristic_score(text: str, evidence: str, policy_mode: str):
     """
     t = (text or "").strip()
     ev = (evidence or "").strip()
+    tt = t.lower()
 
     urls = extract_urls(ev)
     references = [{"type": "url", "value": u} for u in urls]
 
     # Very simple volatility heuristic (demo)
     volatile_triggers = ("ceo", "current", "today", "right now", "as of", "latest", "president", "prime minister")
-    is_volatile = any(k in t.lower() for k in volatile_triggers)
+    is_volatile = any(k in tt for k in volatility_triggers)
 
     # Numeric claim heuristic
     has_number = bool(re.search(r"\d", t))
@@ -117,6 +118,24 @@ def heuristic_score(text: str, evidence: str, policy_mode: str):
 
     risk_flags: List[str] = []
     rules_fired: List[str] = []
+
+    
+
+    # --- Legal authority escalation ---
+    legal_authority_terms = (
+      "held that",
+      "ruled that",
+      "the court found",
+      "precedent",
+      "binding authority",
+      "circuit court",
+      "supreme court"
+    )
+
+    if any(term in t.lower() for term in legal_authority_terms):
+       is_volatile = True
+       risk_flags.append("legal_authority_claim")
+       rules_fired.append("legal_authority_flag")
 
     if len(t.split()) <= 6:
         risk_flags.append("short_declarative_claim")
