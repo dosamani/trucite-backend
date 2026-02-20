@@ -390,7 +390,7 @@ def heuristic_score(text: str, evidence: str, policy_mode: str):
     }
 
     return readiness, verdict, explanation, signals, references
-    def decision_gate(readiness_signal: int, signals: Dict[str, Any], policy_mode: str) -> Tuple[str, str]:
+def decision_gate(readiness_signal: int, signals: Dict[str, Any], policy_mode: str) -> Tuple[str, str]:
     """
     Canonical enforcement gate.
     Returns: (action, reason)
