@@ -1177,5 +1177,33 @@ li {
   font-size: 0.98rem;
   text-shadow: 0 0 12px rgba(255,215,0,0.18);
 }
+.hero-market{
+  margin-top: 12px;
+  text-align: center;
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero-market-line{
+  font-size: 0.95rem;
+  color: #cfcfcf;
+  margin-bottom: 4px;
+}
+
+.hero-india{
+  color: #FFD700;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(255,215,0,0.25);
+}
+
+.hero-wedge{
+  margin-top: 10px;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #FFD700;
+  font-weight: 800;
+  text-shadow: 0 0 12px rgba(255,215,0,0.25);
+}
 
 
