@@ -1088,5 +1088,76 @@ details[open] summary::after { content: "▲"; }
 .hero {
   text-align: center;
 }
+/* =========================
+   Commercial polish overrides
+   (safe add-on)
+========================= */
+
+/* Headings: slightly tighter + more premium */
+.section-title {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Cards: subtle density + consistent spacing */
+.bp-card,
+.win-card,
+.policy-card,
+.artifact-card,
+.note-card,
+.wedge-strip {
+  padding: 22px !important;
+  border-width: 1.5px !important;
+}
+
+/* Improve paragraph rhythm inside cards */
+.bp-card p,
+.win-card p,
+.policy-card p,
+.artifact-card p,
+.note-card p,
+.wedge-strip p {
+  line-height: 1.55;
+  margin-top: 10px;
+}
+
+/* Bullet lists: tighter + more enterprise */
+ul {
+  margin-top: 10px;
+  padding-left: 18px;
+}
+
+li {
+  margin: 8px 0;
+  line-height: 1.45;
+}
+
+/* Small helper for 3-bullet “enterprise reasons” section we’ll add next */
+.enterprise-now {
+  margin-top: 18px;
+}
+
+.enterprise-now .reasons {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.enterprise-now .reason {
+  padding: 18px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(255, 208, 74, 0.25);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.enterprise-now .reason h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.05rem;
+}
+
+.enterprise-now .reason p {
+  margin: 0;
+  opacity: 0.92;
+}
 
 
