@@ -392,7 +392,7 @@ def shape_demo_response(resp_obj: dict) -> dict:
         "execution_commit": resp_obj.get("execution_commit", {}),
     }
     return shaped
-    @app.route("/", methods=["GET"])
+@app.route("/", methods=["GET"])
 def root():
     try:
         return send_from_directory(app.static_folder, "index.html")
