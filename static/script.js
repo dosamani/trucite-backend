@@ -5,7 +5,7 @@
   // ================================
 
   const CONFIG = {
-    API_BASE: "",              // same host
+    API_BASE: "https://trucite-backend.onrender.com",
     POLICY_MODE: "enterprise", // enterprise | health | legal | finance
     TIMEOUT_MS: 15000
   };
