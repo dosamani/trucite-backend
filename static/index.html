@@ -562,6 +562,7 @@ Enterprises increasingly require separation between model generation and executi
     Designed to integrate between LLM output and workflow execution layers (agents, orchestration, identity, automation).
   </p>
 
+
   <div class="api-block">
     <div class="api-endpoint">POST /api/validate</div>
 
@@ -576,7 +577,22 @@ Enterprises increasingly require separation between model generation and executi
 <div class="api-note">
   Returns: ALLOW / REVIEW / BLOCK decision + execution audit fingerprint.
 </div>
+    
   </section>
+  <div class="execution-override-note">
+  <strong>Execution Override Protocol (Enterprise Extension)</strong>
+  <p>
+    In high-liability workflows, blocked actions may require documented executive authorization.
+    TruCite’s enterprise extension supports cryptographically signed override tokens —
+    binding human approval to the original audit fingerprint and policy hash.
+  </p>
+  <p>
+    This ensures override authority is explicit, attributable, and permanently linked
+    to the runtime decision artifact — preventing silent bypass of execution controls.
+  </p>
+  </div>
+  
+
 
   <!-- Enterprise CTA -->
 <hr class="section-divider">
