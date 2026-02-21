@@ -1,14 +1,13 @@
 (() => {
   // ================================
   // TruCite Frontend Script (MVP)
-  // Primary endpoint: /api/evaluate (alias: /api/score)
+  // Uses /api/runtime (canonical)
   // ================================
 
   const CONFIG = {
     API_BASE: "",              // same host
     POLICY_MODE: "enterprise", // enterprise | health | legal | finance
-    TIMEOUT_MS: 15000,
-    ENDPOINT: "/api/evaluate"  // enterprise-friendly path (backend also supports /api/score)
+    TIMEOUT_MS: 15000
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -67,8 +66,8 @@
   const claimBox = pick("inputText", "#inputText", "textarea");
   const evidenceBox = pick("evidenceText", "#evidenceText");
 
-  // Keep ids for compatibility, but treat as readiness
-  const scoreDisplay = pick("scoreDisplay", "#scoreDisplay");
+  // NOTE: keep existing IDs; UI text is what matters
+  const scoreDisplay = pick("scoreDisplay", "#scoreDisplay");   // displays readiness_signal
   const scoreVerdict = pick("scoreVerdict", "#scoreVerdict");
   const gaugeFill = pick("gaugeFill", "#gaugeFill");
 
@@ -95,9 +94,9 @@
   }
 
   // Gauge animation (stroke-dashoffset)
-  function updateGauge(score) {
+  function updateGauge(val) {
     if (!gaugeFill) return;
-    const s = Math.max(0, Math.min(100, Number(score) || 0));
+    const s = Math.max(0, Math.min(100, Number(val) || 0));
     const total = 260;
 
     gaugeFill.style.transition = "none";
@@ -113,7 +112,7 @@
 
   function setPendingUI() {
     setText(scoreDisplay, "--");
-    setText(scoreVerdict, "Evaluation pending…");
+    setText(scoreVerdict, "Signal pending…");
     if (decisionCard) show(decisionCard, true);
     setText(decisionAction, "—");
     setText(decisionReason, "Awaiting evaluation…");
@@ -155,40 +154,51 @@
     const sig = data?.signals || {};
     const decisionObj = normalizeDecision(data);
 
-    const readiness = (data?.readiness_signal ?? data?.score ?? "--");
+    const volatility = (sig?.volatility ?? "STABLE");
+    const category = (sig?.volatility_category ?? "GENERAL");
+
+    const evidenceStatus = (sig?.evidence_validation_status ?? "MISSING");
+    const evidenceTrustTier = (sig?.evidence_trust_tier ?? "—");
+    const evidenceConfidence = (typeof sig?.evidence_confidence === "number") ? sig.evidence_confidence : null;
+
+    const policyMode = data?.policy?.mode || data?.policy_mode || CONFIG.POLICY_MODE;
+    const policyVer  = data?.policy?.version || data?.policy_version || "";
+    const policyHash = data?.policy?.hash || data?.policy_hash || "";
 
     return {
-      schema_version: data?.schema_version || data?.contract?.schema_version || "2.0",
-      request_id: data?.request_id || data?.contract?.request_id || data?.event_id || data?.audit?.event_id || null,
+      schema_version: data?.contract?.schema_version || data?.schema_version || "2.0",
+      request_id: data?.contract?.request_id || data?.request_id || data?.audit?.event_id || null,
 
       decision: (decisionObj.action || "REVIEW"),
-
-      readiness_signal: readiness,
+      readiness_signal: data?.readiness_signal ?? data?.score ?? "--",
       verdict: data?.verdict || "",
 
-      policy_mode: data?.policy_mode || data?.policy?.mode || CONFIG.POLICY_MODE,
-      policy_version: data?.policy_version || data?.policy?.version || "",
-      policy_hash: data?.policy_hash || data?.policy?.hash || "",
+      policy_mode: policyMode,
+      policy_version: policyVer,
+      policy_hash: policyHash,
 
-      event_id: data?.event_id || data?.audit?.event_id || "",
-      audit_fingerprint_sha256:
-        data?.audit_fingerprint?.sha256 ||
-        data?.audit_fingerprint_sha256 ||
-        data?.audit?.audit_fingerprint_sha256 ||
-        "",
+      event_id: data?.audit?.event_id || data?.event_id || "",
+      audit_fingerprint_sha256: data?.audit?.audit_fingerprint_sha256 || data?.audit_fingerprint_sha256 || "",
 
       latency_ms: (typeof data?.latency_ms === "number") ? data.latency_ms : null,
 
-      volatility: (sig?.volatility || data?.volatility || "—"),
-      volatility_category: (sig?.volatility_category || data?.volatility_category || ""),
-      evidence_validation_status: (sig?.evidence_validation_status || data?.evidence_validation_status || "—"),
-      evidence_trust_tier: (sig?.evidence_trust_tier || data?.evidence_trust_tier || "—"),
-      evidence_confidence: (sig?.evidence_confidence ?? data?.evidence_confidence ?? null),
+      volatility: String(volatility).toUpperCase(),
+      volatility_category: String(category).toUpperCase(),
+      evidence_validation_status: evidenceStatus,
+      evidence_trust_tier: evidenceTrustTier,
+      evidence_confidence: evidenceConfidence,
 
       risk_flags: sig?.risk_flags || [],
       guardrail: sig?.guardrail ?? null,
+
       execution_boundary: data?.execution_boundary ?? false,
-      execution_commit: data?.execution_commit ?? null
+      execution_commit: data?.execution_commit ?? {
+        authorized: false,
+        action: null,
+        event_id: null,
+        policy_hash: null,
+        audit_fingerprint_sha256: null
+      }
     };
   }
   function renderResponse(data) {
@@ -200,18 +210,18 @@
     updateGauge(readiness);
 
     const sig = data?.signals || {};
-
-    const vol = (sig?.volatility ?? data?.volatility ?? "—").toString().toUpperCase();
+    const vol = (sig?.volatility ?? "STABLE").toString().toUpperCase();
     setText(volatilityValue, vol);
 
-    const pMode = data?.policy_mode || data?.policy?.mode || CONFIG.POLICY_MODE;
-    const pVer  = data?.policy_version || data?.policy?.version || "";
-    const pHash = data?.policy_hash || data?.policy?.hash || "";
+    const pMode = data?.policy?.mode || data?.policy_mode || CONFIG.POLICY_MODE;
+    const pVer  = data?.policy?.version || data?.policy_version || "";
+    const pHash = data?.policy?.hash || data?.policy_hash || "";
     const policyLabel = pVer ? `${pMode} v${pVer}` + (pHash ? ` (hash: ${pHash})` : "") : `${pMode}`;
     setText(policyValue, policyLabel);
 
-    // Execution Commit card (if present)
-    const exec = data.execution_commit || null;
+    // ---- Execution Commit (downstream enforcement artifact) ----
+    const exec = data?.execution_commit || null;
+
     const execCard = document.getElementById("execCommitCard");
     const execBoundary = document.getElementById("execBoundary");
     const execAuthorized = document.getElementById("execAuthorized");
@@ -221,16 +231,20 @@
     const execAudit = document.getElementById("execAudit");
 
     if (execBoundary) {
-      const boundary = data.execution_boundary === true;
+      const boundary = data?.execution_boundary === true;
       execBoundary.textContent = boundary ? "TRUE" : "FALSE";
       execBoundary.style.fontWeight = "700";
     }
 
-    if (exec && exec.authorized !== undefined && execCard) {
-      execCard.style.display = "block";
-      const authorized = exec.authorized === true;
+    if (exec && exec.authorized !== undefined) {
+      if (execCard) execCard.style.display = "block";
 
-      if (execAuthorized) execAuthorized.textContent = authorized ? "YES" : "NO";
+      const authorized = exec.authorized === true;
+      if (execAuthorized) {
+        execAuthorized.textContent = authorized ? "YES" : "NO";
+        execAuthorized.style.fontWeight = "700";
+      }
+
       if (execAction) execAction.textContent = exec.action || "—";
       if (execEventId) execEventId.textContent = exec.event_id || "—";
       if (execPolicyHash) execPolicyHash.textContent = exec.policy_hash || "—";
@@ -238,8 +252,8 @@
       if (execAudit) {
         execAudit.textContent =
           exec.audit_fingerprint_sha256 ||
-          data.audit_fingerprint_sha256 ||
           data?.audit?.audit_fingerprint_sha256 ||
+          data?.audit_fingerprint_sha256 ||
           "—";
       }
     } else {
@@ -258,11 +272,11 @@
     const ms = (typeof data?.latency_ms === "number") ? data.latency_ms : "—";
     setText(apiMeta, `runtime gate · server ${ms}ms`);
 
-    const artifact = buildDecisionPayload(data);
+    const decisionPayload = buildDecisionPayload(data);
 
     const fullText =
-      `Execution Decision Artifact (live) · server ${ms}ms\n` +
-      `${safeJson(artifact)}\n\n` +
+      `Execution Decision Artifact (live) · ${apiMeta?.textContent || ""}\n` +
+      `${safeJson(decisionPayload)}\n\n` +
       `Validation details, explanation & references\n` +
       `${safeJson(data)}`;
 
@@ -276,10 +290,11 @@
     if (!text) return alert("Paste AI- or agent-generated text first.");
 
     const payload = { text, evidence: evidence || "", policy_mode: CONFIG.POLICY_MODE };
+
     lastPayload = payload;
     setPendingUI();
 
-    const url = `${CONFIG.API_BASE}${CONFIG.ENDPOINT}`;
+    const url = `${CONFIG.API_BASE}/api/runtime`;
 
     try {
       const res = await fetchWithTimeout(url, {
@@ -295,15 +310,16 @@
       if (!res.ok) {
         let t = "";
         try { t = await res.text(); } catch {}
-        setErrorUI("could not evaluate. Check backend route and try again.", t || `HTTP ${res.status}`);
+        setErrorUI("Request failed. Check backend route and try again.", t || `HTTP ${res.status}`);
         return;
       }
 
       let data = null;
-      try { data = await res.json(); }
-      catch (e) {
+      try {
+        data = await res.json();
+      } catch (e) {
         const txt = await res.text().catch(() => "");
-        setErrorUI("could not parse response JSON.", txt || String(e));
+        setErrorUI("Could not parse response JSON.", txt || String(e));
         return;
       }
 
@@ -316,7 +332,7 @@
     } catch (e) {
       const msg = (String(e || "").includes("AbortError"))
         ? "Request timed out. Backend may be waking up. Try again."
-        : "could not evaluate. Network or backend unavailable.";
+        : "Request failed. Network or backend unavailable.";
       setErrorUI(msg, String(e));
     }
   }
@@ -324,7 +340,7 @@
   if (verifyButton) verifyButton.addEventListener("click", onVerify);
   else console.warn("VERIFY button not found. Check id/class.");
 
-  window.scoreText = function () { // legacy onclick hook
+  window.scoreText = function () {
     if (verifyButton) verifyButton.click();
     else onVerify();
   };
@@ -341,7 +357,7 @@
 
   window.copyCurl = function () {
     if (!lastPayload) return alert("Run an evaluation first.");
-    const curl = `curl -X POST "${location.origin}${CONFIG.ENDPOINT}" -H "Content-Type: application/json" -d '${JSON.stringify(lastPayload)}'`;
+    const curl = `curl -X POST "${location.origin}/api/runtime" -H "Content-Type: application/json" -d '${JSON.stringify(lastPayload)}'`;
     copyToClipboard(curl);
   };
 
