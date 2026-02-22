@@ -370,49 +370,90 @@ def decision_gate(readiness_signal: int, signals: Dict[str, Any], policy_mode: s
 # -----------------------------
 def shape_demo_response(resp_obj: dict) -> dict:
     """
-    Investor-facing stable response shape.
-    - decision is always an object
-    - readiness_signal is the primary numeric field
-    - keeps audit/policy/exec_commit
+    Investor-safe / enterprise-safe demo contract.
+    Shows the deterministic enforcement artifact WITHOUT leaking internal telemetry.
     """
+
     raw_decision = resp_obj.get("decision")
     if isinstance(raw_decision, dict):
-        decision_obj = raw_decision
+        decision_obj = {
+            "action": raw_decision.get("action") or "REVIEW",
+            "reason": raw_decision.get("reason") or "",
+        }
     else:
         decision_obj = {
             "action": (raw_decision or "REVIEW"),
-            "reason": (resp_obj.get("decision_detail") or {}).get("reason", "")
+            "reason": (resp_obj.get("decision_detail") or {}).get("reason", ""),
         }
 
     event_id = resp_obj.get("event_id") or resp_obj.get("request_id") or ""
-    audit_sha = resp_obj.get("audit_fingerprint_sha256") or ""
+    audit_sha = (
+        resp_obj.get("audit_fingerprint_sha256")
+        or (resp_obj.get("audit_fingerprint") or {}).get("sha256")
+        or ""
+    )
+
+    # ---- Signals: redact internals, keep only contract-relevant fields ----
+    sig = resp_obj.get("signals") or {}
+    public_signals = {
+        "volatility": sig.get("volatility"),
+        "evidence_validation_status": sig.get("evidence_validation_status"),
+        "evidence_confidence": sig.get("evidence_confidence"),
+        "has_references": sig.get("has_references"),
+        "reference_count": sig.get("reference_count"),
+    }
+
+    # Optional: boolean summaries (do not leak rule names)
+    lt = (sig.get("liability_tier") or "").lower()
+    public_signals["high_liability"] = (lt == "high")
+
+    # Coarse execution intent boolean (if you already compute it)
+    rf = sig.get("risk_flags") or []
+    public_signals["execution_intent"] = any(
+        str(x).lower() in ("execution_intent_detected", "execution_intent")
+        for x in rf
+    )
 
     shaped = {
-        "audit": {
-            "event_id": event_id,
-            "audit_fingerprint_sha256": audit_sha,
-        },
         "contract": {
             "name": "TruCite Runtime Execution Reliability",
             "contract_version": DEMO_CONTRACT_VERSION,
             "schema_version": resp_obj.get("schema_version"),
             "request_id": event_id,
         },
+
         "decision": decision_obj,
         "decision_action": decision_obj.get("action"),
-        "readiness_signal": resp_obj.get("readiness_signal"),
+
+        # keep one public readiness metric
+        "readiness_signal": resp_obj.get("readiness_signal", resp_obj.get("score")),
         "verdict": resp_obj.get("verdict"),
+
         "policy": {
             "mode": resp_obj.get("policy_mode"),
             "version": resp_obj.get("policy_version"),
             "hash": resp_obj.get("policy_hash"),
         },
+
+        "audit": {
+            "event_id": event_id,
+            "audit_fingerprint_sha256": audit_sha,
+        },
+
         "latency_ms": resp_obj.get("latency_ms"),
+
+        # Keep evidence list (URLs) if present; OK for demo
         "references": resp_obj.get("references", []),
-        "signals": resp_obj.get("signals", {}),
-        "explanation": resp_obj.get("explanation", ""),
+
+        # Public-safe signals only
+        "signals": public_signals,
+
+        # Guardrail as a public reason label is OK (no internals)
+        "guardrail": resp_obj.get("guardrail", None),
+
         "execution_boundary": resp_obj.get("execution_boundary", False),
         "execution_commit": resp_obj.get("execution_commit", {}),
+        "explanation": resp_obj.get("explanation", ""),
     }
 
     return shaped
