@@ -376,10 +376,12 @@ def decision_gate(readiness_signal: int, signals: Dict[str, Any], policy_mode: s
 def shape_demo_response(resp_obj: dict) -> dict:
     """
     Investor-safe / enterprise-safe demo contract.
-    Shows deterministic enforcement artifact WITHOUT leaking internal telemetry.
+    Shows the deterministic enforcement artifact WITHOUT leaking internal telemetry.
     """
 
+    # --- Normalize decision to canonical object shape ---
     raw_decision = resp_obj.get("decision")
+
     if isinstance(raw_decision, dict):
         decision_obj = {
             "action": raw_decision.get("action") or "REVIEW",
@@ -388,7 +390,11 @@ def shape_demo_response(resp_obj: dict) -> dict:
     else:
         decision_obj = {
             "action": (raw_decision or "REVIEW"),
-            "reason": (resp_obj.get("decision_detail") or {}).get("reason", ""),
+            "reason": (
+                (resp_obj.get("decision_detail") or {}).get("reason")
+                or resp_obj.get("decision_reason")
+                or ""
+            ),
         }
 
     event_id = resp_obj.get("event_id") or resp_obj.get("request_id") or ""
@@ -398,30 +404,22 @@ def shape_demo_response(resp_obj: dict) -> dict:
         or ""
     )
 
-    # ---- Signals ----
     sig = resp_obj.get("signals") or {}
-    rf = sig.get("risk_flags") or []
-    guardrail = sig.get("guardrail")
 
-    # Keep only contract-relevant signals (public-safe)
+    # ---- Public-safe signals only (no rule leakage) ----
     public_signals = {
         "volatility": sig.get("volatility"),
-        "volatility_category": sig.get("volatility_category"),  # ✅ keep (coarse domain label)
+        "volatility_category": sig.get("volatility_category"),
         "evidence_validation_status": sig.get("evidence_validation_status"),
         "evidence_confidence": sig.get("evidence_confidence"),
         "has_references": sig.get("has_references"),
         "reference_count": sig.get("reference_count"),
-        "liability_tier": sig.get("liability_tier"),  # ✅ coarse only
-
-        # ✅ keep guardrail + risk_flags for transparency (these are NOT "internal telemetry")
-        "guardrail": guardrail,
-        "risk_flags": rf,
     }
 
-    # Optional: boolean summaries (helpful for demo consumers)
     lt = (sig.get("liability_tier") or "").lower()
     public_signals["high_liability"] = (lt == "high")
 
+    rf = sig.get("risk_flags") or []
     public_signals["execution_intent"] = any(
         str(x).lower() in ("execution_intent_detected", "execution_intent")
         for x in rf
@@ -435,10 +433,11 @@ def shape_demo_response(resp_obj: dict) -> dict:
             "request_id": event_id,
         },
 
+        # ---- Canonical decision object ----
         "decision": decision_obj,
         "decision_action": decision_obj.get("action"),
 
-        "readiness_signal": resp_obj.get("readiness_signal", resp_obj.get("score")),
+        "readiness_signal": resp_obj.get("readiness_signal"),
         "verdict": resp_obj.get("verdict"),
 
         "policy": {
@@ -458,14 +457,12 @@ def shape_demo_response(resp_obj: dict) -> dict:
 
         "signals": public_signals,
 
-        # ✅ top-level mirror (what your frontend currently reads)
-        "guardrail": guardrail,
-        "risk_flags": rf,
-        "volatility": sig.get("volatility"),
-        "volatility_category": sig.get("volatility_category"),
+        "guardrail": sig.get("guardrail"),
 
         "execution_boundary": resp_obj.get("execution_boundary", False),
+
         "execution_commit": resp_obj.get("execution_commit", {}),
+
         "explanation": resp_obj.get("explanation", ""),
     }
 
