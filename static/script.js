@@ -1,13 +1,20 @@
 (() => {
   // ================================
   // TruCite Frontend Script (MVP)
-  // Uses /api/runtime (canonical)
+  // Safe public output (no IP leakage)
+  // Auto-fallback: /api/score then /api/runtime
   // ================================
 
   const CONFIG = {
     API_BASE: "https://trucite-backend.onrender.com",
     POLICY_MODE: "enterprise", // enterprise | health | legal | finance
-    TIMEOUT_MS: 15000
+    TIMEOUT_MS: 15000,
+
+    // ---- Leakage controls ----
+    SHOW_DEBUG: false,          // if true, show minimal debug text (never raw objects)
+    SHOW_COPY_PAYLOAD: true,    // keep if you want
+    SHOW_COPY_CURL: true,       // keep if you want
+    SHOW_COPY_RESPONSE: true    // copies sanitized public contract only
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -56,7 +63,17 @@
     document.body.removeChild(ta);
   }
 
+  function stripHtml(raw) {
+    if (!raw) return "";
+    // If backend returns HTML error pages, don’t render them into the product UI.
+    const s = String(raw);
+    if (s.includes("<!doctype") || s.includes("<html") || s.includes("<title>")) return "[backend returned HTML error body]";
+    return s;
+  }
+
+  // ----------------------------
   // Elements
+  // ----------------------------
   let verifyButton = pick("verifyBtn", "#verifyBtn", "button.primary-btn");
   if (!verifyButton) {
     const allBtns = Array.from(document.querySelectorAll("button"));
@@ -81,8 +98,10 @@
   const policyValue = pick("policyValue", "#policyValue");
   const apiMeta = pick("apiMeta", "#apiMeta");
 
+  // Track last successful endpoint for curl copying
   let lastPayload = null;
-  let lastResponse = null;
+  let lastResponsePublic = null;     // sanitized public contract
+  let lastEndpointPath = null;       // "/api/score" or "/api/runtime"
 
   function applyDecisionColor(action) {
     if (!decisionAction) return;
@@ -109,7 +128,6 @@
       });
     });
   }
-
   function setPendingUI() {
     setText(scoreDisplay, "--");
     setText(scoreVerdict, "Signal pending…");
@@ -122,6 +140,10 @@
     setText(volatilityValue, "—");
     setText(policyValue, "—");
     setText(apiMeta, "runtime gate · server —ms");
+
+    // Hide execution commit until we have one
+    const execCard = document.getElementById("execCommitCard");
+    if (execCard) execCard.style.display = "none";
   }
 
   function setErrorUI(userMsg, debugText) {
@@ -132,7 +154,9 @@
     applyDecisionColor("REVIEW");
     setText(decisionReason, userMsg || "Backend error.");
     setText(apiMeta, "runtime gate · server —ms");
-    if (resultPre) resultPre.textContent = debugText ? `Backend error:\n${debugText}` : (userMsg || "Backend error.");
+
+    const dbg = CONFIG.SHOW_DEBUG ? stripHtml(debugText) : "";
+    if (resultPre) resultPre.textContent = dbg ? `Backend error:\n${dbg}` : (userMsg || "Backend error.");
   }
 
   function normalizeDecision(data) {
@@ -150,7 +174,9 @@
     return { action, reason };
   }
 
-  function buildDecisionPayload(data) {
+  // ---- Public (sanitized) contract ----
+  // This is what we display + allow copying.
+  function buildPublicContract(data) {
     const sig = data?.signals || {};
     const decisionObj = normalizeDecision(data);
 
@@ -165,6 +191,14 @@
     const policyVer  = data?.policy?.version || data?.policy_version || "";
     const policyHash = data?.policy?.hash || data?.policy_hash || "";
 
+    const executionCommit = data?.execution_commit ?? {
+      authorized: false,
+      action: null,
+      event_id: null,
+      policy_hash: null,
+      audit_fingerprint_sha256: null
+    };
+
     return {
       schema_version: data?.contract?.schema_version || data?.schema_version || "2.0",
       request_id: data?.contract?.request_id || data?.request_id || data?.audit?.event_id || null,
@@ -177,8 +211,10 @@
       policy_version: policyVer,
       policy_hash: policyHash,
 
-      event_id: data?.audit?.event_id || data?.event_id || "",
-      audit_fingerprint_sha256: data?.audit?.audit_fingerprint_sha256 || data?.audit_fingerprint_sha256 || "",
+      audit: {
+        event_id: data?.audit?.event_id || data?.event_id || "",
+        audit_fingerprint_sha256: data?.audit?.audit_fingerprint_sha256 || data?.audit_fingerprint_sha256 || ""
+      },
 
       latency_ms: (typeof data?.latency_ms === "number") ? data.latency_ms : null,
 
@@ -188,39 +224,51 @@
       evidence_trust_tier: evidenceTrustTier,
       evidence_confidence: evidenceConfidence,
 
-      risk_flags: sig?.risk_flags || [],
+      // Safe exposure: risk_flags + guardrail are OK for MVP marketing.
+      // (We do NOT expose rules_fired / heuristics internals.)
+      risk_flags: Array.isArray(sig?.risk_flags) ? sig.risk_flags : [],
       guardrail: sig?.guardrail ?? null,
 
       execution_boundary: data?.execution_boundary ?? false,
-      execution_commit: data?.execution_commit ?? {
-        authorized: false,
-        action: null,
-        event_id: null,
-        policy_hash: null,
-        audit_fingerprint_sha256: null
-      }
+      execution_commit: executionCommit,
+
+      // Safe, limited extras
+      references: Array.isArray(data?.references) ? data.references : [],
+      explanation: data?.explanation || ""
     };
   }
-  function renderResponse(data) {
-    lastResponse = data;
 
-    const readiness = data?.readiness_signal ?? data?.score ?? "--";
+  function renderResponse(data) {
+    const publicContract = buildPublicContract(data);
+    lastResponsePublic = publicContract;
+
+    const readiness = publicContract?.readiness_signal ?? "--";
     setText(scoreDisplay, readiness);
-    setText(scoreVerdict, data?.verdict || "");
+    setText(scoreVerdict, publicContract?.verdict || "");
     updateGauge(readiness);
 
-    const sig = data?.signals || {};
-    const vol = (sig?.volatility ?? "STABLE").toString().toUpperCase();
-    setText(volatilityValue, vol);
+    setText(volatilityValue, publicContract?.volatility || "STABLE");
 
-    const pMode = data?.policy?.mode || data?.policy_mode || CONFIG.POLICY_MODE;
-    const pVer  = data?.policy?.version || data?.policy_version || "";
-    const pHash = data?.policy?.hash || data?.policy_hash || "";
+    const pMode = publicContract?.policy_mode || CONFIG.POLICY_MODE;
+    const pVer  = publicContract?.policy_version || "";
+    const pHash = publicContract?.policy_hash || "";
     const policyLabel = pVer ? `${pMode} v${pVer}` + (pHash ? ` (hash: ${pHash})` : "") : `${pMode}`;
     setText(policyValue, policyLabel);
 
+    const decisionObj = normalizeDecision(data);
+    const action = (decisionObj.action || "REVIEW").toUpperCase();
+    const reason = decisionObj.reason || "";
+
+    if (decisionCard) show(decisionCard, true);
+    setText(decisionAction, action);
+    applyDecisionColor(action);
+    setText(decisionReason, reason);
+
+    const ms = (typeof publicContract?.latency_ms === "number") ? publicContract.latency_ms : "—";
+    setText(apiMeta, `runtime gate · server ${ms}ms`);
+
     // ---- Execution Commit (downstream enforcement artifact) ----
-    const exec = data?.execution_commit || null;
+    const exec = publicContract?.execution_commit || null;
 
     const execCard = document.getElementById("execCommitCard");
     const execBoundary = document.getElementById("execBoundary");
@@ -231,7 +279,7 @@
     const execAudit = document.getElementById("execAudit");
 
     if (execBoundary) {
-      const boundary = data?.execution_boundary === true;
+      const boundary = publicContract?.execution_boundary === true;
       execBoundary.textContent = boundary ? "TRUE" : "FALSE";
       execBoundary.style.fontWeight = "700";
     }
@@ -252,35 +300,92 @@
       if (execAudit) {
         execAudit.textContent =
           exec.audit_fingerprint_sha256 ||
-          data?.audit?.audit_fingerprint_sha256 ||
-          data?.audit_fingerprint_sha256 ||
+          publicContract?.audit?.audit_fingerprint_sha256 ||
           "—";
       }
     } else {
       if (execCard) execCard.style.display = "none";
     }
 
-    const decisionObj = normalizeDecision(data);
-    const action = (decisionObj.action || "REVIEW").toUpperCase();
-    const reason = decisionObj.reason || "";
-
-    if (decisionCard) show(decisionCard, true);
-    setText(decisionAction, action);
-    applyDecisionColor(action);
-    setText(decisionReason, reason);
-
-    const ms = (typeof data?.latency_ms === "number") ? data.latency_ms : "—";
-    setText(apiMeta, `runtime gate · server ${ms}ms`);
-
-    const decisionPayload = buildDecisionPayload(data);
+    // ---- Safe output text ----
+    // Only show sanitized public contract + short “validation details”.
+    const safeDetails = {
+      contract: data?.contract || null,
+      decision: data?.decision || null,
+      policy: data?.policy || null,
+      audit: data?.audit || null
+    };
 
     const fullText =
       `Execution Decision Artifact (live) · ${apiMeta?.textContent || ""}\n` +
-      `${safeJson(decisionPayload)}\n\n` +
+      `${safeJson(publicContract)}\n\n` +
       `Validation details, explanation & references\n` +
-      `${safeJson(data)}`;
+      `${safeJson({
+        explanation: publicContract.explanation,
+        references: publicContract.references,
+        signals: {
+          volatility: publicContract.volatility,
+          volatility_category: publicContract.volatility_category,
+          evidence_validation_status: publicContract.evidence_validation_status,
+          evidence_trust_tier: publicContract.evidence_trust_tier,
+          evidence_confidence: publicContract.evidence_confidence,
+          risk_flags: publicContract.risk_flags,
+          guardrail: publicContract.guardrail
+        },
+        meta: safeDetails
+      })}`;
 
     if (resultPre) resultPre.textContent = fullText;
+  }
+  async function postToFirstAvailableEndpoint(payload) {
+    // Prefer /api/score (your backend), fall back to /api/runtime (older frontend)
+    const paths = ["/api/score", "/api/runtime"];
+
+    let lastErrText = "";
+    for (const path of paths) {
+      const url = `${CONFIG.API_BASE}${path}`;
+
+      try {
+        const res = await fetchWithTimeout(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-TruCite-Client": "web-mvp",
+            "X-TruCite-Policy-Mode": CONFIG.POLICY_MODE
+          },
+          body: JSON.stringify(payload)
+        }, CONFIG.TIMEOUT_MS);
+
+        if (!res.ok) {
+          let t = "";
+          try { t = await res.text(); } catch {}
+          t = stripHtml(t) || `HTTP ${res.status}`;
+          lastErrText = t;
+
+          // If this endpoint doesn't exist, try the next one.
+          if (res.status === 404) continue;
+
+          // Otherwise fail immediately (bad request, server error, etc.)
+          return { ok: false, status: res.status, text: t, pathTried: path };
+        }
+
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (e) {
+          const txt = stripHtml(await res.text().catch(() => "")) || String(e);
+          return { ok: false, status: 0, text: txt, pathTried: path };
+        }
+
+        // Success
+        return { ok: true, data, pathUsed: path };
+      } catch (e) {
+        // Timeout / network errors: do not keep retrying other paths endlessly if it's not 404.
+        lastErrText = String(e);
+      }
+    }
+
+    return { ok: false, status: 404, text: lastErrText || "No supported endpoint found.", pathTried: "/api/score,/api/runtime" };
   }
 
   async function onVerify() {
@@ -290,41 +395,27 @@
     if (!text) return alert("Paste AI- or agent-generated text first.");
 
     const payload = { text, evidence: evidence || "", policy_mode: CONFIG.POLICY_MODE };
-
     lastPayload = payload;
     setPendingUI();
 
-    const url = `${CONFIG.API_BASE}/api/runtime`;
-
     try {
-      const res = await fetchWithTimeout(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-TruCite-Client": "web-mvp",
-          "X-TruCite-Policy-Mode": CONFIG.POLICY_MODE
-        },
-        body: JSON.stringify(payload)
-      }, CONFIG.TIMEOUT_MS);
+      const out = await postToFirstAvailableEndpoint(payload);
 
-      if (!res.ok) {
-        let t = "";
-        try { t = await res.text(); } catch {}
-        setErrorUI("Request failed. Check backend route and try again.", t || `HTTP ${res.status}`);
+      if (!out.ok) {
+        setErrorUI(
+          "could not evaluate. Check backend route and try again.",
+          out.text || (out.status ? `HTTP ${out.status}` : "Unknown error")
+        );
         return;
       }
 
-      let data = null;
-      try {
-        data = await res.json();
-      } catch (e) {
-        const txt = await res.text().catch(() => "");
-        setErrorUI("Could not parse response JSON.", txt || String(e));
-        return;
-      }
+      // Track which endpoint succeeded for curl generation
+      lastEndpointPath = out.pathUsed;
+
+      const data = out.data;
 
       if (data?.error_code) {
-        setErrorUI(data?.message || "Request error.", safeJson(data));
+        setErrorUI(data?.message || "Request error.", CONFIG.SHOW_DEBUG ? safeJson(data) : "");
         return;
       }
 
@@ -340,32 +431,41 @@
   if (verifyButton) verifyButton.addEventListener("click", onVerify);
   else console.warn("VERIFY button not found. Check id/class.");
 
+  // keep existing hook used by your HTML
   window.scoreText = function () {
     if (verifyButton) verifyButton.click();
     else onVerify();
   };
 
+  // ---- Copy helpers (safe) ----
   window.copyJSONPayload = function () {
+    if (!CONFIG.SHOW_COPY_PAYLOAD) return;
     if (!lastPayload) return alert("Run an evaluation first.");
     copyToClipboard(safeJson(lastPayload));
   };
 
   window.copyResponse = function () {
-    if (!lastResponse) return alert("Run an evaluation first.");
-    copyToClipboard(safeJson(lastResponse));
+    if (!CONFIG.SHOW_COPY_RESPONSE) return;
+    if (!lastResponsePublic) return alert("Run an evaluation first.");
+    copyToClipboard(safeJson(lastResponsePublic));
   };
 
   window.copyCurl = function () {
+    if (!CONFIG.SHOW_COPY_CURL) return;
     if (!lastPayload) return alert("Run an evaluation first.");
-    const curl = `curl -X POST "${location.origin}/api/runtime" -H "Content-Type: application/json" -d '${JSON.stringify(lastPayload)}'`;
+
+    const path = lastEndpointPath || "/api/score";
+    const curl = `curl -X POST "${CONFIG.API_BASE}${path}" -H "Content-Type: application/json" -d '${JSON.stringify(lastPayload)}'`;
     copyToClipboard(curl);
   };
 
+  // Initialize
   setPendingUI();
 
   window.TruCiteDebug = {
     config: CONFIG,
     lastPayload: () => lastPayload,
-    lastResponse: () => lastResponse
+    lastResponsePublic: () => lastResponsePublic,
+    lastEndpointPath: () => lastEndpointPath
   };
 })();
