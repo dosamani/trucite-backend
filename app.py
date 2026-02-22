@@ -231,6 +231,11 @@ def heuristic_readiness_signal(text: str, evidence: str, policy_mode: str):
     risk_flags: List[str] = []
     rules_fired: List[str] = []
 
+    # If guardrail fired, bind deterministically (single source of truth)
+    if guardrail:
+       risk_flags.append(f"{guardrail}_claim")
+       rules_fired.append(f"guardrail_{guardrail}")
+
     # Risk flags / rules
     if legal_authority:
         risk_flags.append("legal_authority_claim")
@@ -253,13 +258,6 @@ def heuristic_readiness_signal(text: str, evidence: str, policy_mode: str):
         risk_flags.append("time_bound_promise_claim")
         rules_fired.append("risky_numeric_flag")
 
-    if "insider information" in tlc or "based on insider" in tlc:
-        risk_flags.append("insider_information_claim")
-        rules_fired.append("guardrail_insider_information")
-
-    if any(m in tlc for m in ["vendor id", "corporate treasury", "wire", "transfer", "payment"]):
-        risk_flags.append("payment_instruction")
-        rules_fired.append("guardrail_payment_instruction")
 
     # Evidence required logic (enterprise framing)
     # Require evidence if:
