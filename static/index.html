@@ -463,7 +463,7 @@ Enterprises increasingly require separation between model generation and executi
       placeholder="Optional: Paste supporting evidence (URLs / DOI / PMID)."
     ></textarea>
 
-    <button class="primary-btn" onclick="scoreText()">EVALUATE</button>
+    <button id="verifyBtn" class="primary-btn">EVALUATE</button>
 
     <div class="copy-row">
       <button class="copy-btn" onclick="copyJSONPayload()">Copy JSON payload</button>
@@ -982,6 +982,17 @@ Enterprises increasingly require separation between model generation and executi
   </div>
       </details>
 
+      <div class="faq-item">
+  <button class="faq-q" type="button">Can an enterprise override a BLOCK for treasury or payments?</button>
+  <div class="faq-a">
+    <p>
+      Not in MVP. In high-risk payment flows, TruCite is designed to block execution unless the workflow contains
+      verified human approval outside the model path. A future capability is a signed “Verified Approval Token”
+      that can only be issued by an authorized approver and attached to the execution request.
+    </p>
+  </div>
+      </div>
+
 <details>
   <summary>Does TruCite “enforce” actions directly?</summary>
   <div class="acc-body">
@@ -1208,6 +1219,6 @@ Enterprises increasingly require separation between model generation and executi
 </footer>
 
 
-<script src="/static/script.js?v=1103"></script>
+<script src="/static/script.js" defer></script>
 </body>
 </html>
