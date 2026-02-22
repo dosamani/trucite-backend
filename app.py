@@ -227,6 +227,13 @@ def heuristic_readiness_signal(text: str, evidence: str, policy_mode: str):
 
     # Guardrails
     guardrail = _guardrail(tlc)
+    # If a guardrail fires, force a sane volatility + category label
+    if guardrail == "insider_information":
+       volatile = True
+       category = "FINANCIAL"
+    elif guardrail == "payment_instruction":
+       volatile = True
+       category = "OPERATIONS"
 
     risk_flags: List[str] = []
     rules_fired: List[str] = []
@@ -369,7 +376,7 @@ def decision_gate(readiness_signal: int, signals: Dict[str, Any], policy_mode: s
 def shape_demo_response(resp_obj: dict) -> dict:
     """
     Investor-safe / enterprise-safe demo contract.
-    Shows the deterministic enforcement artifact WITHOUT leaking internal telemetry.
+    Shows deterministic enforcement artifact WITHOUT leaking internal telemetry.
     """
 
     raw_decision = resp_obj.get("decision")
@@ -391,22 +398,30 @@ def shape_demo_response(resp_obj: dict) -> dict:
         or ""
     )
 
-    # ---- Signals: redact internals, keep only contract-relevant fields ----
+    # ---- Signals ----
     sig = resp_obj.get("signals") or {}
+    rf = sig.get("risk_flags") or []
+    guardrail = sig.get("guardrail")
+
+    # Keep only contract-relevant signals (public-safe)
     public_signals = {
         "volatility": sig.get("volatility"),
+        "volatility_category": sig.get("volatility_category"),  # ✅ keep (coarse domain label)
         "evidence_validation_status": sig.get("evidence_validation_status"),
         "evidence_confidence": sig.get("evidence_confidence"),
         "has_references": sig.get("has_references"),
         "reference_count": sig.get("reference_count"),
+        "liability_tier": sig.get("liability_tier"),  # ✅ coarse only
+
+        # ✅ keep guardrail + risk_flags for transparency (these are NOT "internal telemetry")
+        "guardrail": guardrail,
+        "risk_flags": rf,
     }
 
-    # Optional: boolean summaries (do not leak rule names)
+    # Optional: boolean summaries (helpful for demo consumers)
     lt = (sig.get("liability_tier") or "").lower()
     public_signals["high_liability"] = (lt == "high")
 
-    # Coarse execution intent boolean (if you already compute it)
-    rf = sig.get("risk_flags") or []
     public_signals["execution_intent"] = any(
         str(x).lower() in ("execution_intent_detected", "execution_intent")
         for x in rf
@@ -423,7 +438,6 @@ def shape_demo_response(resp_obj: dict) -> dict:
         "decision": decision_obj,
         "decision_action": decision_obj.get("action"),
 
-        # keep one public readiness metric
         "readiness_signal": resp_obj.get("readiness_signal", resp_obj.get("score")),
         "verdict": resp_obj.get("verdict"),
 
@@ -440,14 +454,15 @@ def shape_demo_response(resp_obj: dict) -> dict:
 
         "latency_ms": resp_obj.get("latency_ms"),
 
-        # Keep evidence list (URLs) if present; OK for demo
         "references": resp_obj.get("references", []),
 
-        # Public-safe signals only
         "signals": public_signals,
 
-        # Guardrail as a public reason label is OK (no internals)
-        "guardrail": resp_obj.get("guardrail", None),
+        # ✅ top-level mirror (what your frontend currently reads)
+        "guardrail": guardrail,
+        "risk_flags": rf,
+        "volatility": sig.get("volatility"),
+        "volatility_category": sig.get("volatility_category"),
 
         "execution_boundary": resp_obj.get("execution_boundary", False),
         "execution_commit": resp_obj.get("execution_commit", {}),
