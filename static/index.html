@@ -977,17 +977,15 @@ Enterprises increasingly require separation between model generation and executi
     Guardrails filter or steer model outputs. TruCite produces deterministic execution decisions with audit-grade metadata (policy hash, event ID, audit fingerprint) so high-liability workflows can gate downstream actions in a machine-enforceable way.
   </div>
       </details>
-
-      <div class="faq-item">
-  <button class="faq-q" type="button">Can an enterprise override a BLOCK for treasury or payments?</button>
-  <div class="faq-a">
-    <p>
-      Not in MVP. In high-risk payment flows, TruCite is designed to block execution unless the workflow contains
-      verified human approval outside the model path. A future capability is a signed “Verified Approval Token”
-      that can only be issued by an authorized approver and attached to the execution request.
-    </p>
+      
+      <details>
+  <summary>Can TruCite BLOCK be overridden in high-risk payment or treasury workflows?</summary>
+  <div class="acc-body">
+    Not in MVP. In high-risk payment flows, TruCite is designed to block execution unless the workflow contains
+    verified human approval outside the model path. A future capability is a signed “Verified Approval Token”
+    that can only be issued by an authorized approver and attached to the execution request.
   </div>
-      </div>
+      </details>
 
 <details>
   <summary>Does TruCite “enforce” actions directly?</summary>
