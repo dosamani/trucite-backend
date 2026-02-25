@@ -60,7 +60,7 @@ before AI systems trigger clinical, legal, financial, or operational workflows.
 </a>
   </header>
   <div class="hero-mini-links">
-  Deterministic execution contract · ALLOW / REVIEW / BLOCK enforcement · Cryptographic audit artifact
+  Real-time runtime decisioning · Machine-enforceable ALLOW / REVIEW / BLOCK · Audit-bound execution commit
   </div>
 
 <div class="hero-market">
@@ -101,6 +101,65 @@ before AI systems trigger clinical, legal, financial, or operational workflows.
     <span class="risk-note">(operational & contractual breach risk)</span>.
   </li>
   </ul>
+  </section>
+
+  <section class="integration" aria-label="How TruCite Integrates">
+  <h2 class="section-title center-title">How TruCite Integrates</h2>
+
+  <p class="section-sub">
+    TruCite deploys as a runtime checkpoint between AI generation and enterprise execution—so downstream systems
+    can enforce a deterministic <strong>ALLOW / REVIEW / BLOCK</strong> decision before write-back.
+  </p>
+
+  <div class="integration-grid">
+    <div class="integration-card">
+      <h3 class="integration-h">Integration Path</h3>
+      <div class="integration-flow" role="img" aria-label="Integration flow">
+        <div class="flow-pill">LLM / RAG / Agent Output</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-pill flow-pill-strong">TruCite Runtime API</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-pill">EHR / Filing / Treasury / Workflow</div>
+      </div>
+
+      <ul class="integration-bullets">
+        <li><strong>REST API wrapper</strong> around model/agent output prior to execution</li>
+        <li><strong>Middleware hook</strong> (service layer) before write-back / side-effects</li>
+        <li><strong>API Gateway policy</strong> (edge) for uniform enforcement across apps</li>
+        <li><strong>SDK binding</strong> to agent frameworks / orchestrators (policy hook)</li>
+        <li><strong>Sidecar deployment</strong> for low-latency runtime decisioning</li>
+      </ul>
+    </div>
+
+    <div class="integration-card">
+      <h3 class="integration-h">Real-Time Enforcement</h3>
+      <p class="integration-copy">
+        TruCite evaluates output risk in real time (millisecond-scale) and returns a machine-enforceable decision object:
+      </p>
+
+      <div class="signal-row">
+        <span class="signal-badge">decision</span>
+        <span class="signal-text">ALLOW / REVIEW / BLOCK</span>
+      </div>
+
+      <div class="signal-row">
+        <span class="signal-badge">execution_commit</span>
+        <span class="signal-text">event_id · policy_hash · audit_fingerprint (sha256)</span>
+      </div>
+
+      <p class="integration-copy muted">
+        TruCite does not execute actions. Customer-controlled systems enforce the decision boundary before downstream commit.
+      </p>
+    </div>
+  </div>
+
+  <div class="commercial-mini" aria-label="Commercial Model">
+    <h3 class="commercial-h">Commercial Model</h3>
+    <p class="commercial-copy">
+      Deployed as an enterprise runtime API layer, priced by protected workflow and runtime decision volume
+      (per environment / per policy domain).
+    </p>
+  </div>
   </section>
 
   <section class="positioning-armor" aria-label="Reliability vs Security Clarification">
@@ -979,11 +1038,13 @@ Enterprises increasingly require separation between model generation and executi
       </details>
       
       <details>
-  <summary>Can TruCite BLOCK be overridden in high-risk payment or treasury workflows?</summary>
+  <summary>Can an enterprise override a BLOCK for treasury or payments?</summary>
   <div class="acc-body">
     Not in MVP. In high-risk payment flows, TruCite is designed to block execution unless the workflow contains
-    verified human approval outside the model path. A future capability is a signed “Verified Approval Token”
-    that can only be issued by an authorized approver and attached to the execution request.
+    verified human approval outside the model path.
+    <br><br>
+    A future capability is a signed <strong>Verified Approval Token</strong> that can only be issued by an authorized approver
+    and attached to the execution request.
   </div>
       </details>
 
