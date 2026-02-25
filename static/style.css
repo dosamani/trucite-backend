@@ -1212,4 +1212,133 @@ li {
   text-align: center;
   margin-bottom: 18px;
 }
+/* INTEGRATION SECTION */
+.integration {
+  margin: 28px auto;
+  max-width: 980px;
+  padding: 0 16px;
+}
+
+.section-sub {
+  opacity: 0.92;
+  line-height: 1.55;
+  margin: 10px auto 18px;
+  max-width: 880px;
+  text-align: center;
+}
+
+.integration-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.integration-card {
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(0,0,0,0.22);
+}
+
+.integration-h {
+  margin: 0 0 10px;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+}
+
+.integration-flow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 8px 0 12px;
+}
+
+.flow-pill {
+  border: 1px solid rgba(255,255,255,0.14);
+  padding: 10px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  opacity: 0.95;
+}
+
+.flow-pill-strong {
+  border-color: rgba(255,200,0,0.35);
+  box-shadow: 0 0 0 2px rgba(255,200,0,0.10) inset;
+}
+
+.flow-arrow {
+  opacity: 0.65;
+  font-size: 14px;
+}
+
+.integration-bullets {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.55;
+  opacity: 0.92;
+}
+
+.integration-copy {
+  margin: 0 0 10px;
+  line-height: 1.55;
+  opacity: 0.92;
+}
+
+.integration-copy.muted {
+  opacity: 0.75;
+  margin-top: 12px;
+}
+
+.signal-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.signal-badge {
+  display: inline-block;
+  min-width: 120px;
+  text-align: center;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  opacity: 0.9;
+}
+
+.signal-text {
+  font-size: 13px;
+  opacity: 0.92;
+}
+
+/* COMMERCIAL MINI */
+.commercial-mini {
+  margin-top: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: rgba(0,0,0,0.18);
+}
+
+.commercial-h {
+  margin: 0 0 6px;
+  font-size: 14px;
+  opacity: 0.95;
+}
+
+.commercial-copy {
+  margin: 0;
+  opacity: 0.82;
+  line-height: 1.55;
+}
+
+/* RESPONSIVE */
+@media (min-width: 900px) {
+  .integration-grid {
+    grid-template-columns: 1.2fr 0.8fr;
+    align-items: start;
+  }
+}
 
