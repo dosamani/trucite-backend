@@ -1342,3 +1342,21 @@ li {
   }
 }
 
+/* HERO TRUTH STRIP (NEW) */
+.hero-truth-strip {
+  margin: 12px auto 0;
+  padding: 10px 16px;
+  max-width: 720px;
+
+  text-align: center;
+  font-size: 0.92rem;
+  line-height: 1.5;
+
+  color: #f08c52; /* matches your accent */
+  background: rgba(240, 140, 82, 0.08);
+  border: 1px solid rgba(240, 140, 82, 0.25);
+  border-radius: 10px;
+
+  letter-spacing: 0.2px;
+}
+
