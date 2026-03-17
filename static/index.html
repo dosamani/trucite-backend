@@ -50,12 +50,17 @@
     <h2 class="hero-subhead">
       TruCite defines the execution layer for enterprise AI — an independent deterministic contract between AI output and real-world action.
     </h2>
+<!-- HERO SUBTITLE (UPDATED: clarity + immediate understanding) -->
+<p class="hero-subtitle">
+TruCite sits between AI output and real-world execution—issuing a deterministic
+<strong>ALLOW / REVIEW / BLOCK</strong> decision before any clinical, legal,
+financial, or operational action is triggered.
+</p>
 
-    <p class="hero-subtitle">
-      Without an independent verification boundary, AI outputs are unverified, untraceable, and unsafe for high-stakes workflows.
-      TruCite enforces a machine-executable decision — <strong>ALLOW / REVIEW / BLOCK</strong> — with an audit-bound execution commit
-      before any clinical, legal, financial, or operational action occurs.
-    </p>
+    <!-- HERO ENTERPRISE POSITIONING (NEW) -->
+<p class="hero-enterprise-note">
+Built for regulated enterprise workflows—not consumer use.
+</p>
 
     <a href="#verify" class="hero-demo-link">
       Run a Live Execution Decision →
@@ -1019,6 +1024,8 @@
           </div>
         </details>
 
+        
+
         <details>
           <summary>How is TruCite different from “guardrails” or moderation APIs?</summary>
           <div class="acc-body">
@@ -1032,6 +1039,73 @@
             Not in MVP. In high-risk payment flows, TruCite is designed to block execution unless the workflow contains
             verified human approval outside the model path.
           </div>
+        </details>
+
+        <!-- FAQ: WHY TRUCITE IF PIPELINE IS SAFE -->
+<details>
+  <summary>If the AI pipeline is already safe, why is TruCite needed?</summary>
+  <div class="acc-body">
+    Upstream safeguards (training data, RAG grounding, guardrails) reduce risk—but do not eliminate it.
+    AI systems can still generate incorrect or unsupported outputs at runtime.
+    <br><br>
+    TruCite operates at a different control point: the moment before execution.
+    It evaluates whether an output is safe to act on—independent of how the model was trained or configured.
+    <br><br>
+    In high-liability environments, upstream safety is not sufficient.
+    A final execution checkpoint is required.
+  </div>
+</details>
+
+        <!-- FAQ: WHY NOT MODEL PROVIDERS -->
+<details>
+  <summary>Why can't model providers (OpenAI, Anthropic, etc.) do this?</summary>
+  <div class="acc-body">
+    Model providers optimize for generation quality—not independent execution control.
+    <br><br>
+    TruCite is designed to be model-agnostic and operate outside the model boundary,
+    ensuring that execution decisions are not influenced by the same system generating the output.
+    <br><br>
+    In regulated environments, execution validation must be independent, auditable, and enforceable—
+    not embedded within the model itself.
+  </div>
+</details>
+
+        <!-- FAQ: IS THIS FACT CHECKING -->
+<details>
+  <summary>Is TruCite just a fact-checking or citation tool?</summary>
+  <div class="acc-body">
+    No. TruCite does not aim to improve or rewrite AI output.
+    <br><br>
+    It evaluates whether the output is safe to execute in a real-world context.
+    <br><br>
+    The system issues a deterministic ALLOW / REVIEW / BLOCK decision based on evidence sufficiency,
+    volatility, and execution risk—not just factual correctness.
+  </div>
+</details>
+
+        <!-- FAQ: WHAT IF TRUCITE IS WRONG -->
+<details>
+  <summary>What happens if TruCite is wrong?</summary>
+  <div class="acc-body">
+    TruCite does not execute actions—it issues a decision signal for downstream systems to enforce.
+    <br><br>
+    In REVIEW scenarios, human oversight is expected before execution.
+    <br><br>
+    The system is designed to be conservative in high-liability contexts,
+    prioritizing prevention of unsafe execution over permissiveness.
+    <br><br>
+    All decisions are audit-bound with an execution commit, enabling traceability and review.
+  </div>
+</details>
+
+        <details>
+  <summary>Does TruCite slow down real-time workflows?</summary>
+  <div class="acc-body">
+    TruCite operates at millisecond-scale latency and is designed for real-time decisioning.
+    <br><br>
+    It is deployed inline or at the API gateway layer, ensuring minimal impact on system performance
+    while adding a critical execution checkpoint.
+  </div>
         </details>
 
         <details>
