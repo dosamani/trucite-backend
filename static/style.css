@@ -1418,6 +1418,11 @@ li {
     font-size: 0.94rem;
   }
 }
-
+.hero-enterprise-note {
+  font-size: 13px;
+  color: #aaa;
+  margin-top: 6px;
+  text-align: center;
+}
 
 
