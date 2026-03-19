@@ -552,4 +552,90 @@ details[open] summary::after {
   justify-content: center;
 }
 
+/* ================================
+TRUCITE VISUAL RESTORE PATCH
+=============================== */
+
+/* Yellow headers */
+.section-title {
+  color: #FFD700 !important;
+  text-align: center;
+}
+
+/* Subtle yellow borders */
+.bright-card,
+.integration-card,
+.bp-card,
+.win-card,
+.card,
+.verify-section textarea,
+.decision-card {
+  border: 1px solid rgba(255, 215, 0, 0.25) !important;
+  border-radius: 4px !important; /* sharper corners */
+}
+
+/* Verify section center alignment */
+.verify-section {
+  text-align: center;
+}
+
+.verify-section textarea {
+  display: block;
+  margin: 10px auto;
+  width: 80%;
+}
+
+/* Evaluate button box feel */
+.primary-btn {
+  border: 1px solid #FFD700;
+  background: transparent;
+  color: #FFD700;
+}
+
+/* Gauge highlight */
+#gaugeFill {
+  stroke: #FFD700 !important;
+}
+
+/* FAQ headers yellow */
+.accordion summary {
+  color: #FFD700;
+  font-weight: 600;
+}
+
+/* Chevron restore */
+.accordion summary::after {
+  content: "▾";
+  float: right;
+  transition: transform 0.2s ease;
+}
+
+details[open] summary::after {
+  transform: rotate(180deg);
+}
+
+/* Remove plus signs if present */
+.accordion summary::before {
+  content: none !important;
+}
+
+.site-footer {
+  margin-top: 60px;
+}
+
+.verify-section {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+textarea {
+  background: #111;
+  color: #fff;
+}
+
+textarea:focus {
+  outline: none;
+  border: 1px solid #FFD700;
+}
+
 
