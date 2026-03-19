@@ -1,641 +1,190 @@
-/* =========================================================
-BASE RESET
-========================================================= */
+
+/* =========================
+   GLOBAL RESET
+========================= */
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
 body {
-  background: #0b0b0b;
-  color: #eaeaea;
+  margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  line-height: 1.6;
+  background: #000;
+  color: #eaeaea;
+  line-height: 1.5;
 }
 
-/* =========================================================
-GLOBAL TYPOGRAPHY
-========================================================= */
-h1, h2, h3 {
-  font-weight: 600;
+/* =========================
+   LAYOUT
+========================= */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
 }
 
-a {
-  color: #ffd54a;
+/* =========================
+   NAV (REMOVE DOMINANCE)
+========================= */
+.top-nav {
+  position: relative; /* NOT sticky anymore */
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.top-nav a {
+  color: #e6c15a;
   text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-/* =========================================================
-HERO
-========================================================= */
-.hero {
-  text-align: center;
-  padding: 40px 20px 20px;
-}
-
-.logo {
-  width: 70px;
-  margin-bottom: 10px;
-}
-
-.tm {
-  font-size: 12px;
-  vertical-align: super;
-}
-
-.mvp-badge {
-  margin: 10px auto;
-  padding: 6px 12px;
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  border: 1px solid #ffd54a;
-  border-radius: 20px;
-  font-size: 12px;
-}
-
-.mvp-dot {
-  width: 6px;
-  height: 6px;
-  background: #ffd54a;
-  border-radius: 50%;
-}
-
-.hero-headline {
-  font-size: 24px;
-  margin-top: 16px;
-}
-
-.hero-subhead {
-  font-size: 16px;
-  color: #ccc;
-  margin-top: 8px;
-}
-
-.hero-subtitle {
-  font-size: 14px;
-  margin-top: 12px;
-  color: #aaa;
-}
-
-.hero-demo-link {
-  display: inline-block;
-  margin-top: 14px;
-  font-size: 14px;
-}
-
-/* =========================================================
-SECTION
-========================================================= */
-.section-title {
-  text-align: center;
-  font-size: 20px;
-  margin: 40px 0 20px;
-}
-
-/* =========================================================
-VERIFY CONSOLE (CRITICAL UI)
-========================================================= */
-.verify-box {
-  margin: 30px 16px;
-  padding: 18px;
-  border: 1px solid #ffd54a;
-  border-radius: 12px;
-  background: #111;
-}
-
-/* INPUT FIELD */
-.verify-input {
-  width: 100%;
-  background: #0b0b0b;
-  border: 1px solid #ffd54a;
-  border-radius: 8px;
-  padding: 10px;
-  color: #fff;
-  margin-bottom: 12px;
-}
-
-/* BUTTON */
-.verify-btn {
-  width: 100%;
-  padding: 10px;
-  background: #ffd54a;
-  color: #000;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.verify-btn:hover {
-  opacity: 0.9;
-}
-
-/* =========================================================
-RESULT CARDS
-========================================================= */
-.result-card {
-  margin-top: 16px;
-  padding: 14px;
-  border: 1px solid #333;
-  border-radius: 10px;
-  background: #121212;
-}
-
-/* =========================================================
-SIGNALS (ALLOW / REVIEW / BLOCK)
-========================================================= */
-.signal {
-  font-weight: bold;
-  padding: 6px 10px;
-  border-radius: 6px;
-  display: inline-block;
-}
-
-.signal-allow {
-  background: #1b5e20;
-  color: #fff;
-}
-
-.signal-review {
-  background: #ff9800;
-  color: #000;
-}
-
-.signal-block {
-  background: #b71c1c;
-  color: #fff;
-}
-
-/* =========================================================
-YELLOW EMPHASIS BOX (RESTORED)
-========================================================= */
-.highlight-box {
-  border: 1px solid #ffd54a;
-  padding: 14px;
-  border-radius: 10px;
-  margin-top: 16px;
-}
-
-/* =========================================================
-FAQ
-========================================================= */
-.accordion {
-  margin: 20px 16px;
-}
-
-details {
-  margin-bottom: 10px;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 10px;
-}
-
-summary {
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.acc-body {
-  margin-top: 8px;
-  font-size: 14px;
-  color: #bbb;
-}
-
-/* =========================================================
-FOUNDER
-========================================================= */
-.founder-section {
-  margin: 40px 16px;
-}
-
-/* =========================================================
-LEGAL
-========================================================= */
-.legal-section {
-  margin: 40px 16px;
-}
-
-.legal-infra-note {
-  font-size: 12px;
-  color: #777;
-  margin-top: 20px;
-  text-align: center;
-}
-
-/* =========================================================
-FOOTER
-========================================================= */
-.site-footer {
-  margin-top: 40px;
-  text-align: center;
-  font-size: 14px;
-}
-
-.footer-links a {
-  margin: 0 6px;
-}
-
-.footer {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 12px;
-  color: #666;
-}
-
-/* =========================================================
-MOBILE OPTIMIZATION
-========================================================= */
-@media (max-width: 600px) {
-  .hero-headline {
-    font-size: 20px;
-  }
-
-  .hero-subhead {
-    font-size: 14px;
-  }
-
-  .section-title {
-    font-size: 18px;
-  }
-}
-
-/* =========================================================
-TRUCITE FINAL VISUAL PATCH
-Append at bottom of existing style.css
-========================================================= */
-
-/* ---------- Theme polish ---------- */
-:root {
-  --tc-bg: #0b0b0b;
-  --tc-panel: #111111;
-  --tc-panel-2: #151515;
-  --tc-border: rgba(255, 213, 74, 0.28);
-  --tc-border-strong: rgba(255, 213, 74, 0.55);
-  --tc-yellow: #ffd54a;
-  --tc-text: #eaeaea;
-  --tc-muted: #aaaaaa;
-  --tc-green: #1f8f4e;
-  --tc-orange: #e8a317;
-  --tc-red: #c73b3b;
-  --tc-shadow: 0 0 0 1px rgba(255, 213, 74, 0.08), 0 10px 30px rgba(0, 0, 0, 0.28);
-}
-
-/* ---------- Cards / panels (restore depth) ---------- */
-.card,
-.bright-card,
-.integration-card,
-.win-card,
-.bp-card,
-.artifact-card,
-.decision-card,
-.result-wrapper,
-.execution-override-note,
-.enterprise-cta,
-.clarification-block,
-.verify-box,
-#api .api-block,
-.commercial-mini,
-.wedge-strip {
-  background: linear-gradient(180deg, #111 0%, #151515 100%);
-  border: 1px solid rgba(255, 213, 74, 0.16);
-  border-radius: 16px;
-  box-shadow: var(--tc-shadow);
-}
-
-/* ---------- Verify console (restore strength) ---------- */
-.verify-section {
-  padding: 24px 18px;
-}
-
-#inputText,
-#evidenceText,
-textarea {
-  width: 100%;
-  min-height: 140px;
-  padding: 14px;
-  background: #0d0d0d;
-  color: #f4f4f4;
-  border: 1px solid var(--tc-border);
-  border-radius: 12px;
-  outline: none;
-}
-
-#evidenceText {
-  min-height: 100px;
-  margin-top: 12px;
-}
-
-#inputText:focus,
-#evidenceText:focus {
-  border-color: var(--tc-border-strong);
-  box-shadow: 0 0 0 3px rgba(255, 213, 74, 0.08);
-}
-
-/* ---------- Buttons ---------- */
-.primary-btn,
-.verify-btn,
-button#verifyBtn {
-  margin-top: 14px;
-  padding: 12px 18px;
-  border-radius: 12px;
-  border: 1px solid var(--tc-border-strong);
-  background: var(--tc-yellow);
-  color: #111;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.primary-btn:hover,
-.verify-btn:hover {
-  filter: brightness(0.95);
-}
-
-/* ---------- Copy buttons ---------- */
-.copy-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-
-.copy-btn {
-  padding: 8px 12px;
-  border: 1px solid var(--tc-border);
-  border-radius: 10px;
-  background: rgba(255, 213, 74, 0.05);
-  color: var(--tc-yellow);
-}
-
-.copy-btn:hover {
-  background: rgba(255, 213, 74, 0.1);
-}
-
-/* ---------- JSON / response blocks ---------- */
-#result,
-.api-code {
-  white-space: pre-wrap;
-  font-family: monospace;
-  font-size: 12px;
-  color: #f3f3f3;
-  background: #0d0d0d;
-  padding: 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 213, 74, 0.12);
-}
-
-/* ---------- Decision card ---------- */
-.decision-title {
-  color: var(--tc-yellow);
-  font-weight: 800;
+  margin: 0 10px;
   font-size: 13px;
 }
 
-.decision-action {
-  font-size: 26px;
-  font-weight: 900;
-  margin-top: 6px;
-}
-
-.decision-reason {
-  margin-top: 8px;
-  color: var(--tc-muted);
-}
-
-/* ---------- Execution commit ---------- */
-.kvGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.kv {
-  padding: 10px;
-  border-radius: 10px;
-  background: rgba(255, 213, 74, 0.03);
-  border: 1px solid rgba(255, 213, 74, 0.1);
-}
-
-.k {
-  font-size: 12px;
-  color: var(--tc-muted);
-}
-
-.v {
-  margin-top: 4px;
-  color: #f2f2f2;
+/* =========================
+   HEADERS
+========================= */
+.section-title {
+  text-align: center;
+  color: #e6c15a;
   font-weight: 600;
+  margin: 40px 0 16px;
+  font-size: 20px;
 }
 
-/* ---------- FAQ polish ---------- */
-details {
-  border: 1px solid rgba(255, 213, 74, 0.14);
+h1, h2, h3 {
+  margin: 0;
+}
+
+.hero-title {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+.hero-sub {
+  text-align: center;
+  color: #cfcfcf;
+  margin-top: 12px;
+}
+
+/* =========================
+   CARD SYSTEM
+========================= */
+.card {
+  background: #0a0a0a;
+  border: 1px solid rgba(230, 193, 90, 0.25);
   border-radius: 14px;
-  background: linear-gradient(180deg, #111 0%, #151515 100%);
-  margin-bottom: 10px;
+  padding: 18px;
+  margin: 16px 0;
+}
+
+/* =========================
+   VERIFY SECTION
+========================= */
+.verify-box {
+  text-align: center;
+  margin-top: 20px;
+}
+
+textarea {
+  width: 100%;
+  background: #000;
+  color: #fff;
+  border: 1px solid rgba(230, 193, 90, 0.3);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+button {
+  background: #e6c15a;
+  color: #000;
+  border: none;
+  padding: 12px 22px;
+  border-radius: 12px;
+  margin-top: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* =========================
+   ROADMAP (FIX STRUCTURE)
+========================= */
+.roadmap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.pill {
+  border: 1px solid rgba(230, 193, 90, 0.4);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* =========================
+   FAQ FIX
+========================= */
+details {
+  background: #0a0a0a;
+  border: 1px solid rgba(230, 193, 90, 0.25);
+  border-radius: 14px;
+  padding: 14px;
+  margin: 10px 0;
 }
 
 summary {
   cursor: pointer;
-  padding: 12px 14px;
-  font-weight: 700;
-  position: relative;
+  color: #e6c15a;
+  font-weight: 500;
+  list-style: none;
 }
 
+/* REMOVE DEFAULT ARROW */
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/* CUSTOM CHEVRON */
 summary::after {
-  content: "+";
-  position: absolute;
-  right: 14px;
-  color: var(--tc-yellow);
-}
-
-details[open] summary::after {
-  content: "−";
-}
-
-.acc-body {
-  padding: 0 14px 12px;
-  color: var(--tc-muted);
-}
-
-/* ---------- Mobile fixes ---------- */
-@media (max-width: 640px) {
-  .copy-row {
-    flex-direction: column;
-  }
-
-  .copy-btn,
-  .primary-btn,
-  .verify-btn {
-    width: 100%;
-  }
-
-  .kvGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ================================
-   TruCite NEW UI PATCH (SAFE)
-   ================================ */
-
-/* Evidence field */
-.evidence-box {
-  margin-top: 10px;
-  font-size: 0.85rem;
-  color: #bbb;
-}
-
-/* JSON Output Label */
-.result-label {
-  margin-top: 28px;
-  font-size: 0.85rem;
-  color: #FFD700;
-  font-weight: 900;
-  text-align: center;
-}
-
-/* Execution Commit Card */
-.exec-card {
-  margin-top: 24px;
-  border: 1px solid rgba(255,215,0,0.45);
-  border-radius: 16px;
-  background: rgba(0,0,0,0.65);
-  padding: 16px;
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
-}
-
-.exec-title {
-  font-weight: 900;
-  color: #FFD700;
-  margin-bottom: 8px;
-}
-
-.exec-row {
-  font-size: 0.9rem;
-  margin: 4px 0;
-  color: #ccc;
-}
-
-/* Forms */
-.form-box {
-  margin-top: 32px;
-  text-align: center;
-}
-
-.form-box input {
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,215,0,0.5);
-  background: #000;
-  color: #fff;
-  margin-right: 8px;
-}
-
-.form-box button {
-  background: #FFD700;
-  color: #000;
-  font-weight: 900;
-  border-radius: 10px;
-  padding: 10px 16px;
-  border: none;
-  cursor: pointer;
-}
-
-/* Copy buttons alignment fix */
-.copy-row {
-  justify-content: center;
-}
-
-/* ================================
-TRUCITE VISUAL RESTORE PATCH
-=============================== */
-
-/* Yellow headers */
-.section-title {
-  color: #FFD700 !important;
-  text-align: center;
-}
-
-/* Subtle yellow borders */
-.bright-card,
-.integration-card,
-.bp-card,
-.win-card,
-.card,
-.verify-section textarea,
-.decision-card {
-  border: 1px solid rgba(255, 215, 0, 0.25) !important;
-  border-radius: 4px !important; /* sharper corners */
-}
-
-/* Verify section center alignment */
-.verify-section {
-  text-align: center;
-}
-
-.verify-section textarea {
-  display: block;
-  margin: 10px auto;
-  width: 80%;
-}
-
-/* Evaluate button box feel */
-.primary-btn {
-  border: 1px solid #FFD700;
-  background: transparent;
-  color: #FFD700;
-}
-
-/* Gauge highlight */
-#gaugeFill {
-  stroke: #FFD700 !important;
-}
-
-/* FAQ headers yellow */
-.accordion summary {
-  color: #FFD700;
-  font-weight: 600;
-}
-
-/* Chevron restore */
-.accordion summary::after {
-  content: "▾";
+  content: "▼";
   float: right;
-  transition: transform 0.2s ease;
+  font-size: 12px;
 }
 
 details[open] summary::after {
-  transform: rotate(180deg);
+  content: "▲";
 }
 
-/* Remove plus signs if present */
-.accordion summary::before {
-  content: none !important;
+/* =========================
+   FAQ CTA CENTER FIX
+========================= */
+.faq-more {
+  text-align: center;
+  margin-top: 18px;
 }
 
-.site-footer {
-  margin-top: 60px;
+.faq-more a {
+  color: #e6c15a;
+  text-decoration: none;
 }
 
-.verify-section {
-  max-width: 900px;
-  margin: 0 auto;
+/* =========================
+   FOOTER
+========================= */
+.footer {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 12px;
+  color: #888;
 }
 
-textarea {
-  background: #111;
-  color: #fff;
+.footer a {
+  color: #e6c15a;
+  text-decoration: none;
 }
-
-textarea:focus {
-  outline: none;
-  border: 1px solid #FFD700;
-}
-
 
