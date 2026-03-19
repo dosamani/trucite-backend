@@ -13,36 +13,7 @@
 <body>
 
 <!-- =========================================================
-SECTION: TOP NAV
-========================================================= -->
-<header class="top-nav" role="banner" aria-label="Top navigation">
-  <div class="top-nav-inner">
 
-    <div class="api-cta-wrapper">
-      <a
-        class="top-nav-cta"
-        href="https://forms.gle/upyaT8L2prfQvaVx6"
-        target="_blank"
-        rel="noopener"
-      >
-        Request API access →
-      </a>
-      <div class="api-subnote">
-        Policy API • Deterministic Execution Gate • Real-time decisioning
-      </div>
-    </div>
-
-    <a
-      class="top-nav-cta"
-      href="https://forms.gle/CRz4aJqGL25ReQW1A"
-      target="_blank"
-      rel="noopener"
-    >
-      Join the Waitlist →
-    </a>
-
-  </div>
-</header>
 
   <!-- =========================================================
 SECTION: HERO
@@ -100,6 +71,12 @@ SECTION: HERO
 </div>
 
 <main>
+
+  <div class="hero-cta">
+  <a href="#verify" class="primary-btn">
+    Evaluate the Execution Contract →
+  </a>
+  </div>
 
   <!-- =========================================================
 SECTION: WHERE TRUCITE DEPLOYS FIRST
@@ -707,6 +684,28 @@ SECTION: RUNTIME EXECUTION API
   </p>
 </div>
 
+  <section class="section-block">
+  <h2 class="section-title">Access</h2>
+
+  <div class="card">
+    <p>
+      TruCite is currently onboarding design partners in regulated AI workflows.
+    </p>
+
+    <div style="margin-top:16px;">
+      <a href="mailto:founder.trucite@gmail.com?subject=API Access Request" class="primary-btn">
+        Request API Access →
+      </a>
+    </div>
+
+    <div style="margin-top:10px;">
+      <a href="mailto:founder.trucite@gmail.com?subject=Waitlist" class="copy-btn">
+        Join Waitlist →
+      </a>
+    </div>
+  </div>
+  </section>
+
 <!-- =========================================================
 SECTION: ENTERPRISE BRIEF CTA
 ========================================================= -->
@@ -870,19 +869,14 @@ SECTION: ROADMAP
 <div class="bp-card">
   <div class="bp-label">6-Layer Execution Reliability Stack</div>
 
-  <div class="bp-diagram" aria-label="TruCite roadmap layers diagram">
-    <span class="bp-node">1) Execution Risk Signal</span>
-    <span class="bp-arrow">→</span>
-    <span class="bp-node">2) Evidence Gate</span>
-    <span class="bp-arrow">→</span>
-    <span class="bp-node">3) Policy Rules</span>
-    <span class="bp-arrow">→</span>
-    <span class="bp-node">4) Execution Commit</span>
-    <span class="bp-arrow">→</span>
-    <span class="bp-node">5) Enforcement Hooks</span>
-    <span class="bp-arrow">→</span>
-    <span class="bp-node">6) Audit Ledger</span>
-  </div>
+<div class="roadmap">
+  <div class="pill">Execution Risk Signal</div>
+  <div class="pill">Evidence Gate</div>
+  <div class="pill">Policy Rules</div>
+  <div class="pill">Execution Commit</div>
+  <div class="pill">Enforcement Hooks</div>
+  <div class="pill">Audit Ledger</div>
+</div>
 
   <p style="margin-top:14px; color:#d9d9d9; line-height:1.55;">
     Today’s MVP covers the core runtime boundary: risk signal → evidence requirement → policy gate → execution commit artifact.
@@ -1092,7 +1086,7 @@ SECTION: FAQ
 
   </div>
 
-  <div class="faq-cta">
+  <div class="faq-more">
     <a href="https://forms.gle/CRz4aJqGL25ReQW1A" target="_blank" rel="noopener">
       See full FAQs &amp; request more details →
     </a>
