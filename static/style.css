@@ -480,4 +480,76 @@ details[open] summary::after {
   }
 }
 
+/* ================================
+   TruCite NEW UI PATCH (SAFE)
+   ================================ */
+
+/* Evidence field */
+.evidence-box {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: #bbb;
+}
+
+/* JSON Output Label */
+.result-label {
+  margin-top: 28px;
+  font-size: 0.85rem;
+  color: #FFD700;
+  font-weight: 900;
+  text-align: center;
+}
+
+/* Execution Commit Card */
+.exec-card {
+  margin-top: 24px;
+  border: 1px solid rgba(255,215,0,0.45);
+  border-radius: 16px;
+  background: rgba(0,0,0,0.65);
+  padding: 16px;
+  box-shadow: 0 0 18px rgba(255,215,0,0.10);
+}
+
+.exec-title {
+  font-weight: 900;
+  color: #FFD700;
+  margin-bottom: 8px;
+}
+
+.exec-row {
+  font-size: 0.9rem;
+  margin: 4px 0;
+  color: #ccc;
+}
+
+/* Forms */
+.form-box {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.form-box input {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,215,0,0.5);
+  background: #000;
+  color: #fff;
+  margin-right: 8px;
+}
+
+.form-box button {
+  background: #FFD700;
+  color: #000;
+  font-weight: 900;
+  border-radius: 10px;
+  padding: 10px 16px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Copy buttons alignment fix */
+.copy-row {
+  justify-content: center;
+}
+
 
