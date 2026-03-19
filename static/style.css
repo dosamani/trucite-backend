@@ -1,1428 +1,483 @@
-/* =======================
-   BASE / RESET
-======================= */
-* { box-sizing: border-box; }
-
-html, body { width: 100%; }
+/* =========================================================
+BASE RESET
+========================================================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
 body {
-  margin: 0;
-  background: #000;
-  color: #fff;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
-  line-height: 1.5;
+  background: #0b0b0b;
+  color: #eaeaea;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
 }
 
-a { color: #FFD700; text-decoration: none; }
-a:hover { text-decoration: underline; }
-
-/* Kill weird default markers / artifacts */
-summary::-webkit-details-marker { display: none; }
-details { outline: none; }
-details, summary { -webkit-tap-highlight-color: transparent; }
-
-/* =======================
-   TOP NAV
-======================= */
-.top-nav {
-  position: sticky;
-  top: 0;
-  z-index: 999;
-  background: #000;
-  border-bottom: 1px solid #111;
-  padding: 10px 14px;
+/* =========================================================
+GLOBAL TYPOGRAPHY
+========================================================= */
+h1, h2, h3 {
+  font-weight: 600;
 }
 
-.top-nav-inner {
-  width: 100%;
-  max-width: 920px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+a {
+  color: #ffd54a;
+  text-decoration: none;
 }
 
-.top-nav-cta {
-  font-weight: 800;
-  font-size: 0.95rem;
-  color: #FFD700;
-  padding: 8px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,215,0,0.55);
-  background: rgba(255,215,0,0.10);
-  white-space: nowrap;
-  box-shadow: 0 0 10px rgba(255,215,0,0.10);
-}
-.top-nav-cta:hover { text-decoration: none; filter: brightness(1.08); }
-
-.api-subnote{
-  width: 100%;
-  max-width: 920px;
-  margin: 10px auto 0;
-  text-align: center;
-  font-size: 0.78rem;
-  color: #bdbdbd;
-  line-height: 1.4;
-  opacity: 0.9;
+a:hover {
+  text-decoration: underline;
 }
 
-@media (max-width: 560px){
-  .top-nav-inner{
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .top-nav-cta{
-    width: 100%;
-    text-align: center;
-  }
-  .api-cta-wrapper{
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-  }
-  .api-subnote{
-    width: 100%;
-    text-align: center;
-    margin: 10px 0 6px;
-  }
-}
-
-/* =======================
-   HERO
-======================= */
+/* =========================================================
+HERO
+========================================================= */
 .hero {
   text-align: center;
-  padding: 42px 16px 14px;
+  padding: 40px 20px 20px;
 }
 
-.logo { height: 70px; margin-bottom: 12px; }
+.logo {
+  width: 70px;
+  margin-bottom: 10px;
+}
 
-.hero h1 { margin: 6px 0; font-size: 1.9rem; }
+.tm {
+  font-size: 12px;
+  vertical-align: super;
+}
 
-.tm { font-size: 0.7em; vertical-align: super; }
+.mvp-badge {
+  margin: 10px auto;
+  padding: 6px 12px;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid #ffd54a;
+  border-radius: 20px;
+  font-size: 12px;
+}
 
-.hero-tagline {
+.mvp-dot {
+  width: 6px;
+  height: 6px;
+  background: #ffd54a;
+  border-radius: 50%;
+}
+
+.hero-headline {
+  font-size: 24px;
+  margin-top: 16px;
+}
+
+.hero-subhead {
+  font-size: 16px;
+  color: #ccc;
   margin-top: 8px;
-  font-size: 1rem;
-  color: #FFD700;
 }
 
 .hero-subtitle {
-  margin: 10px auto 12px;
-  max-width: 720px;
-  font-size: 0.95rem;
-  color: #ccc;
+  font-size: 14px;
+  margin-top: 12px;
+  color: #aaa;
 }
 
-.hero-subtitle-tight { margin-top: 6px; }
-
-.hero-missing-layer{
-  margin: 12px auto 0;
-  max-width: 760px;
-  font-size: 1.02rem;
-  font-weight: 900;
-  color: #FFD700;
-  text-shadow: 0 0 14px rgba(255,215,0,0.25);
-}
-
-.hero-mini-links{ margin-top: 10px; }
-
-/* =======================
-   MAIN
-======================= */
-main {
-  max-width: 920px;
-  margin: 0 auto;
-  padding: 18px;
-}
-
-.section-title {
-  margin-top: 64px;
-  margin-bottom: 18px;
-  font-size: 1.25rem;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #FFD700;
-}
-
-.section-subtitle{
-  margin: 10px auto 12px;
-  max-width: 740px;
-  color: #cfcfcf;
-  font-size: 0.95rem;
-  text-align: center;
-}
-/* =======================
-   VERIFY / INPUT
-======================= */
-.verify-section { text-align: center; margin-top: 30px; }
-
-textarea {
-  width: 100%;
-  max-width: 720px;
-  height: 150px;
-  background: #000;
-  color: #fff;
-  border-radius: 14px;
-  border: 1px solid rgba(255,215,0,0.55);
-  padding: 12px;
-  font-size: 0.95rem;
-  resize: vertical;
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
-}
-
-textarea:focus {
-  outline: none;
-  border-color: rgba(255,215,0,0.95);
-  box-shadow: 0 0 26px rgba(255,215,0,0.22);
-}
-
-textarea:not(:placeholder-shown) {
-  border-color: rgba(255,215,0,0.85);
-  box-shadow: 0 0 26px rgba(255,215,0,0.18);
-}
-
-/* =======================
-   BUTTON
-======================= */
-@keyframes goldPulse {
-  0%   { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
-  50%  { box-shadow: 0 0 22px rgba(255,215,0,0.28); }
-  100% { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
-}
-
-.primary-btn {
-  margin-top: 14px;
-  background: #FFD700;
-  color: #000;
-  border: 1px solid rgba(255,215,0,0.65);
-  border-radius: 14px;
-  padding: 12px 34px;
-  font-weight: 900;
-  cursor: pointer;
-  animation: goldPulse 2.2s ease-in-out infinite;
-}
-.primary-btn:hover { filter: brightness(1.08); }
-
-/* =======================
-   COPY BUTTONS
-======================= */
-.copy-row{
-  margin-top: 10px;
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.copy-btn{
-  background: rgba(0,0,0,0.65);
-  color: #FFD700;
-  border: 1px solid rgba(255,215,0,0.55);
-  border-radius: 12px;
-  padding: 9px 14px;
-  font-weight: 900;
-  cursor: pointer;
-  box-shadow: 0 0 12px rgba(255,215,0,0.10);
-}
-
-.copy-btn:hover{ filter: brightness(1.10); text-decoration: none; }
-.copy-btn:active{ transform: translateY(1px); }
-.copy-btn:focus{ outline: none; }
-.copy-btn:focus-visible{
-  outline: 2px solid rgba(255,215,0,0.35);
-  outline-offset: 2px;
-}
-
-/* =======================
-   GAUGE
-======================= */
-#gaugeContainer { margin-top: 28px; }
-
-.gauge-label{
-  margin-bottom: 8px;
-  font-weight: 900;
-  color: #FFD700;
-  letter-spacing: 0.03em;
-}
-
-#scoreDisplay {
-  margin-top: 8px;
-  font-size: 1.95rem;
-  font-weight: 900;
-  color: #FFD700;
-}
-#scoreVerdict { margin-top: 6px; font-size: 0.95rem; color: #ccc; }
-
-#gaugeFill {
-  transition: stroke-dashoffset 0.9s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* =======================
-   RESULT BOX
-======================= */
-.result-wrapper { margin-top: 34px; }
-
-.result-label {
-  font-size: 0.85rem;
-  color: #FFD700;
-  margin-bottom: 6px;
-}
-
-pre#result {
-  background: #0b0b0b;
-  border: 1px solid rgba(255,215,0,0.25);
-  border-radius: 14px;
-  padding: 14px;
-  font-size: 0.8rem;
-  max-height: 280px;
-  overflow: auto;
-  box-shadow: 0 0 18px rgba(255,215,0,0.06);
-}
-/* =======================
-   CARDS (How + Wins)
-======================= */
-.bp-card,
-.bright-card {
-  border: 1px solid rgba(255,215,0,0.45);
-  border-radius: 18px;
-  background: rgba(0,0,0,0.65);
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
-  padding: 18px;
-  margin: 14px 0;
-}
-
-.bp-label {
-  font-weight: 900;
-  color: #FFD700;
-  margin-bottom: 10px;
-  font-size: 1.05rem;
-}
-
-.bp-card p { margin: 0; color: #d9d9d9; font-size: 1.02rem; line-height: 1.55; }
-
-.bp-diagram { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: center; }
-.bp-node {
+.hero-demo-link {
   display: inline-block;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,215,0,0.35);
-  background: rgba(255,215,0,0.10);
-  color: #FFD700;
-  font-weight: 800;
-  font-size: 0.95rem;
-}
-.bp-arrow { color: #aaa; font-weight: 900; }
-
-.wins-grid, .blueprint-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-  max-width: 820px;
-  margin: 0 auto;
+  margin-top: 14px;
+  font-size: 14px;
 }
 
-@media (min-width: 780px){
-  .wins-grid, .blueprint-grid { grid-template-columns: 1fr 1fr; }
+/* =========================================================
+SECTION
+========================================================= */
+.section-title {
+  text-align: center;
+  font-size: 20px;
+  margin: 40px 0 20px;
 }
 
-/* =======================
-   ACCORDION (details/summary)
-======================= */
-.accordion { max-width: 820px; margin: 0 auto; }
+/* =========================================================
+VERIFY CONSOLE (CRITICAL UI)
+========================================================= */
+.verify-box {
+  margin: 30px 16px;
+  padding: 18px;
+  border: 1px solid #ffd54a;
+  border-radius: 12px;
+  background: #111;
+}
+
+/* INPUT FIELD */
+.verify-input {
+  width: 100%;
+  background: #0b0b0b;
+  border: 1px solid #ffd54a;
+  border-radius: 8px;
+  padding: 10px;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+/* BUTTON */
+.verify-btn {
+  width: 100%;
+  padding: 10px;
+  background: #ffd54a;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.verify-btn:hover {
+  opacity: 0.9;
+}
+
+/* =========================================================
+RESULT CARDS
+========================================================= */
+.result-card {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #333;
+  border-radius: 10px;
+  background: #121212;
+}
+
+/* =========================================================
+SIGNALS (ALLOW / REVIEW / BLOCK)
+========================================================= */
+.signal {
+  font-weight: bold;
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.signal-allow {
+  background: #1b5e20;
+  color: #fff;
+}
+
+.signal-review {
+  background: #ff9800;
+  color: #000;
+}
+
+.signal-block {
+  background: #b71c1c;
+  color: #fff;
+}
+
+/* =========================================================
+YELLOW EMPHASIS BOX (RESTORED)
+========================================================= */
+.highlight-box {
+  border: 1px solid #ffd54a;
+  padding: 14px;
+  border-radius: 10px;
+  margin-top: 16px;
+}
+
+/* =========================================================
+FAQ
+========================================================= */
+.accordion {
+  margin: 20px 16px;
+}
 
 details {
-  border: 1px solid rgba(255,215,0,0.35);
-  border-radius: 16px;
-  background: rgba(0,0,0,0.65);
-  box-shadow: 0 0 18px rgba(255,215,0,0.08);
-  margin: 14px 0;
-  overflow: hidden;
+  margin-bottom: 10px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 10px;
 }
 
 summary {
   cursor: pointer;
-  padding: 16px 18px;
-  font-weight: 900;
-  color: #FFD700;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  font-weight: 600;
 }
-
-summary::after {
-  content: "▼";
-  color: #FFD700;
-  font-weight: 900;
-  flex: 0 0 auto;
-  transform: translateY(-1px);
-}
-
-details[open] summary::after { content: "▲"; }
 
 .acc-body {
-  padding: 16px 18px 18px;
-  border-top: 1px solid rgba(255,215,0,0.18);
-  color: #d9d9d9;
-  font-size: 1.0rem;
-  line-height: 1.55;
-}
-
-.faq-more {
-  text-align: center !important;
-  width: 100% !important;
-  display: block !important;
-  margin: 14px 0 0 !important;
-}
-.faq-more a {
-  display: inline-block !important;
-  font-weight: 900 !important;
-  color: #FFD700 !important;
-}
-
-/* =======================
-   DECISION CARD
-======================= */
-.decision-card{
-  width: 100%;
-  max-width: 720px;
-  margin: 18px auto 0;
-  border: 1px solid rgba(255,215,0,0.45);
-  border-radius: 18px;
-  background: rgba(0,0,0,0.65);
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
-  padding: 20px 18px;
-  text-align: center;
-}
-
-.decision-title{
-  margin: 0 0 10px;
-  color: #fff;
-  font-size: 1.30rem;
-  font-weight: 900;
-}
-
-.decision-action{
-  margin: 6px 0 6px;
-  font-size: 1.55rem;
-  font-weight: 1000;
-  letter-spacing: 0.04em;
-}
-
-.decision-reason{
-  margin: 0;
-  color: #d9d9d9;
-  font-size: 1.02rem;
-  line-height: 1.55;
-}
-
-.allow { color: #2fe57a !important; font-weight: 1000; }
-.review { color: #FFD700 !important; font-weight: 1000; }
-.block { color: #ff4d4d !important; font-weight: 1000; }
-
-/* =======================
-   FOOTER
-======================= */
-.site-footer {
-  margin: 52px auto 40px;
-  text-align: center;
+  margin-top: 8px;
+  font-size: 14px;
   color: #bbb;
 }
 
-.footer-links { margin-bottom: 12px; }
-.footer-links a { color: #FFD700; font-weight: 900; }
+/* =========================================================
+FOUNDER
+========================================================= */
+.founder-section {
+  margin: 40px 16px;
+}
 
-.footer-note{ color:#bbb; }
-.decision-subnote {
-  margin-top: 8px;
-  font-size: 0.85rem;
-  color: #b5b5b5;
+/* =========================================================
+LEGAL
+========================================================= */
+.legal-section {
+  margin: 40px 16px;
+}
+
+.legal-infra-note {
+  font-size: 12px;
+  color: #777;
+  margin-top: 20px;
   text-align: center;
-  opacity: 0.85;
 }
 
-/* Desktop alignment fix (textarea/buttons) */
-.verify-section textarea {
-  width: 100%;
-  max-width: 900px;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  box-sizing: border-box;
-}
-
-.verify-section .primary-btn,
-.verify-section .copy-row {
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
-  box-sizing: border-box;
-}
-
-.verify-section .copy-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.policy-mode-note{
-  margin-top: 6px;
-  font-size: 0.78rem;
-  color: #bdbdbd;
-  opacity: 0.85;
-  letter-spacing: 0.04em;
-}
-
-/* Positioning block */
-.positioning-armor {
-  max-width: 900px;
-  margin: 80px auto;
-  padding: 40px 20px;
-  border-top: 1px solid #e5e7eb;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.positioning-armor h2 {
-  font-size: 28px;
-  margin-bottom: 20px;
-}
-
-.armor-highlight {
-  font-size: 20px;
-  margin-bottom: 20px;
-} /* ✅ important: closes properly so Exec Commit CSS works */
-/* =======================
-   EXECUTION COMMIT CARD ✅ FINAL
-   - Gold border like other blocks
-   - Long hashes WRAP inside on mobile
-   - No wrap “outside” the border
-======================= */
-
-/* Base card style (shared) */
-.card {
-  background: #111827;
-  border: 1px solid #1f2937;
-  border-radius: 12px;
-  padding: 16px;
-  margin-top: 12px;
-}
-
-/* Exec Commit: gold accent + containment */
-#execCommitCard.card{
-  border: 1px solid rgba(255, 215, 0, 0.35);
-  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.10) inset;
-  background: rgba(255, 215, 0, 0.04);
-  border-radius: 16px;
-  overflow: hidden; /* keeps wrap INSIDE the border */
-}
-
-.cardTitle {
-  font-weight: 600;
-  margin-bottom: 10px;
-  color: #e5e7eb;
-}
-
-/* 2-col key/value grid */
-.kvGrid{
-  display: grid;
-  grid-template-columns: 110px minmax(0, 1fr);
-  gap: 6px 12px;
+/* =========================================================
+FOOTER
+========================================================= */
+.site-footer {
+  margin-top: 40px;
+  text-align: center;
   font-size: 14px;
 }
 
-/* Each .kv becomes two grid cells */
-.kvGrid .kv{
-  display: contents;
+.footer-links a {
+  margin: 0 6px;
 }
 
-/* Allow shrinking/wrapping inside grid */
-.kvGrid .k,
-.kvGrid .v{
-  min-width: 0;
-}
-
-.kv .k { color: #9ca3af; }
-
-.kv .v {
-  font-family: monospace;
-  color: #e5e7eb;
-}
-
-/* Long hashes/IDs: wrap inside */
-#execCommitCard .v,
-#execCommitCard .v.mono,
-#execEventId,
-#execPolicyHash,
-#execAudit{
-  display: block;
-  max-width: 100%;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-/* =========================================
-   EXECUTION COMMIT — FINAL ENTERPRISE POLISH
-========================================= */
-
-/* Slightly stronger card presence */
-#execCommitCard.card{
-  border: 1px solid rgba(255,215,0,0.45) !important;
-  box-shadow:
-    0 0 0 1px rgba(255,215,0,0.10) inset,
-    0 0 20px rgba(255,215,0,0.06);
-  background: rgba(255,215,0,0.035) !important;
-}
-
-/* Title hierarchy */
-#execCommitCard .cardTitle{
-  font-size: 1.05rem;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #FFD700;
-  margin-bottom: 14px;
-}
-
-/* Grid layout */
-#execCommitCard .kvGrid{
-  display: grid;
-  grid-template-columns: 110px minmax(0,1fr);
-  gap: 10px 12px;
-  font-size: 0.95rem;
-}
-
-/* Mobile: stack label above value */
-@media (max-width: 560px){
-  #execCommitCard .kvGrid{
-    grid-template-columns: 1fr;
-    gap: 4px 0;
-  }
-
-  #execCommitCard .k{
-    margin-top: 10px;
-  }
-}
-
-/* Label styling */
-#execCommitCard .k{
-  color: #9ca3af;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-/* Value styling */
-#execCommitCard .v{
-  color: #e5e7eb;
-  font-family: monospace;
-  min-width: 0;
-}
-
-/* Wrap long hashes safely */
-#execCommitCard .v,
-#execEventId,
-#execPolicyHash,
-#execAudit{
-  white-space: normal !important;
-  overflow-wrap: anywhere !important;
-  word-break: break-all !important;
-}
-
-/* Action emphasis */
-#execCommitCard .v:contains("FALSE"),
-#execCommitCard .v:contains("NO"){
-  color: #ff4d4d;
-  font-weight: 900;
-}
-
-#execCommitCard .v:contains("REVIEW"){
-  color: #FFD700;
-  font-weight: 900;
-}
-
-#execCommitCard .v:contains("ALLOW"){
-  color: #2fe57a;
-  font-weight: 900;
-}
-/* =======================
-   ROADMAP DIAGRAM STYLES
-======================= */
-
-.bp-card{
-  border: 1px solid rgba(255,215,0,0.45);
-  border-radius: 18px;
-  background: rgba(0,0,0,0.65);
-  box-shadow: 0 0 18px rgba(255,215,0,0.10);
-  padding: 18px;
-  margin: 14px 0;
-}
-
-.bp-label{
-  font-weight: 900;
-  color: #FFD700;
-  margin-bottom: 14px;
-  font-size: 1.05rem;
-  text-align: center;
-}
-
-.bp-diagram{
-  margin-top: 12px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-}
-
-.bp-node{
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,215,0,0.35);
-  background: rgba(255,215,0,0.10);
-  color: #FFD700;
-  font-weight: 800;
-  font-size: 0.95rem;
-}
-
-.bp-arrow{
-  color: #aaa;
-  font-weight: 900;
-}
-
-/* Mobile tightening */
-@media (max-width: 560px){
-  .bp-node{ font-size: 0.88rem; }
-  .bp-diagram{ gap: 8px; }
-}
-
-.mvp-badge{
-  display:inline-flex;
-  align-items:center;
-  gap:10px;
-  padding:10px 14px;
-  border:1px solid rgba(255,255,255,0.14);
-  border-radius:999px;
-  background:rgba(255,255,255,0.04);
-  margin-top:14px;
-  flex-wrap:wrap;
-}
-.mvp-dot{
-  width:10px;height:10px;border-radius:50%;
-  background:#22c55e;
-  box-shadow:0 0 18px rgba(34,197,94,0.45);
-}
-.mvp-text{ font-weight:700; }
-.mvp-sub{ opacity:0.8; font-size:0.92em; }
-
-.artifact-preview{ padding:56px 0; }
-.artifact-preview .sub{ opacity:0.85; max-width:720px; }
-
-.artifact-grid{
-  display:grid;
-  grid-template-columns:repeat(2, minmax(0,1fr));
-  gap:14px;
-  margin-top:18px;
-}
-@media (max-width:800px){
-  .artifact-grid{ grid-template-columns:1fr; }
-}
-
-.artifact-card{
-  border:1px solid rgba(255,255,255,0.14);
-  border-radius:16px;
-  background:rgba(255,255,255,0.03);
-  padding:16px;
-}
-.artifact-card h3{ margin:0 0 6px 0; }
-.artifact-card p{ margin:0; opacity:0.9; }
-.artifact-card code{
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size:0.95em;
-  opacity:0.95;
-}
-
-.enterprise-cta{ padding:56px 0; }
-.enterprise-cta-inner{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:18px;
-  border:1px solid rgba(255,255,255,0.14);
-  border-radius:18px;
-  background:rgba(255,255,255,0.03);
-  padding:18px;
-}
-.enterprise-cta .sub{ opacity:0.85; max-width:720px; }
-@media (max-width:800px){
-  .enterprise-cta-inner{ flex-direction:column; align-items:flex-start; }
-}
-
-/* ===================================== */
-/* Runtime Control Plane – Enterprise CTA */
-/* ===================================== */
-
-.section-divider{
-  border: none;
-  border-top: 1px solid rgba(255,255,255,0.06);
-  margin: 80px 0 60px 0;
-}
-
-.enterprise-cta{
-  text-align: center;
-  padding: 80px 20px;
-  max-width: 880px;
-  margin: 0 auto;
-}
-
-.enterprise-cta h2{
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  margin-bottom: 18px;
-}
-
-.enterprise-cta p{
-  color: #aaa;
-  line-height: 1.6;
-  font-size: 0.95rem;
-  max-width: 700px;
-  margin: 0 auto 28px auto;
-}
-
-/* Control-plane style button */
-.secondary-btn{
-  display: inline-block;
-  padding: 10px 22px;
-  border: 1px solid #FFD700;
-  color: #FFD700;
-  text-decoration: none;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  transition: all 0.18s ease;
-}
-
-.secondary-btn:hover{
-  background: rgba(255,215,0,0.07);
-  box-shadow: 0 0 12px rgba(255,215,0,0.2);
-}
-
-/* Center hero content under logo */
-.hero-section,
-.status-pill,
-.runtime-hero,
-.hero-text {
-  text-align: center;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* If pill container is flex-based */
-.status-pill {
-  display: inline-flex;
-  justify-content: center;
-}
-
-/* Center paragraph blocks */
-.hero-section p,
-.runtime-hero p {
-  max-width: 720px;
-  margin: 0 auto 18px auto;
-}
-
-/* ================================
-   TruCite Hero Centering Fix
-   Paste at END of CSS file
-================================ */
-
-/* 1) Ensure the hero stack centers everything */
-.hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-/* 2) Ensure logo block + pill share same centering rules */
-.hero .logo,
-.hero .wordmark,
-.hero .live-pill,
-.hero .live-pill * {
-  text-align: center;
-}
-
-/* 3) Force pill to be truly centered under the wordmark */
-.live-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin: 16px auto 0 auto;
-  width: fit-content;
-  max-width: 92%;
-}
-
-/* ================================
-   Hero Hook + Tagline
-   Paste at END of CSS file
-================================ */
-
-.hero-hook {
-  margin: 22px 0 10px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-
-.hero-tagline {
-  margin: 0 0 18px;
-  font-weight: 500;
-  letter-spacing: 0.6px;
-  opacity: 0.9;
-}
-
-/* =========================
-   MVP Pill Centering Fix
-   ========================= */
-
-.mvp-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;   /* center children horizontally */
-  text-align: center;    /* center text */
-}
-
-.mvp-text {
-  font-weight: 600;
-}
-
-.mvp-sub {
-  opacity: 0.85;
-  margin-top: 6px;
-  text-align: center;
-}
-
-/* =========================
-   MVP Badge – Rectangular Variant
-   ========================= */
-
-.mvp-badge {
-  border-radius: 12px;  /* was likely 999px */
-  padding: 22px 28px;
-}
-/* =======================
-   WEDGE STRIP (Legal AI)
-======================= */
-.wedge-strip{
-  max-width: 920px;
-  margin: 14px auto 0;
-  padding: 14px 16px;
-  border: 1px solid rgba(255,215,0,0.40);
-  border-radius: 14px;
-  background: rgba(0,0,0,0.55);
-  box-shadow: 0 0 16px rgba(255,215,0,0.08);
-  text-align: center;
-}
-
-.wedge-title{
-  font-weight: 1000;
-  color: #FFD700;
-  letter-spacing: 0.02em;
-  margin-bottom: 6px;
-}
-
-.wedge-body{
-  color: #d9d9d9;
-  font-size: 0.98rem;
-  line-height: 1.5;
-}
-
-.mvp-forward-signal {
-  margin-top: 8px;
-  font-size: 0.85rem;
-  color: #bdbdbd;
-  text-align: center;
-  opacity: 0.9;
-  letter-spacing: 0.02em;
-}
-.wedge-block{
-  border: 1px solid rgba(255,215,0,0.45);
-  border-radius: 18px;
-  background: rgba(0,0,0,0.65);
-  box-shadow: 0 0 18px rgba(255,215,0,0.08);
-  padding: 22px;
-  margin: 24px auto;
-  max-width: 820px;
-}
-
-.wedge-title{
-  margin-top: 0;
-  font-size: 1.1rem;
-  color: #FFD700;
-  font-weight: 900;
-}
-
-.wedge-text{
-  color: #d9d9d9;
-  font-size: 1rem;
-  line-height: 1.5;
-}
-
-.wedge-list{
-  margin: 14px 0;
-  padding-left: 18px;
-  color: #d9d9d9;
-}
-
-.wedge-list li{
-  margin-bottom: 8px;
-}
-
-.wedge-subnote{
-  margin-top: 12px;
-  font-size: 0.85rem;
-  color: #bdbdbd;
-  opacity: 0.9;
-}
-
-#api {
-  margin-top: 70px;
-  text-align: center;
-}
-
-.api-block {
-  margin-top: 18px;
-  border: 1px solid rgba(255,215,0,0.35);
-  border-radius: 16px;
-  padding: 18px;
-  background: rgba(0,0,0,0.65);
-  box-shadow: 0 0 18px rgba(255,215,0,0.08);
-  max-width: 720px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.api-endpoint {
-  font-weight: 900;
-  color: #FFD700;
-  margin-bottom: 10px;
-}
-
-.api-code {
-  text-align: left;
-  font-size: 0.85rem;
-  overflow-x: auto;
-  color: #e5e7eb;
-}
-
-.api-note {
-  margin-top: 12px;
-  font-size: 0.85rem;
-  color: #bdbdbd;
-}
-
-.hero-headline {
-  font-size: 2.2rem;
-  font-weight: 600;
-  line-height: 1.2;
-  text-align: center;
-  margin-bottom: 16px;
-}
-
-.hero-subhead {
-  font-size: 1.1rem;
-  color: #FFD700;
-  text-align: center;
-  margin-bottom: 18px;
-}
-
-.hero-description {
-  max-width: 760px;
-  margin: 0 auto;
-  line-height: 1.6;
-  color: #ccc;
-  font-size: 0.95rem;
-}
-
-/* ===== Hero "Try Live Runtime Scoring" fast-lane link ===== */
-.hero-demo-link{
-  display: inline-block;
-  margin-top: 14px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  text-decoration: none;
-  color: rgba(255, 215, 0, 0.92);
-  border-bottom: 1px solid rgba(255, 215, 0, 0.35);
-  padding-bottom: 6px;
-}
-
-.hero-demo-link:hover{
-  color: rgba(255, 215, 0, 1);
-  border-bottom-color: rgba(255, 215, 0, 0.7);
-}
-
-/* Hero Demo Link */
-
-.hero-demo-link {
-  display: inline-block;
-  margin-top: 22px;
-  padding: 10px 22px;
-  border: 1px solid #FFD700;
-  color: #FFD700;
-  text-decoration: none;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  transition: all 0.2s ease;
-}
-
-.hero-demo-link:hover {
-  background: rgba(255, 215, 0, 0.08);
-  box-shadow: 0 0 14px rgba(255, 215, 0, 0.25);
-}
-
-.hero {
-  text-align: center;
-}
-/* =========================
-   Commercial polish overrides
-   (safe add-on)
-========================= */
-
-/* Headings: slightly tighter + more premium */
-.section-title {
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-/* Cards: subtle density + consistent spacing */
-.bp-card,
-.win-card,
-.policy-card,
-.artifact-card,
-.note-card,
-.wedge-strip {
-  padding: 22px !important;
-  border-width: 1.5px !important;
-}
-
-/* Improve paragraph rhythm inside cards */
-.bp-card p,
-.win-card p,
-.policy-card p,
-.artifact-card p,
-.note-card p,
-.wedge-strip p {
-  line-height: 1.55;
-  margin-top: 10px;
-}
-
-/* Bullet lists: tighter + more enterprise */
-ul {
-  margin-top: 10px;
-  padding-left: 18px;
-}
-
-li {
-  margin: 8px 0;
-  line-height: 1.45;
-}
-
-/* Small helper for 3-bullet “enterprise reasons” section we’ll add next */
-.enterprise-now {
-  margin-top: 18px;
-}
-
-.enterprise-now .reasons {
-  display: grid;
-  gap: 14px;
-  margin-top: 14px;
-}
-
-.enterprise-now .reason {
-  padding: 18px;
-  border-radius: 16px;
-  border: 1.5px solid rgba(255, 208, 74, 0.25);
-  background: rgba(0, 0, 0, 0.55);
-}
-
-.enterprise-now .reason h3 {
-  margin: 0 0 8px 0;
-  font-size: 1.05rem;
-}
-
-.enterprise-now .reason p {
-  margin: 0;
-  opacity: 0.92;
-}
-.hero-market-signal{
-  margin: 10px auto 0;
-  max-width: 820px;
-  text-align: center;
-  color: #cfcfcf;
-  font-size: 0.95rem;
-  line-height: 1.5;
-  opacity: 0.95;
-}
-.hero-wedge{
-  margin: 8px auto 0;
-  max-width: 820px;
-  text-align: center;
-  color: #FFD700;
-  font-weight: 850;
-  font-size: 0.98rem;
-  text-shadow: 0 0 12px rgba(255,215,0,0.18);
-}
-.hero-market{
-  margin-top: 12px;
-  text-align: center;
-  max-width: 860px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.hero-market-line{
-  font-size: 0.95rem;
-  color: #cfcfcf;
-  margin-bottom: 4px;
-}
-
-.hero-india{
-  color: #FFD700;
-  font-weight: 700;
-  text-shadow: 0 0 10px rgba(255,215,0,0.25);
-}
-
-.hero-wedge{
-  margin-top: 10px;
-  text-align: center;
-  font-size: 0.95rem;
-  color: #FFD700;
-  font-weight: 800;
-  text-shadow: 0 0 12px rgba(255,215,0,0.25);
-}
-.center-title {
-  text-align: center;
-}
-.center-title {
-  text-align: center;
-  margin-bottom: 18px;
-}
-/* INTEGRATION SECTION */
-.integration {
-  margin: 28px auto;
-  max-width: 980px;
-  padding: 0 16px;
-}
-
-.section-sub {
-  opacity: 0.92;
-  line-height: 1.55;
-  margin: 10px auto 18px;
-  max-width: 880px;
-  text-align: center;
-}
-
-.integration-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-}
-
-.integration-card {
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 16px;
-  padding: 16px;
-  background: rgba(0,0,0,0.22);
-}
-
-.integration-h {
-  margin: 0 0 10px;
-  font-size: 16px;
-  letter-spacing: 0.2px;
-}
-
-.integration-flow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 8px 0 12px;
-}
-
-.flow-pill {
-  border: 1px solid rgba(255,255,255,0.14);
-  padding: 10px 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  opacity: 0.95;
-}
-
-.flow-pill-strong {
-  border-color: rgba(255,200,0,0.35);
-  box-shadow: 0 0 0 2px rgba(255,200,0,0.10) inset;
-}
-
-.flow-arrow {
-  opacity: 0.65;
-  font-size: 14px;
-}
-
-.integration-bullets {
-  margin: 0;
-  padding-left: 18px;
-  line-height: 1.55;
-  opacity: 0.92;
-}
-
-.integration-copy {
-  margin: 0 0 10px;
-  line-height: 1.55;
-  opacity: 0.92;
-}
-
-.integration-copy.muted {
-  opacity: 0.75;
-  margin-top: 12px;
-}
-
-.signal-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin: 8px 0;
-}
-
-.signal-badge {
-  display: inline-block;
-  min-width: 120px;
+.footer {
+  margin-top: 20px;
   text-align: center;
   font-size: 12px;
-  padding: 8px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.14);
-  opacity: 0.9;
+  color: #666;
 }
 
-.signal-text {
-  font-size: 13px;
-  opacity: 0.92;
+/* =========================================================
+MOBILE OPTIMIZATION
+========================================================= */
+@media (max-width: 600px) {
+  .hero-headline {
+    font-size: 20px;
+  }
+
+  .hero-subhead {
+    font-size: 14px;
+  }
+
+  .section-title {
+    font-size: 18px;
+  }
 }
 
-/* COMMERCIAL MINI */
-.commercial-mini {
-  margin-top: 14px;
-  border: 1px solid rgba(255,255,255,0.10);
+/* =========================================================
+TRUCITE FINAL VISUAL PATCH
+Append at bottom of existing style.css
+========================================================= */
+
+/* ---------- Theme polish ---------- */
+:root {
+  --tc-bg: #0b0b0b;
+  --tc-panel: #111111;
+  --tc-panel-2: #151515;
+  --tc-border: rgba(255, 213, 74, 0.28);
+  --tc-border-strong: rgba(255, 213, 74, 0.55);
+  --tc-yellow: #ffd54a;
+  --tc-text: #eaeaea;
+  --tc-muted: #aaaaaa;
+  --tc-green: #1f8f4e;
+  --tc-orange: #e8a317;
+  --tc-red: #c73b3b;
+  --tc-shadow: 0 0 0 1px rgba(255, 213, 74, 0.08), 0 10px 30px rgba(0, 0, 0, 0.28);
+}
+
+/* ---------- Cards / panels (restore depth) ---------- */
+.card,
+.bright-card,
+.integration-card,
+.win-card,
+.bp-card,
+.artifact-card,
+.decision-card,
+.result-wrapper,
+.execution-override-note,
+.enterprise-cta,
+.clarification-block,
+.verify-box,
+#api .api-block,
+.commercial-mini,
+.wedge-strip {
+  background: linear-gradient(180deg, #111 0%, #151515 100%);
+  border: 1px solid rgba(255, 213, 74, 0.16);
   border-radius: 16px;
-  padding: 14px 16px;
-  background: rgba(0,0,0,0.18);
+  box-shadow: var(--tc-shadow);
 }
 
-.commercial-h {
-  margin: 0 0 6px;
-  font-size: 14px;
-  opacity: 0.95;
+/* ---------- Verify console (restore strength) ---------- */
+.verify-section {
+  padding: 24px 18px;
 }
 
-.commercial-copy {
-  margin: 0;
-  opacity: 0.82;
-  line-height: 1.55;
+#inputText,
+#evidenceText,
+textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 14px;
+  background: #0d0d0d;
+  color: #f4f4f4;
+  border: 1px solid var(--tc-border);
+  border-radius: 12px;
+  outline: none;
 }
 
-/* RESPONSIVE */
-@media (min-width: 900px) {
-  .integration-grid {
-    grid-template-columns: 1.2fr 0.8fr;
-    align-items: start;
-  }
+#evidenceText {
+  min-height: 100px;
+  margin-top: 12px;
 }
 
-/* HERO TRUTH STRIP (NEW) */
-.hero-truth-strip {
-  margin: 12px auto 0;
-  padding: 10px 16px;
-  max-width: 720px;
+#inputText:focus,
+#evidenceText:focus {
+  border-color: var(--tc-border-strong);
+  box-shadow: 0 0 0 3px rgba(255, 213, 74, 0.08);
+}
 
-  text-align: center;
-  font-size: 0.92rem;
-  line-height: 1.5;
+/* ---------- Buttons ---------- */
+.primary-btn,
+.verify-btn,
+button#verifyBtn {
+  margin-top: 14px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--tc-border-strong);
+  background: var(--tc-yellow);
+  color: #111;
+  font-weight: 800;
+  cursor: pointer;
+}
 
-  color: #f08c52; /* matches your accent */
-  background: rgba(240, 140, 82, 0.08);
-  border: 1px solid rgba(240, 140, 82, 0.25);
+.primary-btn:hover,
+.verify-btn:hover {
+  filter: brightness(0.95);
+}
+
+/* ---------- Copy buttons ---------- */
+.copy-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.copy-btn {
+  padding: 8px 12px;
+  border: 1px solid var(--tc-border);
   border-radius: 10px;
-
-  letter-spacing: 0.2px;
+  background: rgba(255, 213, 74, 0.05);
+  color: var(--tc-yellow);
 }
 
-.hero-truth-strip {
-  margin: 12px auto 0;
-  padding: 10px 16px;
-  max-width: 720px;
-  text-align: center;
-  font-size: 0.92rem;
-  line-height: 1.5;
-  color: #f08c52;
-  background: rgba(240, 140, 82, 0.08);
-  border: 1px solid rgba(240, 140, 82, 0.25);
-  border-radius: 10px;
-  letter-spacing: 0.2px;
+.copy-btn:hover {
+  background: rgba(255, 213, 74, 0.1);
 }
 
-.verify-intro {
-  text-align: center;
-  max-width: 760px;
-  margin: 0 auto 28px;
+/* ---------- JSON / response blocks ---------- */
+#result,
+.api-code {
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 12px;
+  color: #f3f3f3;
+  background: #0d0d0d;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 213, 74, 0.12);
 }
 
-.verify-title {
-  font-size: clamp(1.6rem, 3vw, 2.2rem);
-  margin-bottom: 10px;
-}
-
-.verify-sub {
-  font-size: 1rem;
-  opacity: 0.85;
-  margin-bottom: 14px;
-}
-
-.verify-signal {
-  display: inline-block;
-  padding: 8px 14px;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  background: rgba(240, 140, 82, 0.08);
-  border: 1px solid rgba(240, 140, 82, 0.25);
-  color: #f08c52;
-}
-
-.verify-instruction {
-  text-align: center;
-  font-size: 0.85rem;
-  opacity: 0.6;
-  margin-bottom: 10px;
-}
-
-@media (max-width: 640px) {
-  .hero-truth-strip {
-    font-size: 0.85rem;
-    padding: 9px 12px;
-  }
-
-  .verify-sub {
-    font-size: 0.94rem;
-  }
-}
-.hero-enterprise-note {
+/* ---------- Decision card ---------- */
+.decision-title {
+  color: var(--tc-yellow);
+  font-weight: 800;
   font-size: 13px;
-  color: #aaa;
+}
+
+.decision-action {
+  font-size: 26px;
+  font-weight: 900;
   margin-top: 6px;
-  text-align: center;
+}
+
+.decision-reason {
+  margin-top: 8px;
+  color: var(--tc-muted);
+}
+
+/* ---------- Execution commit ---------- */
+.kvGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.kv {
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 213, 74, 0.03);
+  border: 1px solid rgba(255, 213, 74, 0.1);
+}
+
+.k {
+  font-size: 12px;
+  color: var(--tc-muted);
+}
+
+.v {
+  margin-top: 4px;
+  color: #f2f2f2;
+  font-weight: 600;
+}
+
+/* ---------- FAQ polish ---------- */
+details {
+  border: 1px solid rgba(255, 213, 74, 0.14);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #111 0%, #151515 100%);
+  margin-bottom: 10px;
+}
+
+summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  font-weight: 700;
+  position: relative;
+}
+
+summary::after {
+  content: "+";
+  position: absolute;
+  right: 14px;
+  color: var(--tc-yellow);
+}
+
+details[open] summary::after {
+  content: "−";
+}
+
+.acc-body {
+  padding: 0 14px 12px;
+  color: var(--tc-muted);
+}
+
+/* ---------- Mobile fixes ---------- */
+@media (max-width: 640px) {
+  .copy-row {
+    flex-direction: column;
+  }
+
+  .copy-btn,
+  .primary-btn,
+  .verify-btn {
+    width: 100%;
+  }
+
+  .kvGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 
