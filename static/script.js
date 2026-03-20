@@ -200,33 +200,46 @@
       explanation: data?.explanation || ""
     };
   }
+function renderResponse(data) {
+  const contract = buildPublicContract(data);
+  lastResponsePublic = contract;
 
-  function renderResponse(data) {
-    const contract = buildPublicContract(data);
-    lastResponsePublic = contract;
+  setText(scoreDisplay, contract.readiness_signal);
+  setText(scoreVerdict, contract.verdict);
+  updateGauge(contract.readiness_signal);
 
-    setText(scoreDisplay, contract.readiness_signal);
-    setText(scoreVerdict, contract.verdict);
-    updateGauge(contract.readiness_signal);
+  setText(volatilityValue, contract?.volatility || "—");
 
-    setText(volatilityValue, contract?.volatility || "—");
+  const pMode = contract?.policy_mode || CONFIG.POLICY_MODE;
+  setText(policyValue, pMode);
 
-    const pMode = contract?.policy_mode || CONFIG.POLICY_MODE;
-    setText(policyValue, pMode);
+  const ms = contract?.latency_ms ?? "—";
+  setText(apiMeta, `runtime gate · server ${ms}ms`);
 
-    const ms = contract?.latency_ms ?? "—";
-    setText(apiMeta, `runtime gate · server ${ms}ms`);
+  const decision = normalizeDecision(data);
 
-    const decision = normalizeDecision(data);
+  setText(decisionAction, decision.action);
+  applyDecisionColor(decision.action);
+  setText(decisionReason, decision.reason);
 
-    setText(decisionAction, decision.action);
-    applyDecisionColor(decision.action);
-    setText(decisionReason, decision.reason);
+  const fullText =
+    `Execution Decision Artifact\n` +
+    `${safeJson(contract)}\n\n` +
+    `Validation details, explanation & references\n` +
+    `${safeJson({
+      explanation: contract.explanation,
+      references: contract.references,
+      signals: {
+        volatility: contract.volatility,
+        evidence_validation_status: contract.evidence_validation_status,
+        risk_flags: contract.risk_flags
+      }
+    })}`;
 
-    if (resultPre) {
-      resultPre.textContent = safeJson(contract);
-    }
+  if (resultPre) {
+    resultPre.textContent = fullText;
   }
+}
 
   async function postToEndpoint(payload) {
 
