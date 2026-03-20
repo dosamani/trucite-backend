@@ -33,6 +33,11 @@ SECTION: HERO
     TruCite decides whether AI output is allowed to execute in the real world.
   </h2>
 
+  <p class="hero-impact">
+  AI systems generate. TruCite decides what is allowed to execute.
+  </p>
+
+
   <p class="hero-subtitle">
     A runtime enforcement API that sits between AI systems and downstream actions —
     returning a machine-enforceable <strong>ALLOW / REVIEW / BLOCK</strong> decision before execution.
@@ -824,32 +829,74 @@ SECTION: FUTURE STATE
 </section>
   
 <!-- =========================================================
-SECTION: ROADMAP / EXECUTION FLOW
+SECTION: EXECUTION FLOW / ROADMAP
 ========================================================= -->
-<section class="section-block">
+<section class="section-block roadmap-section">
+
   <h2 class="section-title">Execution Flow</h2>
 
-  <div class="roadmap-flow">
+  <div class="execution-flow">
 
-    <div class="flow-step">1. Risk Signal</div>
-    <div class="flow-arrow">→</div>
+    <div class="flow-row">
+      <div class="flow-pill">1. Risk Signal</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-pill">2. Evidence Gate</div>
+    </div>
 
-    <div class="flow-step">2. Evidence Gate</div>
-    <div class="flow-arrow">→</div>
+    <div class="flow-row">
+      <div class="flow-pill">3. Policy Evaluation</div>
+    </div>
 
-    <div class="flow-step">3. Policy Evaluation</div>
-    <div class="flow-arrow">→</div>
+    <div class="flow-row">
+      <div class="flow-pill wide">4. Decision (ALLOW / REVIEW / BLOCK)</div>
+    </div>
 
-    <div class="flow-step">4. Decision (ALLOW / REVIEW / BLOCK)</div>
-    <div class="flow-arrow">→</div>
-
-    <div class="flow-step">5. Execution Commit</div>
-    <div class="flow-arrow">→</div>
-
-    <div class="flow-step">6. Audit Artifact</div>
+    <div class="flow-row">
+      <div class="flow-pill">5. Execution Commit</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-pill">6. Audit Artifact</div>
+    </div>
 
   </div>
+
+  <!-- ===== MVP COVERAGE ===== -->
+  <div class="mvp-coverage">
+    <div class="mvp-title">What the current MVP enforces</div>
+    <ul class="mvp-list">
+      <li>Execution Readiness Signal (0–100)</li>
+      <li>Evidence requirement gating for high-risk execution paths</li>
+      <li>Deterministic ALLOW / REVIEW / BLOCK decision</li>
+      <li>Execution boundary flag for downstream systems</li>
+      <li>Audit-linked execution artifact (event ID + fingerprint)</li>
+    </ul>
+  </div>
+
+  <!-- ===== NEXT PHASE ===== -->
+  <div class="mvp-next">
+    <div class="mvp-title">What comes next</div>
+    <ul class="mvp-list">
+      <li>External evidence verification (DOI, PubMed, legal citations)</li>
+      <li>Policy-as-code engine with enterprise rules</li>
+      <li>Confidence vs reliability separation</li>
+      <li>Multi-model validation layer</li>
+      <li>Audit-bound override workflows</li>
+    </ul>
+  </div>
+
+  <!-- ===== FUTURE LAYER ===== -->
+  <div class="mvp-future">
+    <div class="mvp-title">Future execution intelligence layer</div>
+    <ul class="mvp-list">
+      <li>Autonomous agent gating before execution</li>
+      <li>Cross-system enforcement APIs</li>
+      <li>Global audit ledger for AI decisions</li>
+      <li>Trust scoring across models and vendors</li>
+      <li>Regulatory-grade compliance layer</li>
+    </ul>
+  </div>
+
 </section>
+  
 
 <!-- =========================================================
 SECTION: POLICY NOTES
@@ -1067,8 +1114,8 @@ SECTION: FAQ
   </div>
 
   <div class="faq-cta">
-    <a href="https://forms.gle/upyaT8L2prfQvaVx6" target="_blank" rel="noopener">
-      See full FAQs &amp;→
+    <a href= "https://docs.google.com/document/d/1oHfzoXv-t0LZNdFwfMUjQKfy8tv9RQJo--HhLYRkPto/edit?usp=drivesdk"
+      See full FAQs→
     </a>
   </div>
 </section>
