@@ -1,5 +1,4 @@
 (() => {
-
   const CONFIG = {
     API_BASE: "https://trucite-backend.onrender.com",
     POLICY_MODE: "enterprise",
@@ -33,8 +32,11 @@
   }
 
   function safeJson(obj) {
-    try { return JSON.stringify(obj, null, 2); }
-    catch { return String(obj); }
+    try {
+      return JSON.stringify(obj, null, 2);
+    } catch {
+      return String(obj);
+    }
   }
 
   async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
@@ -63,7 +65,9 @@
     ta.style.top = "-9999px";
     document.body.appendChild(ta);
     ta.select();
-    try { document.execCommand("copy"); } catch {}
+    try {
+      document.execCommand("copy");
+    } catch {}
     document.body.removeChild(ta);
   }
 
@@ -76,16 +80,11 @@
     return s;
   }
 
-  // ----------------------------
-  // ELEMENTS
-  // ----------------------------
   let verifyButton = pick("verifyBtn", "#verifyBtn", "button.primary-btn");
-
   if (!verifyButton) {
     const allBtns = Array.from(document.querySelectorAll("button"));
-    verifyButton = allBtns.find(b =>
-      ["VERIFY", "EVALUATE"].includes((b.textContent || "").trim().toUpperCase())
-    ) || null;
+    verifyButton =
+      allBtns.find((b) => ["VERIFY", "EVALUATE"].includes((b.textContent || "").trim().toUpperCase())) || null;
   }
 
   const claimBox = pick("inputText", "#inputText", "textarea");
@@ -113,15 +112,26 @@
     if (!decisionAction) return;
     decisionAction.classList.remove("allow", "review", "block", "error");
 
-    if (action === "ALLOW") decisionAction.classList.add("allow");
-    else if (action === "BLOCK") decisionAction.classList.add("block");
-    else if (action === "ERROR") decisionAction.classList.add("error");
+    const a = (action || "").toUpperCase();
+    if (a === "ALLOW") decisionAction.classList.add("allow");
+    else if (a === "BLOCK") decisionAction.classList.add("block");
+    else if (a === "ERROR") decisionAction.classList.add("error");
     else decisionAction.classList.add("review");
+  }
+
+  function applyDecisionCardColor(action) {
+    if (!decisionCard) return;
+    decisionCard.classList.remove("allow", "review", "block", "error");
+
+    const a = (action || "").toUpperCase();
+    if (a === "ALLOW") decisionCard.classList.add("allow");
+    else if (a === "BLOCK") decisionCard.classList.add("block");
+    else if (a === "ERROR") decisionCard.classList.add("error");
+    else decisionCard.classList.add("review");
   }
 
   function updateGauge(val) {
     if (!gaugeFill) return;
-
     const s = Math.max(0, Math.min(100, Number(val) || 0));
     const total = 260;
 
@@ -143,6 +153,7 @@
     setText(decisionAction, "—");
     setText(decisionReason, "Awaiting evaluation...");
     applyDecisionColor("REVIEW");
+    applyDecisionCardColor("REVIEW");
     updateGauge(0);
 
     if (resultPre) resultPre.textContent = "";
@@ -160,6 +171,7 @@
     show(decisionCard, true);
     setText(decisionAction, "ERROR");
     applyDecisionColor("ERROR");
+    applyDecisionCardColor("ERROR");
     setText(decisionReason, msg);
 
     if (resultPre) {
@@ -200,49 +212,61 @@
       explanation: data?.explanation || ""
     };
   }
-function renderResponse(data) {
-  const contract = buildPublicContract(data);
-  lastResponsePublic = contract;
 
-  setText(scoreDisplay, contract.readiness_signal);
-  setText(scoreVerdict, contract.verdict);
-  updateGauge(contract.readiness_signal);
+  function renderResponse(data) {
+    const contract = buildPublicContract(data);
+    lastResponsePublic = contract;
 
-  setText(volatilityValue, contract?.volatility || "—");
+    setText(scoreDisplay, contract.readiness_signal);
+    setText(scoreVerdict, contract.verdict);
+    updateGauge(contract.readiness_signal);
 
-  const pMode = contract?.policy_mode || CONFIG.POLICY_MODE;
-  setText(policyValue, pMode);
+    setText(volatilityValue, contract?.volatility || "—");
 
-  const ms = contract?.latency_ms ?? "—";
-  setText(apiMeta, `runtime gate · server ${ms}ms`);
+    const pMode = contract?.policy_mode || CONFIG.POLICY_MODE;
+    setText(policyValue, pMode);
 
-  const decision = normalizeDecision(data);
+    const ms = contract?.latency_ms ?? "—";
+    setText(apiMeta, `runtime gate · server ${ms}ms`);
 
-  setText(decisionAction, decision.action);
-  applyDecisionColor(decision.action);
-  setText(decisionReason, decision.reason);
+    const decision = normalizeDecision(data);
 
-  const fullText =
-    `Execution Decision Artifact\n` +
-    `${safeJson(contract)}\n\n` +
-    `Validation details, explanation & references\n` +
-    `${safeJson({
-      explanation: contract.explanation,
-      references: contract.references,
-      signals: {
-        volatility: contract.volatility,
-        evidence_validation_status: contract.evidence_validation_status,
-        risk_flags: contract.risk_flags
-      }
-    })}`;
+    setText(decisionAction, decision.action);
+    applyDecisionColor(decision.action);
+    applyDecisionCardColor(decision.action);
 
-  if (resultPre) {
-    resultPre.textContent = fullText;
+    let reason = decision.reason || "";
+
+    if (!reason && decision.action === "ALLOW") {
+      reason = "Evidence and policy checks passed for current execution path.";
+    } else if (!reason && decision.action === "BLOCK") {
+      reason = "Execution blocked under current policy.";
+    } else if (!reason) {
+      reason = "Needs verification before downstream execution.";
+    }
+
+    setText(decisionReason, reason);
+
+    const fullText =
+      `Execution Decision Artifact\n` +
+      `${safeJson(contract)}\n\n` +
+      `Explanation & References\n` +
+      `${safeJson({
+        explanation: contract.explanation,
+        references: contract.references,
+        signals: {
+          volatility: contract.volatility,
+          evidence_validation_status: contract.evidence_validation_status,
+          risk_flags: contract.risk_flags
+        }
+      })}`;
+
+    if (resultPre) {
+      resultPre.textContent = fullText;
+    }
   }
-}
 
   async function postToEndpoint(payload) {
-
     const paths = ["/api/validate", "/api/score", "/api/runtime"];
 
     for (const path of paths) {
@@ -266,9 +290,7 @@ function renderResponse(data) {
 
         const data = await res.json();
         lastEndpointPath = path;
-
         return { ok: true, data };
-
       } catch (e) {
         continue;
       }
@@ -321,14 +343,11 @@ function renderResponse(data) {
 
   window.copyCurl = () => {
     if (!lastPayload) return alert("Run first.");
-
     const path = lastEndpointPath || "/api/validate";
-
     copyToClipboard(
       `curl -X POST "${CONFIG.API_BASE}${path}" -H "Content-Type: application/json" -d '${JSON.stringify(lastPayload)}'`
     );
   };
 
   setPendingUI();
-
 })();
