@@ -959,7 +959,7 @@ SECTION: FOUNDER
   </div>
 </section>
 
-<!-- =========================================================
+  <!-- =========================================================
 SECTION: FAQ
 ========================================================= -->
 <section id="faq" class="accordion-section faq-section">
@@ -970,10 +970,10 @@ SECTION: FAQ
     <details>
       <summary>What does the TruCite symbol mean?</summary>
       <div class="acc-body">
-        The symbol is inspired in part by the Egyptian concept of <strong>Ma’at</strong> — truth and balance —
-        where a feather is weighed against the heart. The golden feather represents <strong>truth</strong>,
-        the blue orb represents <strong>signal</strong>, and the curved arc represents the
-        <strong>verification layer</strong> weighing evidence before a score is rendered.
+        The symbol is inspired in part by the Egyptian concept of <strong>Ma’at</strong> — truth, balance, and judgment —
+        where a feather is weighed against the heart. The golden feather represents <strong>truth</strong>, the blue orb represents
+        <strong>AI-generated signal</strong>, and the curved arc represents the <strong>execution boundary</strong> — where output is weighed
+        before it is allowed to trigger downstream action. It reflects TruCite’s role as a runtime layer between generation and execution.
       </div>
     </details>
 
@@ -1034,6 +1034,14 @@ SECTION: FAQ
     </details>
 
     <details>
+      <summary>Why can’t the model vendor do this?</summary>
+      <div class="acc-body">
+        Enterprises require separation between generation and enforcement.
+        Vendor self-grading does not create an independent accountability boundary.
+      </div>
+    </details>
+
+    <details>
       <summary>Does TruCite execute actions?</summary>
       <div class="acc-body">
         No. TruCite issues a decision signal and audit artifact.
@@ -1066,6 +1074,14 @@ SECTION: FAQ
     </details>
 
     <details>
+      <summary>Is TruCite a security gateway?</summary>
+      <div class="acc-body">
+        No. TruCite does not replace encryption, identity, confidential computing, or traditional security infrastructure.
+        It evaluates whether AI output is ready for downstream execution.
+      </div>
+    </details>
+
+    <details>
       <summary>Is TruCite for consumers?</summary>
       <div class="acc-body">
         No. TruCite is built for regulated enterprise workflows, not consumer AI usage.
@@ -1074,15 +1090,15 @@ SECTION: FAQ
 
   </div>
 
-  <div class="faq-more">
-    <a href="https://forms.gle/CRz4aJqGL25ReQW1A" target="_blank" rel="noopener">
-      See full FAQs &amp; request more details →
+  <div class="faq-cta">
+    <a href="https://forms.gle/upyaT8L2prfQvaVx6" target="_blank" rel="noopener">
+      See full FAQs &amp;→
     </a>
   </div>
 </section>
 
   <!-- =========================================================
-SECTION: LEGAL / PRIVACY / DISCLAIMER
+SECTION: LEGAL / COMPLIANCE
 ========================================================= -->
 <section id="legal" class="accordion-section legal-section">
   <h2 class="section-title">Legal &amp; Compliance</h2>
@@ -1092,51 +1108,50 @@ SECTION: LEGAL / PRIVACY / DISCLAIMER
     <details>
       <summary>Privacy</summary>
       <div class="acc-body">
-        TruCite does not store or persist submitted text beyond transient processing required
-        for runtime evaluation. No training or model fine-tuning occurs on user-submitted data.
-        <br><br>
-        Enterprise deployments may optionally configure secure logging and audit storage
-        within their own infrastructure boundary.
-        <br><br>
-        Users should not submit protected health information (PHI), personally identifiable
-        information (PII), or confidential material unless operating within a compliant,
-        enterprise-controlled environment.
+        TruCite is designed to minimize unnecessary data retention in this public MVP.
+        Do not submit protected health information (PHI), personally identifiable information (PII),
+        confidential business data, or sensitive materials unless operating within an approved enterprise deployment.
       </div>
     </details>
 
     <details>
       <summary>Disclaimer</summary>
       <div class="acc-body">
-        TruCite provides a probabilistic reliability signal and a policy-based execution decision.
-        It does not guarantee factual correctness and should not be considered legal, medical,
-        or financial advice.
-        <br><br>
-        Final responsibility for action, interpretation, and execution remains with the user
-        or the deploying organization.
-        <br><br>
-        TruCite is designed as a decision-support and risk-mitigation layer — not a substitute
-        for professional judgment.
+        TruCite provides a runtime decision artifact for AI-generated output. It does not provide legal, medical,
+        financial, or professional advice, and does not guarantee factual accuracy.
+        Final responsibility for review and execution remains with the user or deploying organization.
       </div>
     </details>
 
     <details>
       <summary>Terms of Use</summary>
       <div class="acc-body">
-        By using TruCite, you agree not to misuse the platform for unlawful, harmful,
-        or deceptive purposes.
-        <br><br>
-        The service is provided "as is" without warranties of any kind. Use of the system
-        in production environments should follow appropriate enterprise validation,
-        governance, and compliance procedures.
-        <br><br>
-        TruCite reserves the right to update functionality, policies, and access controls
-        as the platform evolves.
+        By using TruCite, you agree not to use the system for unlawful, deceptive, or harmful purposes.
+        The service is provided “as is” for evaluation and enterprise discussion purposes.
+        Production use requires appropriate governance, policy enforcement, and contractual agreements.
+      </div>
+    </details>
+
+    <details>
+      <summary>Execution Responsibility</summary>
+      <div class="acc-body">
+        TruCite issues ALLOW / REVIEW / BLOCK decisions and associated audit artifacts.
+        It does not execute downstream actions. Enforcement and operational decisions remain
+        the responsibility of the integrating enterprise system.
+      </div>
+    </details>
+
+    <details>
+      <summary>Intellectual Property</summary>
+      <div class="acc-body">
+        TruCite.ai™ is a trademark of Mani Subramanian. All rights reserved.
+        The TruCite runtime architecture, scoring logic, and execution decision framework may include
+        proprietary and patent-pending components.
       </div>
     </details>
 
   </div>
 </section>
-
 <!-- =========================================================
 SECTION: FOOTER
 ========================================================= -->
@@ -1172,12 +1187,7 @@ SECTION: FOOTER
   </p>
 </footer>
 
-<footer class="footer">
-  <p>TruCite.ai™ — Independent AI output risk infrastructure for high-liability enterprise workflows.</p>
-  <p>TruCite.ai™ is a trademark of Mani Subramanian. Unauthorized use is prohibited.</p>
-</footer>
 
-</main>
 
 <script src="/static/script.js?v=baseline-preserve-final-2" defer></script>
 </body>
