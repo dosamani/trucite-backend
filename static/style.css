@@ -970,3 +970,78 @@ a:hover {
   font-size: 14px !important;
 }
 
+/* ROADMAP FLOW — HARD OVERRIDE */
+.roadmap-flow {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-top: 18px !important;
+}
+
+.flow-step {
+  background: #111 !important;
+  border: 1px solid rgba(230, 193, 90, 0.35) !important;
+  color: #e6c15a !important;
+  padding: 10px 14px !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  text-align: center !important;
+}
+
+.flow-arrow {
+  color: #e6c15a !important;
+  font-size: 18px !important;
+  font-weight: 900 !important;
+}
+
+/* ACCESS — CLEAN VERSION */
+.access-container {
+  max-width: 680px !important;
+  margin: 0 auto !important;
+  text-align: center !important;
+  padding: 20px !important;
+}
+
+.access-text {
+  color: #cfcfcf !important;
+  margin-bottom: 16px !important;
+  font-size: 1.05rem !important;
+}
+
+.access-links {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.access-link-primary {
+  color: #e6c15a !important;
+  border: 1px solid rgba(230, 193, 90, 0.35) !important;
+  background: transparent !important;
+  padding: 10px 18px !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+}
+
+.access-link-secondary {
+  color: #aaa !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  background: transparent !important;
+  padding: 8px 16px !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  text-decoration: none !important;
+}
+
+.access-link-primary:hover,
+.access-link-secondary:hover {
+  opacity: 0.9 !important;
+}
+
+
+
