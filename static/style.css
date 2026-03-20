@@ -309,4 +309,220 @@ MOBILE
   }
 }
 
+/* =========================================
+VERIFY SECTION — LOCKED OVERRIDE
+========================================= */
+.verify-section {
+  text-align: center !important;
+  max-width: 920px;
+  margin: 0 auto;
+}
 
+.verify-section .section-title,
+.verify-section .section-subtitle,
+.verify-section .verify-example,
+.verify-section #verifyStatus,
+.verify-section .gauge-label,
+.verify-section .decision-title,
+.verify-section .decision-subnote {
+  text-align: center !important;
+}
+
+.verify-section textarea,
+.verify-section #inputText,
+.verify-section #evidenceText {
+  display: block !important;
+  width: min(100%, 700px) !important;
+  margin: 12px auto !important;
+  background: #000 !important;
+  color: #fff !important;
+  border: 1px solid rgba(230, 193, 90, 0.3) !important;
+  border-radius: 14px !important;
+  padding: 14px !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.verify-section #inputText {
+  min-height: 86px !important;
+}
+
+.verify-section #evidenceText {
+  min-height: 84px !important;
+}
+
+.verify-section textarea::placeholder {
+  color: #8c8c8c !important;
+}
+
+.verify-section textarea:focus {
+  outline: none !important;
+  border-color: #e6c15a !important;
+  box-shadow: 0 0 0 2px rgba(230, 193, 90, 0.15) !important;
+}
+
+.verify-section #verifyBtn,
+.verify-section .primary-btn {
+  display: block !important;
+  margin: 16px auto 12px !important;
+  min-width: 170px !important;
+  background: #e6c15a !important;
+  color: #000 !important;
+  border: none !important;
+  border-radius: 14px !important;
+  padding: 12px 22px !important;
+  font-weight: 800 !important;
+  font-size: 15px !important;
+  cursor: pointer !important;
+}
+
+.verify-section .copy-row {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  margin: 10px auto 14px !important;
+  width: min(100%, 700px) !important;
+}
+
+.verify-section .copy-btn {
+  background: #1a1a1a !important;
+  color: #e6c15a !important;
+  border: 1px solid rgba(230, 193, 90, 0.3) !important;
+  border-radius: 10px !important;
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  min-width: 140px !important;
+}
+
+.verify-section #gaugeContainer {
+  max-width: 700px !important;
+  margin: 18px auto 0 !important;
+  text-align: center !important;
+}
+
+.verify-section #gauge {
+  display: block !important;
+  margin: 10px auto !important;
+}
+
+.verify-section #scoreDisplay {
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  color: #fff !important;
+  margin-top: 6px !important;
+  text-align: center !important;
+}
+
+.verify-section #scoreVerdict {
+  color: #d4d4d4 !important;
+  margin-top: 4px !important;
+  text-align: center !important;
+}
+
+.verify-section .realtime-note,
+.verify-section #volatilityLine,
+.verify-section #policyLine,
+.verify-section #apiMeta {
+  color: #b8b8b8 !important;
+  text-align: center !important;
+}
+
+.verify-section .decision-card {
+  max-width: 700px !important;
+  margin: 18px auto !important;
+  text-align: center !important;
+  background: #0a0a0a !important;
+  border: 1px solid rgba(230, 193, 90, 0.3) !important;
+  border-radius: 14px !important;
+  padding: 16px !important;
+}
+
+.verify-section .decision-title {
+  color: #e6c15a !important;
+  font-weight: 800 !important;
+  margin-bottom: 8px !important;
+}
+
+.verify-section .decision-action {
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  margin: 8px 0 !important;
+  letter-spacing: 0.8px !important;
+  text-align: center !important;
+}
+
+.verify-section .decision-action.allow {
+  color: #19d27c !important;
+}
+
+.verify-section .decision-action.review {
+  color: #ffd24a !important;
+}
+
+.verify-section .decision-action.block,
+.verify-section .decision-action.error {
+  color: #ff5a5a !important;
+}
+
+.verify-section .decision-reason {
+  color: #f2f2f2 !important;
+  text-align: center !important;
+  line-height: 1.6 !important;
+}
+
+.verify-section .result-wrapper {
+  max-width: 700px !important;
+  margin: 18px auto !important;
+  text-align: left !important;
+}
+
+.verify-section .result-label {
+  color: #e6c15a !important;
+  margin-bottom: 8px !important;
+}
+
+.verify-section #result {
+  background: #0a0a0a !important;
+  border: 1px solid rgba(230, 193, 90, 0.3) !important;
+  border-radius: 12px !important;
+  padding: 14px !important;
+  color: #d4d4d4 !important;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  line-height: 1.55 !important;
+}
+
+.verify-section #execCommitCard {
+  max-width: 700px !important;
+  margin: 14px auto 0 !important;
+}
+
+.verify-section .kvGrid {
+  display: grid !important;
+  gap: 10px !important;
+}
+
+.verify-section .k {
+  color: #e6c15a !important;
+  font-weight: 700 !important;
+}
+
+.verify-section .v {
+  color: #d4d4d4 !important;
+}
+
+@media (max-width: 768px) {
+  .verify-section .copy-row {
+    gap: 8px !important;
+  }
+
+  .verify-section .copy-btn {
+    min-width: 0 !important;
+    flex: 1 1 180px !important;
+  }
+}
