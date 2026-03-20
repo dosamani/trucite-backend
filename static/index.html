@@ -828,40 +828,38 @@ SECTION: FUTURE STATE
   </div>
 </section>
   
-<!-- =========================================================
+  <!-- =========================================================
 SECTION: EXECUTION FLOW / ROADMAP
 ========================================================= -->
-<section class="section-block roadmap-section">
-
+<section class="section-block roadmap-section" id="roadmap">
   <h2 class="section-title">Execution Flow</h2>
 
-  <div class="execution-flow">
+  <div class="execution-flow" aria-label="TruCite execution flow">
 
     <div class="flow-row">
       <div class="flow-pill">1. Risk Signal</div>
-      <div class="flow-arrow">→</div>
+      <div class="flow-arrow">➜</div>
       <div class="flow-pill">2. Evidence Gate</div>
     </div>
 
-    <div class="flow-row">
+    <div class="flow-row flow-row-single">
       <div class="flow-pill">3. Policy Evaluation</div>
     </div>
 
-    <div class="flow-row">
+    <div class="flow-row flow-row-single">
       <div class="flow-pill wide">4. Decision (ALLOW / REVIEW / BLOCK)</div>
     </div>
 
     <div class="flow-row">
       <div class="flow-pill">5. Execution Commit</div>
-      <div class="flow-arrow">→</div>
+      <div class="flow-arrow">➜</div>
       <div class="flow-pill">6. Audit Artifact</div>
     </div>
 
   </div>
 
-  <!-- ===== MVP COVERAGE ===== -->
   <div class="mvp-coverage">
-    <div class="mvp-title">What the current MVP enforces</div>
+    <div class="mvp-title">Current Runtime Capabilities (Live)</div>
     <ul class="mvp-list">
       <li>Execution Readiness Signal (0–100)</li>
       <li>Evidence requirement gating for high-risk execution paths</li>
@@ -871,9 +869,8 @@ SECTION: EXECUTION FLOW / ROADMAP
     </ul>
   </div>
 
-  <!-- ===== NEXT PHASE ===== -->
   <div class="mvp-next">
-    <div class="mvp-title">What comes next</div>
+    <div class="mvp-title">Next Phase (In Development)</div>
     <ul class="mvp-list">
       <li>External evidence verification (DOI, PubMed, legal citations)</li>
       <li>Policy-as-code engine with enterprise rules</li>
@@ -883,9 +880,8 @@ SECTION: EXECUTION FLOW / ROADMAP
     </ul>
   </div>
 
-  <!-- ===== FUTURE LAYER ===== -->
   <div class="mvp-future">
-    <div class="mvp-title">Future execution intelligence layer</div>
+    <div class="mvp-title">Future Execution Intelligence Layer</div>
     <ul class="mvp-list">
       <li>Autonomous agent gating before execution</li>
       <li>Cross-system enforcement APIs</li>
@@ -894,9 +890,7 @@ SECTION: EXECUTION FLOW / ROADMAP
       <li>Regulatory-grade compliance layer</li>
     </ul>
   </div>
-
 </section>
-  
 
 <!-- =========================================================
 SECTION: POLICY NOTES
