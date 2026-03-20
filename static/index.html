@@ -672,44 +672,35 @@ SECTION: RUNTIME EXECUTION API
   </p>
 </div>
 
-  <section class="section-block">
+  <!-- =========================================================
+SECTION: ACCESS
+========================================================= -->
+<section id="access" class="section-block">
   <h2 class="section-title">Access</h2>
 
-  <div class="card">
-    <p>
-      TruCite is currently onboarding design partners in regulated AI workflows.
+  <div class="access-container">
+
+    <p class="access-text">
+      TruCite is onboarding select enterprise and regulated workflow partners.
     </p>
 
-    <div style="margin-top:16px;">
-      <a href="mailto:founder.trucite@gmail.com?subject=API Access Request" class="primary-btn">
+    <div class="access-links">
+
+      <a href="https://forms.gle/xhL6BHjBApDQZVDb8"
+         class="access-link-primary">
         Request API Access →
       </a>
-    </div>
 
-    <div style="margin-top:10px;">
-      <a href="mailto:founder.trucite@gmail.com?subject=Waitlist" class="copy-btn">
+      <a href="https://forms.gle/SFt5pXGSeZwLWELL6"
+         class="access-link-secondary">
         Join Waitlist →
       </a>
+
     </div>
+
   </div>
-  </section>
-
-<!-- =========================================================
-SECTION: ENTERPRISE BRIEF CTA
-========================================================= -->
-<hr class="section-divider">
-
-<section class="enterprise-cta">
-  <h2>Deploy TruCite as a Runtime Control Plane</h2>
-  <p>
-    TruCite integrates downstream of LLMs, RAG systems, and AI agents —
-    issuing a machine-enforceable ALLOW / REVIEW / BLOCK decision before
-    output enters enterprise workflows.
-  </p>
-  <a href="mailto:founder.trucite@gmail.com?subject=TruCite%20Enterprise%20Brief" class="secondary-btn">
-    REQUEST ENTERPRISE BRIEF
-  </a>
 </section>
+
 
 <!-- =========================================================
 SECTION: NOT SECURITY GATEWAY
@@ -845,35 +836,34 @@ SECTION: FUTURE STATE
     </p>
   </div>
 </section>
-
+  
 <!-- =========================================================
-SECTION: ROADMAP
+SECTION: ROADMAP / EXECUTION FLOW
 ========================================================= -->
-<h2 class="section-title" id="roadmap">Roadmap</h2>
-<p class="section-subtitle">
-  A staged build from runtime gating → evidence → enforcement → enterprise auditability.
-</p>
+<section class="section-block">
+  <h2 class="section-title">Execution Flow</h2>
 
-<div class="bp-card">
-  <div class="bp-label">6-Layer Execution Reliability Stack</div>
+  <div class="roadmap-flow">
 
-<div class="roadmap">
-  <div class="pill">Execution Risk Signal</div>
-  <div class="pill">Evidence Gate</div>
-  <div class="pill">Policy Rules</div>
-  <div class="pill">Execution Commit</div>
-  <div class="pill">Enforcement Hooks</div>
-  <div class="pill">Audit Ledger</div>
-</div>
+    <div class="flow-step">1. Risk Signal</div>
+    <div class="flow-arrow">→</div>
 
-  <p style="margin-top:14px; color:#d9d9d9; line-height:1.55;">
-    Today’s MVP covers the core runtime boundary: risk signal → evidence requirement → policy gate → execution commit artifact.
-  </p>
+    <div class="flow-step">2. Evidence Gate</div>
+    <div class="flow-arrow">→</div>
 
-  <p class="policy-mode-note" style="margin-top:10px;">
-    Enforcement Hooks = API middleware, SDK interceptors, policy-as-code adapters (next phase).
-  </p>
-</div>
+    <div class="flow-step">3. Policy Evaluation</div>
+    <div class="flow-arrow">→</div>
+
+    <div class="flow-step">4. Decision (ALLOW / REVIEW / BLOCK)</div>
+    <div class="flow-arrow">→</div>
+
+    <div class="flow-step">5. Execution Commit</div>
+    <div class="flow-arrow">→</div>
+
+    <div class="flow-step">6. Audit Artifact</div>
+
+  </div>
+</section>
 
 <!-- =========================================================
 SECTION: POLICY NOTES
@@ -1158,13 +1148,13 @@ SECTION: FOOTER
 <footer class="site-footer" id="feedback">
   <p class="footer-links">
     <a
-      href="https://forms.gle/upyaT8L2prfQvaVx6"
+      href="https://forms.gle/nGqv57UH31p1FzsJ9"
       target="_blank"
       rel="noopener"
     >API access</a>
     •
     <a
-      href="https://forms.gle/upyaT8L2prfQvaVx6"
+      href="https://forms.gle/dS3zQRdDSpdqo6GXA"
       target="_blank"
       rel="noopener"
     >Waitlist</a>
@@ -1175,7 +1165,7 @@ SECTION: FOOTER
     >Enterprise brief</a>
     •
     <a
-      href="https://forms.gle/N5vLEJKbX9bVsp2K7"
+      href="https://forms.gle/ZGa64jwR2BRcZXqW9"
       target="_blank"
       rel="noopener"
     >Suggestions?</a>
