@@ -209,6 +209,14 @@
     setText(scoreVerdict, contract.verdict);
     updateGauge(contract.readiness_signal);
 
+    setText(volatilityValue, contract?.volatility || "—");
+
+    const pMode = contract?.policy_mode || CONFIG.POLICY_MODE;
+    setText(policyValue, pMode);
+
+    const ms = contract?.latency_ms ?? "—";
+    setText(apiMeta, `runtime gate · server ${ms}ms`);
+
     const decision = normalizeDecision(data);
 
     setText(decisionAction, decision.action);
