@@ -1230,5 +1230,183 @@ ROADMAP / EXECUTION FLOW — FINAL OVERRIDES
   }
 }
 
+/* =========================================================
+HERO
+========================================================= */
+
+.hero {
+  text-align: center;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px 10px;
+}
+
+.logo {
+  width: 110px;
+  margin: 20px auto 12px;
+  display: block;
+}
+
+.brand {
+  color: #f2f2f2;
+  margin-bottom: 10px;
+}
+
+.tm {
+  font-size: 0.6em;
+  vertical-align: super;
+}
+
+.mvp-badge {
+  margin-bottom: 18px;
+  color: #ccc;
+}
+
+.mvp-dot {
+  width: 8px;
+  height: 8px;
+  background: #e6c15a;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.hero-headline {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.hero-subhead {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #eaeaea;
+  margin-bottom: 12px;
+}
+
+.hero-impact {
+  color: #e6c15a;
+  font-weight: 600;
+  font-size: 16px;
+  margin: 12px auto;
+  max-width: 520px;
+}
+
+.hero-subtitle {
+  color: #d6d6d6;
+  max-width: 720px;
+  margin: 12px auto;
+  line-height: 1.7;
+}
+
+.hero-enterprise-note {
+  color: #cfcfcf;
+  margin: 10px auto;
+}
+
+.hero-thesis {
+  color: #e6c15a;
+  font-size: 15px;
+  margin-top: 10px;
+  max-width: 520px;
+}
+
+.hero-demo-link {
+  color: #e6c15a !important;
+  font-weight: 700;
+  text-decoration: none !important;
+}
+
+/* =========================================================
+ROADMAP
+========================================================= */
+
+.execution-flow {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.flow-step {
+  padding: 10px 16px;
+  border: 1px solid rgba(230,193,90,0.3);
+  border-radius: 999px;
+  margin: 6px;
+  color: #e6c15a;
+  font-weight: 700;
+  background: #111;
+}
+
+.flow-step.highlight {
+  border-color: rgba(230,193,90,0.6);
+  color: #ffd97e;
+}
+
+.flow-arrow {
+  color: #e6c15a;
+  font-size: 18px;
+  margin: 0 4px;
+}
+
+.mvp-coverage,
+.mvp-next,
+.mvp-future {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid rgba(230,193,90,0.15);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.02);
+}
+
+.mvp-title {
+  color: #e6c15a;
+  text-align: center;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.mvp-list {
+  list-style: none;
+  padding: 0;
+}
+
+.mvp-list li {
+  color: #ddd;
+  margin-bottom: 6px;
+  padding-left: 12px;
+  position: relative;
+}
+
+.mvp-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #e6c15a;
+}
+
+/* =========================================================
+LINK FIX
+========================================================= */
+
+a, a:visited {
+  color: #e6c15a;
+}
+
+/* =========================================================
+MOBILE
+========================================================= */
+
+@media (max-width: 640px) {
+  .execution-flow {
+    flex-direction: column;
+  }
+
+  .flow-arrow {
+    transform: rotate(90deg);
+  }
+}
+
 
 
