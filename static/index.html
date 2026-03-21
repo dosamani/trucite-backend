@@ -19,7 +19,7 @@ SECTION: HERO
   <img src="/static/logo.jpg?v=2" alt="TruCite Logo" class="logo" />
   <div class="brand">TruCite.ai<span class="tm">™</span></div>
 
-  <div class="mvp-badge" role="status" aria-label="MVP status">
+  <div class="mvp-badge" role="status">
     <span class="mvp-dot"></span>
     <span class="mvp-text">Runtime v2.0 Live</span>
     <span class="mvp-sub">Execution Contract · Enforcement API</span>
@@ -33,10 +33,11 @@ SECTION: HERO
     TruCite decides whether AI output is allowed to execute in the real world.
   </h2>
 
+  <!-- 🔥 PRIMARY WOW LINE -->
   <p class="hero-impact">
-  AI systems generate. TruCite decides what is allowed to execute.
+    <strong>Every AI system will require an execution gate.</strong><br/>
+    TruCite is that gate.
   </p>
-
 
   <p class="hero-subtitle">
     A runtime enforcement API that sits between AI systems and downstream actions —
@@ -45,6 +46,12 @@ SECTION: HERO
 
   <p class="hero-enterprise-note">
     Not a scoring tool. Not a monitoring layer. Built for regulated enterprise workflows.
+  </p>
+
+  <!-- 🔥 SECONDARY THESIS (lighter weight, still gold) -->
+  <p class="hero-thesis">
+    <strong>Execution gating is not optional.</strong>
+    It is the next required layer in enterprise AI systems.
   </p>
 
   <a href="#verify" class="hero-demo-link">
@@ -61,7 +68,7 @@ SECTION: HERO
     Legal, healthcare, financial, and other high-liability AI workflows.
   </div>
 </div>
-
+  
   <!-- =========================================================
 SECTION: WHERE TRUCITE DEPLOYS FIRST
 ========================================================= -->
@@ -828,70 +835,73 @@ SECTION: FUTURE STATE
   </div>
 </section>
   
-  <!-- =========================================================
+<!-- =========================================================
 SECTION: EXECUTION FLOW / ROADMAP
 ========================================================= -->
 <section class="section-block roadmap-section" id="roadmap">
   <h2 class="section-title">Execution Flow</h2>
 
-  <div class="execution-flow" aria-label="TruCite execution flow">
+  <div class="execution-flow">
 
-    <div class="flow-row">
-      <div class="flow-pill">1. Risk Signal</div>
-      <div class="flow-arrow">➜</div>
-      <div class="flow-pill">2. Evidence Gate</div>
-    </div>
+    <div class="flow-step">1. Risk Signal</div>
+    <div class="flow-arrow">➜</div>
 
-    <div class="flow-row flow-row-single">
-      <div class="flow-pill">3. Policy Evaluation</div>
-    </div>
+    <div class="flow-step">2. Evidence Gate</div>
+    <div class="flow-arrow">➜</div>
 
-    <div class="flow-row flow-row-single">
-      <div class="flow-pill wide">4. Decision (ALLOW / REVIEW / BLOCK)</div>
-    </div>
+    <div class="flow-step">3. Policy Evaluation</div>
+    <div class="flow-arrow">➜</div>
 
-    <div class="flow-row">
-      <div class="flow-pill">5. Execution Commit</div>
-      <div class="flow-arrow">➜</div>
-      <div class="flow-pill">6. Audit Artifact</div>
+    <div class="flow-step highlight">
+      4. Decision (ALLOW / REVIEW / BLOCK)
     </div>
+    <div class="flow-arrow">➜</div>
+
+    <div class="flow-step">5. Execution Commit</div>
+    <div class="flow-arrow">➜</div>
+
+    <div class="flow-step">6. Audit Artifact</div>
 
   </div>
 
+  <!-- ===== MVP ===== -->
   <div class="mvp-coverage">
-    <div class="mvp-title">Current Runtime Capabilities (Live)</div>
+    <div class="mvp-title">What TruCite Enforces Today (Live Runtime)</div>
     <ul class="mvp-list">
       <li>Execution Readiness Signal (0–100)</li>
-      <li>Evidence requirement gating for high-risk execution paths</li>
-      <li>Deterministic ALLOW / REVIEW / BLOCK decision</li>
-      <li>Execution boundary flag for downstream systems</li>
-      <li>Audit-linked execution artifact (event ID + fingerprint)</li>
+      <li>Evidence gating for high-risk execution</li>
+      <li>Deterministic ALLOW / REVIEW / BLOCK</li>
+      <li>Execution boundary for downstream enforcement</li>
+      <li>Audit-linked execution artifact</li>
     </ul>
   </div>
 
+  <!-- ===== NEXT ===== -->
   <div class="mvp-next">
-    <div class="mvp-title">Next Phase (In Development)</div>
+    <div class="mvp-title">What We Are Adding Next</div>
     <ul class="mvp-list">
-      <li>External evidence verification (DOI, PubMed, legal citations)</li>
-      <li>Policy-as-code engine with enterprise rules</li>
+      <li>External evidence verification (DOI, legal, clinical)</li>
+      <li>Policy-as-code engine</li>
       <li>Confidence vs reliability separation</li>
-      <li>Multi-model validation layer</li>
+      <li>Multi-model validation</li>
       <li>Audit-bound override workflows</li>
     </ul>
   </div>
 
+  <!-- ===== FUTURE ===== -->
   <div class="mvp-future">
-    <div class="mvp-title">Future Execution Intelligence Layer</div>
+    <div class="mvp-title">Where This Becomes Infrastructure</div>
     <ul class="mvp-list">
-      <li>Autonomous agent gating before execution</li>
+      <li>Autonomous agent execution gating</li>
       <li>Cross-system enforcement APIs</li>
-      <li>Global audit ledger for AI decisions</li>
-      <li>Trust scoring across models and vendors</li>
+      <li>Global audit ledger</li>
+      <li>Trust scoring across models</li>
       <li>Regulatory-grade compliance layer</li>
     </ul>
   </div>
-</section>
 
+</section>
+  
 <!-- =========================================================
 SECTION: POLICY NOTES
 ========================================================= -->
