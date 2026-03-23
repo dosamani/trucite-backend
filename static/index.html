@@ -204,64 +204,49 @@ SECTION: WHERE TRUCITE DEPLOYS FIRST
 <!-- =========================================================
 SECTION: HOW TRUCITE INTEGRATES
 ========================================================= -->
-<section class="integration" aria-label="How TruCite Integrates">
-  <h2 class="section-title center-title">How TruCite Integrates</h2>
+<section class="integration-section">
 
-  <p class="section-sub">
-    TruCite deploys as a runtime checkpoint between AI generation and enterprise execution —
-    so downstream systems can enforce a deterministic <strong>ALLOW / REVIEW / BLOCK</strong>
-    decision before write-back, filing, treasury action, clinical action, or workflow commit.
+  <h2 class="section-title">How TruCite Deploys</h2>
+
+  <p class="section-subtitle">
+    TruCite integrates as a runtime checkpoint between AI generation and enterprise execution —
+    enabling downstream systems to enforce <strong>ALLOW / REVIEW / BLOCK</strong> before action.
   </p>
 
+  <div class="integration-flow">
+
+    <div class="flow-pill">LLM / RAG / Agent Output</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-pill highlight">TruCite Runtime API</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-pill">Enterprise Systems</div>
+
+  </div>
+
   <div class="integration-grid">
-    <div class="integration-card">
-      <h3 class="integration-h">Integration Path</h3>
-      <div class="integration-flow" role="img" aria-label="Integration flow">
-        <div class="flow-pill">LLM / RAG / Agent Output</div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-pill flow-pill-strong">TruCite Runtime API</div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-pill">EHR / Filing / Treasury / Workflow</div>
-      </div>
 
-      <ul class="integration-bullets">
-        <li><strong>REST API wrapper</strong> around model or agent output prior to execution</li>
-        <li><strong>Middleware hook</strong> in the service layer before write-back or side effects</li>
-        <li><strong>API Gateway policy</strong> for uniform enforcement across enterprise applications</li>
-        <li><strong>SDK binding</strong> to agent frameworks and orchestrators as a policy checkpoint</li>
-        <li><strong>Sidecar deployment</strong> for low-latency runtime decisioning near execution systems</li>
-      </ul>
+    <div class="integration-item">
+      REST API wrapper before execution
     </div>
 
-    <div class="integration-card">
-      <h3 class="integration-h">Real-Time Enforcement</h3>
-      <p class="integration-copy">
-        TruCite evaluates output risk in real time and returns a machine-enforceable decision object:
-      </p>
-
-      <div class="signal-row">
-        <span class="signal-badge">decision</span>
-        <span class="signal-text">ALLOW / REVIEW / BLOCK</span>
-      </div>
-
-      <div class="signal-row">
-        <span class="signal-badge">execution_commit</span>
-        <span class="signal-text">event_id · policy_hash · audit_fingerprint (sha256)</span>
-      </div>
-
-      <p class="integration-copy muted">
-        TruCite does not execute actions. Customer-controlled systems enforce the decision boundary before downstream commit.
-      </p>
+    <div class="integration-item">
+      Middleware checkpoint in service layer
     </div>
+
+    <div class="integration-item">
+      API gateway enforcement policy
+    </div>
+
+    <div class="integration-item">
+      SDK integration with agents / orchestration
+    </div>
+
+    <div class="integration-item">
+      Sidecar deployment for low-latency decisions
+    </div>
+
   </div>
 
-  <div class="commercial-mini" aria-label="Commercial Model">
-    <h3 class="commercial-h">Commercial Model</h3>
-    <p class="commercial-copy">
-      Deployed as an enterprise runtime API layer, priced by protected workflow and runtime decision volume
-      (per environment / per policy domain).
-    </p>
-  </div>
 </section>
 
 <!-- =========================================================
@@ -278,40 +263,6 @@ SECTION: INITIAL DEPLOYMENT FOCUS
 </div>
 
   
-<!-- =========================================================
-SECTION: WHERE TRUCITE FITS IN THE AI STACK
-========================================================= -->
-<section id="where-fits" class="blueprint-section">
-  <h2 class="section-title">Where TruCite Fits in the AI Stack</h2>
-
-  <div class="bp-card bright-card">
-    <h3>Upstream: AI Models &amp; Agents</h3>
-    <p>
-      LLMs, RAG pipelines, and agent systems generate output intended for operational workflows.
-    </p>
-
-    <h3>TruCite: Independent Execution Gate</h3>
-    <p>
-      TruCite sits <strong>between generation and action</strong>. It inspects AI output at runtime and
-      issues a machine-enforceable <strong>ALLOW / REVIEW / BLOCK</strong> decision, bound to an audit
-      fingerprint and policy metadata, so downstream systems can block execution or require review.
-    </p>
-    <p>
-      It does not generate content. It governs whether content is safe to act on.
-    </p>
-
-    <h3>Downstream: Enterprise Execution Systems</h3>
-    <p>
-      Workflow orchestration, identity, and automation systems consume TruCite’s decision signal
-      before executing AI-driven actions.
-    </p>
-
-    <p>
-      TruCite does not replace orchestration, governance, or security — it provides the
-      <strong>execution decision boundary</strong> those systems can enforce.
-    </p>
-  </div>
-</section>
 
 <!-- =========================================================
 SECTION: RUNTIME DECISION BOUNDARY
@@ -546,44 +497,6 @@ SECTION: EXECUTION LIABILITY
   </div>
 </section>
 
-<!-- =========================================================
-SECTION: HOW TRUCITE WORKS
-========================================================= -->
-<section id="how-it-works" class="blueprint-section">
-  <h2 class="section-title">How TruCite Works</h2>
-
-  <div class="bp-card bright-card">
-    <h3>1. Output Interception</h3>
-    <p>
-      TruCite integrates downstream of LLMs, RAG systems, and AI agents, evaluating generated output
-      before it enters enterprise workflows.
-    </p>
-  </div>
-
-  <div class="bp-card bright-card">
-    <h3>2. Structural Reliability Analysis</h3>
-    <p>
-      TruCite analyzes linguistic certainty, numeric claims, volatility signals, internal consistency,
-      and evidence presence to assess structural reliability.
-    </p>
-  </div>
-
-  <div class="bp-card bright-card">
-    <h3>3. Policy-Based Decisioning</h3>
-    <p>
-      Reliability signals are evaluated against enterprise policy rules to produce a machine-enforceable
-      decision: <strong>ALLOW / REVIEW / BLOCK</strong>.
-    </p>
-  </div>
-
-  <div class="bp-card bright-card">
-    <h3>4. Enforcement Signal + Audit Fingerprint</h3>
-    <p>
-      TruCite returns both a structured decision signal for downstream systems and an immutable
-      cryptographic fingerprint for audit, compliance, and governance tracking.
-    </p>
-  </div>
-</section>
 
 <!-- =========================================================
 SECTION: WHY NOT MODEL VENDOR
