@@ -1629,6 +1629,70 @@ INTEGRATION SECTION
   }
 }
 
+/* ================================
+ROI SECTION
+================================ */
+
+.roi-section {
+  text-align: center;
+  padding: 70px 20px;
+}
+
+.roi-grid {
+  margin-top: 36px;
+  display: grid;
+  gap: 16px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.roi-card {
+  padding: 18px 20px;
+  background: #111;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  text-align: left;
+}
+
+.roi-card.highlight {
+  border: 1px solid rgba(255,215,0,0.5);
+  box-shadow: 0 0 14px rgba(255,215,0,0.12);
+}
+
+.roi-title {
+  font-weight: 700;
+  color: #FFD700;
+  margin-bottom: 8px;
+}
+
+.roi-copy {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.8);
+}
+
+.roi-copy strong {
+  color: #FFD700;
+}
+
+.roi-bottom-line {
+  margin-top: 32px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.75);
+}
+
+.roi-bottom-line strong {
+  color: #FFD700;
+}
+
+@media (min-width: 768px) {
+  .roi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 
 
 
