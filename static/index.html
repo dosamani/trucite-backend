@@ -113,6 +113,61 @@ SECTION: STACK DIAGRAM
   </div>
 
 </section>
+
+  <!-- =========================================================
+SECTION: HOW TRUCITE WORKS
+========================================================= -->
+<section class="how-section">
+
+  <h2 class="section-title">How TruCite Works</h2>
+
+  <p class="section-subtitle">
+    TruCite intercepts AI output just before execution, evaluates it, and returns a deterministic decision that downstream systems can enforce.
+  </p>
+
+  <div class="how-flow">
+
+    <div class="how-step">
+      <div class="how-num">1</div>
+      <div class="how-title">Intercept Output</div>
+      <div class="how-copy">
+        TruCite receives AI-generated output from an LLM, RAG pipeline, or agent before it triggers downstream action.
+      </div>
+    </div>
+
+    <div class="how-arrow">→</div>
+
+    <div class="how-step">
+      <div class="how-num">2</div>
+      <div class="how-title">Evaluate Risk + Evidence</div>
+      <div class="how-copy">
+        TruCite analyzes structural reliability, uncertainty, numeric claims, volatility, and supporting evidence requirements.
+      </div>
+    </div>
+
+    <div class="how-arrow">→</div>
+
+    <div class="how-step highlight">
+      <div class="how-num">3</div>
+      <div class="how-title">Return Decision</div>
+      <div class="how-copy">
+        TruCite returns a machine-enforceable <strong>ALLOW / REVIEW / BLOCK</strong> decision tied to policy logic.
+      </div>
+    </div>
+
+    <div class="how-arrow">→</div>
+
+    <div class="how-step">
+      <div class="how-num">4</div>
+      <div class="how-title">Bind Audit Artifact</div>
+      <div class="how-copy">
+        An execution artifact is generated with event ID, policy hash, and audit fingerprint for downstream traceability.
+      </div>
+    </div>
+
+  </div>
+
+</section>
   
   <!-- =========================================================
 SECTION: WHERE TRUCITE DEPLOYS FIRST
