@@ -201,6 +201,61 @@ SECTION: WHERE TRUCITE DEPLOYS FIRST
   </ul>
 </section>
 
+  <!-- =========================================================
+SECTION: ROI / VALUE
+========================================================= -->
+<section class="roi-section">
+
+  <h2 class="section-title">Why Enterprises Deploy TruCite</h2>
+
+  <p class="section-subtitle">
+    TruCite does not replace workflows — it makes them safer, faster, and economically viable.
+  </p>
+
+  <div class="roi-grid">
+
+    <div class="roi-card">
+      <div class="roi-title">Reduce Review Cost</div>
+      <div class="roi-copy">
+        Shift from <strong>100% human review</strong> to selective review —
+        reducing operational overhead while maintaining auditability.
+      </div>
+    </div>
+
+    <div class="roi-card">
+      <div class="roi-title">Increase Execution Speed</div>
+      <div class="roi-copy">
+        Remove unnecessary human bottlenecks and enable faster decision cycles
+        in high-volume workflows.
+      </div>
+    </div>
+
+    <div class="roi-card highlight">
+      <div class="roi-title">Unlock High-Risk Workflows</div>
+      <div class="roi-copy">
+        Enable use cases that were previously blocked due to liability —
+        including filings, clinical actions, and financial automation.
+      </div>
+    </div>
+
+    <div class="roi-card">
+      <div class="roi-title">Audit & Compliance Ready</div>
+      <div class="roi-copy">
+        Every decision is traceable, reproducible, and policy-bound —
+        meeting enterprise audit and regulatory requirements.
+      </div>
+    </div>
+
+  </div>
+
+  <p class="roi-bottom-line">
+    AI systems do not fail at generation.  
+    <strong>They fail at execution.</strong>  
+    TruCite fixes that boundary.
+  </p>
+
+</section>
+
 <!-- =========================================================
 SECTION: HOW TRUCITE INTEGRATES
 ========================================================= -->
@@ -209,40 +264,49 @@ SECTION: HOW TRUCITE INTEGRATES
   <h2 class="section-title">How TruCite Deploys</h2>
 
   <p class="section-subtitle">
-    TruCite integrates as a runtime checkpoint between AI generation and enterprise execution —
-    enabling downstream systems to enforce <strong>ALLOW / REVIEW / BLOCK</strong> before action.
+    TruCite integrates as a runtime checkpoint between AI generation and execution —
+    enabling systems to enforce <strong>ALLOW / REVIEW / BLOCK</strong> before action.
   </p>
 
+  <!-- FLOW -->
   <div class="integration-flow">
 
     <div class="flow-pill">LLM / RAG / Agent Output</div>
     <div class="flow-arrow">→</div>
+
     <div class="flow-pill highlight">TruCite Runtime API</div>
     <div class="flow-arrow">→</div>
+
     <div class="flow-pill">Enterprise Systems</div>
 
   </div>
 
+  <!-- DEPLOYMENT MODES -->
   <div class="integration-grid">
 
     <div class="integration-item">
-      REST API wrapper before execution
+      <strong>REST API</strong><br/>
+      Wrap model or agent output before execution
     </div>
 
     <div class="integration-item">
-      Middleware checkpoint in service layer
+      <strong>Middleware Checkpoint</strong><br/>
+      Insert into service layer before write-back
     </div>
 
     <div class="integration-item">
-      API gateway enforcement policy
+      <strong>API Gateway Policy</strong><br/>
+      Enforce decisions across enterprise systems
     </div>
 
     <div class="integration-item">
-      SDK integration with agents / orchestration
+      <strong>SDK Integration</strong><br/>
+      Bind into agents and orchestration frameworks
     </div>
 
     <div class="integration-item">
-      Sidecar deployment for low-latency decisions
+      <strong>Sidecar Deployment</strong><br/>
+      Low-latency runtime enforcement near execution
     </div>
 
   </div>
