@@ -68,6 +68,51 @@ SECTION: HERO
     Legal, healthcare, financial, and other high-liability AI workflows.
   </div>
 </div>
+
+  <!-- =========================================================
+SECTION: STACK DIAGRAM
+========================================================= -->
+<section class="stack-section">
+
+  <h2 class="section-title">Where TruCite Sits in the AI Stack</h2>
+
+  <p class="section-subtitle">
+    TruCite operates at the exact moment where AI output becomes real-world action.
+  </p>
+
+  <div class="stack-diagram">
+
+    <div class="stack-layer upstream">
+      <div class="stack-title">AI Generation Layer</div>
+      <div class="stack-items">
+        LLMs · RAG Pipelines · Agents
+      </div>
+    </div>
+
+    <div class="stack-arrow">↓</div>
+
+    <div class="stack-layer trucite">
+      <div class="stack-title">TruCite Execution Gate</div>
+      <div class="stack-decision">
+        ALLOW · REVIEW · BLOCK
+      </div>
+      <div class="stack-sub">
+        Deterministic decision + audit artifact
+      </div>
+    </div>
+
+    <div class="stack-arrow">↓</div>
+
+    <div class="stack-layer downstream">
+      <div class="stack-title">Enterprise Execution Systems</div>
+      <div class="stack-items">
+        Workflows · EHR · Filing · Financial Systems · Automation
+      </div>
+    </div>
+
+  </div>
+
+</section>
   
   <!-- =========================================================
 SECTION: WHERE TRUCITE DEPLOYS FIRST
@@ -1001,6 +1046,86 @@ SECTION: FAQ
         where a feather is weighed against the heart. The golden feather represents <strong>truth</strong>, the blue orb represents
         <strong>AI-generated signal</strong>, and the curved arc represents the <strong>execution boundary</strong> — where output is weighed
         before it is allowed to trigger downstream action. It reflects TruCite’s role as a runtime layer between generation and execution.
+      </div>
+    </details>
+
+    <details>
+      <summary>What is the ROI of using TruCite?</summary>
+      <div class="acc-body">
+        TruCite enables a shift from <strong>blanket human review</strong> to <strong>selective review</strong>.
+        Instead of reviewing 100% of AI outputs, enterprises can route only uncertain or high-risk outputs to review,
+        while allowing low-risk outputs to proceed with an auditable decision artifact.
+        <br><br>
+        This reduces operational cost, improves workflow speed, and enables higher-liability use cases
+        that would otherwise require full manual oversight.
+      </div>
+    </details>
+
+    <details>
+      <summary>Why can’t this be built internally by an enterprise team?</summary>
+      <div class="acc-body">
+        Enterprises can build localized checks, but maintaining a <strong>consistent, auditable, model-agnostic
+        execution decision layer</strong> across workflows becomes a product in itself.
+        <br><br>
+        TruCite standardizes this layer — providing a reusable execution boundary, consistent decision logic,
+        and audit artifacts across models, agents, and workflows.
+      </div>
+    </details>
+
+    <details>
+      <summary>Where exactly does TruCite sit in the enterprise stack?</summary>
+      <div class="acc-body">
+        TruCite sits <strong>between AI generation and execution</strong>.
+        <br><br>
+        Upstream: LLMs, RAG pipelines, and agents generate output.  
+        TruCite: evaluates output and returns a deterministic <strong>ALLOW / REVIEW / BLOCK</strong> decision.  
+        Downstream: orchestration, workflow, or automation systems enforce that decision before action.
+      </div>
+    </details>
+
+    <details>
+      <summary>What prevents this from becoming a feature of existing platforms?</summary>
+      <div class="acc-body">
+        TruCite is designed as an <strong>independent execution boundary</strong>.
+        Embedding this logic inside models, orchestration layers, or vendors creates structural conflicts
+        where systems are effectively grading their own output.
+        <br><br>
+        Enterprises require a neutral, enforceable checkpoint that sits outside generation and execution layers.
+      </div>
+    </details>
+
+    <details>
+      <summary>What data or advantage does TruCite build over time?</summary>
+      <div class="acc-body">
+        Each decision generates a structured execution artifact, including policy context,
+        decision outcome, and audit fingerprint.
+        <br><br>
+        Over time, this creates a <strong>decision corpus</strong> that improves threshold calibration,
+        policy tuning, and cross-domain reliability — strengthening the execution layer with real-world usage.
+      </div>
+    </details>
+
+    <details>
+      <summary>How difficult is integration into existing systems?</summary>
+      <div class="acc-body">
+        TruCite integrates as a lightweight runtime checkpoint via API, SDK, or middleware.
+        <br><br>
+        Initial deployments typically target a <strong>single high-risk workflow</strong> in staging or controlled environments,
+        minimizing disruption while validating value before broader rollout.
+      </div>
+    </details>
+
+    <details>
+      <summary>What types of workflows benefit most from TruCite?</summary>
+      <div class="acc-body">
+        TruCite is designed for workflows where AI output can trigger real-world consequences:
+        <br><br>
+        – Legal drafting, filings, and research  
+        – Clinical recommendations and documentation  
+        – Financial analysis, reporting, and automation  
+        – Enterprise copilots triggering downstream actions  
+        <br><br>
+        These environments require an execution checkpoint before action.
       </div>
     </details>
 
