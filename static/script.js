@@ -177,6 +177,34 @@
     if (resultPre) {
       resultPre.textContent = CONFIG.SHOW_DEBUG ? debug : msg;
     }
+
+    const execCard = byId("execCommitCard");
+    if (execCard) execCard.style.display = "none";
+  }
+
+  function resetForm() {
+    if (claimBox) claimBox.value = "";
+    if (evidenceBox) evidenceBox.value = "";
+    if (resultPre) resultPre.textContent = "";
+
+    setText(scoreDisplay, "--");
+    setText(scoreVerdict, "Signal pending...");
+    setText(decisionAction, "—");
+    setText(decisionReason, "Awaiting evaluation...");
+    applyDecisionColor("REVIEW");
+    applyDecisionCardColor("REVIEW");
+    updateGauge(0);
+
+    setText(volatilityValue, "—");
+    setText(policyValue, "—");
+    setText(apiMeta, "runtime gate · server —ms");
+
+    const execCard = byId("execCommitCard");
+    if (execCard) execCard.style.display = "none";
+
+    lastPayload = null;
+    lastResponsePublic = null;
+    lastEndpointPath = null;
   }
 
   function normalizeDecision(data) {
@@ -211,6 +239,29 @@
       references: data?.references || [],
       explanation: data?.explanation || ""
     };
+  }
+
+  function renderExecutionCommit(contract) {
+    const execCard = byId("execCommitCard");
+    if (!execCard) return;
+
+    execCard.style.display = "block";
+
+    const execText = byId("execCommitText");
+    if (!execText) return;
+
+    const decision = (contract?.decision || "REVIEW").toUpperCase();
+
+    let msg = "";
+    if (decision === "ALLOW") {
+      msg = "Execution authorized. Downstream systems may proceed.";
+    } else if (decision === "BLOCK") {
+      msg = "Execution blocked. Output failed policy validation.";
+    } else {
+      msg = "Execution requires review before proceeding.";
+    }
+
+    execText.textContent = msg;
   }
 
   function renderResponse(data) {
@@ -264,6 +315,8 @@
     if (resultPre) {
       resultPre.textContent = fullText;
     }
+
+    renderExecutionCommit(contract);
   }
 
   async function postToEndpoint(payload) {
@@ -330,6 +383,7 @@
   if (verifyButton) verifyButton.addEventListener("click", onVerify);
 
   window.scoreText = () => onVerify();
+  window.resetForm = resetForm;
 
   window.copyJSONPayload = () => {
     if (!lastPayload) return alert("Run first.");
