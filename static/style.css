@@ -2083,6 +2083,172 @@ Paste at VERY BOTTOM of style.css
   }
 }
 
+/* =========================================================
+VERIFY UI — FINAL LAYOUT FIXES
+Paste at VERY BOTTOM of style.css
+========================================================= */
+
+/* ---- Evaluate / Reset: force perfect symmetry ---- */
+.verify-actions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+  width: min(100%, 700px) !important;
+  margin: 12px auto 18px !important;
+}
+
+.verify-actions .primary-btn,
+.verify-actions .secondary-btn {
+  width: 100% !important;
+  height: 54px !important;
+  min-width: 0 !important;
+  padding: 0 18px !important;
+  margin: 0 !important;
+  border-radius: 14px !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.secondary-btn {
+  background: transparent !important;
+  color: #f2f2f2 !important;
+  border: 1px solid rgba(230, 193, 90, 0.35) !important;
+}
+
+.secondary-btn:hover {
+  border-color: rgba(230, 193, 90, 0.6) !important;
+}
+
+/* ---- Make verify cards all the same usable width ---- */
+.score-panel,
+.decision-card,
+.exec-commit-card,
+.artifact-panel {
+  width: min(100%, 700px) !important;
+  max-width: 700px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* ---- Tighter, cleaner spacing between cards ---- */
+.results-shell {
+  display: grid !important;
+  gap: 14px !important;
+  margin-top: 18px !important;
+}
+
+/* ---- Decision Gate card polish ---- */
+.decision-card {
+  padding: 14px !important;
+}
+
+.decision-card .decision-action {
+  font-size: 1.6rem !important;
+  margin-bottom: 6px !important;
+}
+
+/* ---- Artifact panel header ---- */
+.artifact-panel {
+  padding-top: 14px !important;
+}
+
+.artifact-header {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-bottom: 12px !important;
+  text-align: center !important;
+}
+
+.artifact-header > span {
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+}
+
+/* ---- Copy buttons: stable, even grid ---- */
+.artifact-actions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+  width: 100% !important;
+  max-width: 500px !important;
+  margin: 0 auto !important;
+}
+
+/* Last button spans full second row */
+.artifact-actions .mini-btn:last-child {
+  grid-column: span 2 !important;
+}
+
+.mini-btn {
+  height: 44px !important;
+  min-height: 44px !important;
+  max-width: none !important;
+  padding: 0 12px !important;
+  border-radius: 10px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  background: #1a1a1a !important;
+  color: #e6c15a !important;
+  border: 1px solid rgba(230, 193, 90, 0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  cursor: pointer !important;
+}
+
+.mini-btn:hover {
+  border-color: rgba(230, 193, 90, 0.55) !important;
+}
+
+/* ---- Result box: less dead space ---- */
+.result-box {
+  min-height: 110px !important;
+  margin-top: 10px !important;
+}
+
+/* ---- Execution commit card ---- */
+.exec-commit-card {
+  padding: 14px !important;
+}
+
+.exec-commit-card p {
+  font-size: 0.95rem !important;
+  line-height: 1.6 !important;
+  margin: 0 !important;
+}
+
+/* ---- Small phone behavior ---- */
+@media (max-width: 480px) {
+  .verify-actions {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .artifact-actions {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .artifact-actions .mini-btn:last-child {
+    grid-column: span 2 !important;
+  }
+
+  .score-number {
+    font-size: 1.9rem !important;
+  }
+
+  .decision-card .decision-action {
+    font-size: 1.5rem !important;
+  }
+}
+
 
 
 
