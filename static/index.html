@@ -610,148 +610,102 @@ SECTION: RUNTIME ARTIFACT PREVIEW
 </section>
 
 <!-- ================= VERIFY / DEMO ================= -->
+  
 <section class="verify-section" id="verify">
-
   <h2 class="section-title">VERIFY AI &amp; AGENT OUTPUT</h2>
 
   <p class="section-subtitle">
-    Paste AI output below. TruCite evaluates risk first and determines if it’s safe to use.
-    <br/>
-    <strong>No sources required.</strong> Add supporting evidence only if you want deeper validation.
+    Paste AI- or agent-generated text below and tap <strong>EVALUATE</strong>.
+    TruCite returns a deterministic <strong>ALLOW / REVIEW / BLOCK</strong> decision object + audit artifact.
   </p>
 
   <p class="verify-example">
     Example: legal brief, clinical recommendation, financial claim, or agent action output
   </p>
 
-  <!-- INPUT -->
-  <textarea id="inputText" placeholder="Paste AI- or agent-generated text here…"></textarea>
+  <textarea
+    id="inputText"
+    placeholder="Paste AI- or agent-generated text here…"
+  ></textarea>
 
-  <p class="micro" style="margin-top:-6px; margin-bottom:10px; text-align:center;">
-    Start by pasting AI output — TruCite will evaluate it even without sources.
-  </p>
-
-  <!-- OPTIONAL EVIDENCE -->
   <textarea
     id="evidenceText"
     class="evidence-box"
-    placeholder="Optional: Add supporting sources (URLs, citations, references) to improve verification"
+    placeholder="Optional: paste supporting evidence (URLs / DOI / PMID)."
   ></textarea>
 
-  <!-- ACTION BUTTONS -->
-  <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+  <div class="verify-actions">
     <button id="verifyBtn" class="primary-btn">EVALUATE</button>
-    <button onclick="resetForm()" class="copy-btn">Clear</button>
+    <button type="button" class="secondary-btn" onclick="resetForm()">RESET</button>
   </div>
 
-  <!-- COPY UTILITIES -->
-  <div class="copy-row">
-    <button class="copy-btn" onclick="copyJSONPayload()">Copy JSON payload</button>
-    <button class="copy-btn" onclick="copyCurl()">Copy curl</button>
-    <button class="copy-btn" onclick="copyResponse()">Copy response</button>
-  </div>
+  <div class="results-shell">
+    <div class="score-panel">
+      <div class="score-gauge-wrap">
+        <svg class="score-gauge" viewBox="0 0 220 120" aria-hidden="true">
+          <path
+            d="M20 100 A90 90 0 0 1 200 100"
+            fill="none"
+            stroke="rgba(255,255,255,0.14)"
+            stroke-width="14"
+            stroke-linecap="round"
+          ></path>
+          <path
+            id="gaugeFill"
+            d="M20 100 A90 90 0 0 1 200 100"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="14"
+            stroke-linecap="round"
+            stroke-dasharray="260"
+            stroke-dashoffset="260"
+          ></path>
+        </svg>
 
-  <!-- STATUS -->
-  <p id="verifyStatus" class="section-subtitle" style="margin-top:10px;">
-    TruCite evaluates content first. Add sources only if you want stronger verification confidence.
-  </p>
+        <div class="score-center">
+          <div id="scoreDisplay" class="score-number">--</div>
+          <div id="scoreVerdict" class="score-label">Signal pending...</div>
+        </div>
+      </div>
 
-  <!-- GAUGE -->
-  <div id="gaugeContainer">
+      <div class="meta-row">
+        <div class="meta-pill">
+          <span class="meta-key">Volatility</span>
+          <span id="volatilityValue" class="meta-value">—</span>
+        </div>
+        <div class="meta-pill">
+          <span class="meta-key">Policy</span>
+          <span id="policyValue" class="meta-value">—</span>
+        </div>
+      </div>
 
-    <div class="gauge-label">Execution Readiness Index</div>
-
-    <svg id="gauge" width="220" height="120">
-      <path
-        d="M20 100 A90 90 0 0 1 200 100"
-        stroke="#333"
-        stroke-width="10"
-        fill="none"
-        stroke-linecap="round"
-      />
-      <path
-        id="gaugeFill"
-        d="M20 100 A90 90 0 0 1 200 100"
-        stroke="#FFD700"
-        stroke-width="10"
-        fill="none"
-        stroke-linecap="round"
-        stroke-dasharray="260"
-        stroke-dashoffset="260"
-      />
-    </svg>
-
-    <div id="scoreDisplay">--</div>
-    <div id="scoreVerdict">Signal pending...</div>
-
-    <div id="volatilityLine" class="realtime-note" style="margin-top:6px;">
-      Volatile knowledge: <span id="volatilityValue">—</span>
+      <div id="apiMeta" class="api-meta">runtime gate · server —ms</div>
     </div>
 
-    <div id="policyLine" class="realtime-note" style="margin-top:4px;">
-      Policy: <span id="policyValue">—</span>
+    <div id="decisionBox" class="decision-card review">
+      <div class="decision-header">Decision Gate</div>
+      <div id="decisionAction" class="decision-action">—</div>
+      <div id="decisionReason" class="decision-reason">Awaiting evaluation...</div>
     </div>
 
-    <div id="apiMeta" class="realtime-note" style="margin-top:6px;">
-      runtime gate · server —ms
+    <div id="execCommitCard" class="exec-commit-card" style="display:none;">
+      <div class="decision-header">Execution Commit</div>
+      <p id="execCommitText">Execution requires review before proceeding.</p>
     </div>
 
-  </div>
+    <div class="artifact-panel">
+      <div class="artifact-header">
+        <span>Execution Decision Artifact</span>
+        <div class="artifact-actions">
+          <button type="button" class="mini-btn" onclick="copyJSONPayload()">Copy Payload</button>
+          <button type="button" class="mini-btn" onclick="copyCurl()">Copy cURL</button>
+          <button type="button" class="mini-btn" onclick="copyResponse()">Copy Response</button>
+        </div>
+      </div>
 
-  <!-- DECISION -->
-  <div class="decision-card">
-    <div class="decision-title">Decision Gate</div>
-    <div id="decisionAction" class="decision-action">—</div>
-    <div id="decisionReason" class="decision-reason">Awaiting evaluation...</div>
-    <div class="decision-subnote">
-      Policy decision issued for downstream system enforcement
+      <pre id="result" class="result-box"></pre>
     </div>
   </div>
-
-  <!-- RESULT -->
-  <div class="result-wrapper">
-    <div class="result-label">Validation details, explanation &amp; references</div>
-    <pre id="result"></pre>
-  </div>
-
-  <!-- EXECUTION COMMIT -->
-  <div id="execCommitCard" class="card" style="display:none; margin-top:14px;">
-    <div class="cardTitle">Execution Commit</div>
-    <div class="kvGrid">
-
-      <div class="kv">
-        <div class="k">Execution Boundary</div>
-        <div class="v" id="execBoundary">—</div>
-      </div>
-
-      <div class="kv">
-        <div class="k">Authorized</div>
-        <div class="v" id="execAuthorized">—</div>
-      </div>
-
-      <div class="kv">
-        <div class="k">Action</div>
-        <div class="v" id="execAction">—</div>
-      </div>
-
-      <div class="kv">
-        <div class="k">Event ID</div>
-        <div class="v mono" id="execEventId">—</div>
-      </div>
-
-      <div class="kv">
-        <div class="k">Policy Hash</div>
-        <div class="v mono" id="execPolicyHash">—</div>
-      </div>
-
-      <div class="kv">
-        <div class="k">Audit Fingerprint (sha256)</div>
-        <div class="v mono" id="execAudit">—</div>
-      </div>
-
-    </div>
-  </div>
-
 </section>
 
 <!-- =========================================================
