@@ -609,41 +609,56 @@ SECTION: RUNTIME ARTIFACT PREVIEW
   </div>
 </section>
 
-  <!-- =========================================================
-SECTION: VERIFY
-========================================================= -->
+<!-- ================= VERIFY / DEMO ================= -->
 <section class="verify-section" id="verify">
+
   <h2 class="section-title">VERIFY AI &amp; AGENT OUTPUT</h2>
+
   <p class="section-subtitle">
-    Paste AI- or agent-generated text below and tap <strong>EVALUATE</strong>.
-    TruCite returns a deterministic <strong>ALLOW / REVIEW / BLOCK</strong> decision object + audit artifact.
+    Paste AI output below. TruCite evaluates risk first and determines if it’s safe to use.
+    <br/>
+    <strong>No sources required.</strong> Add supporting evidence only if you want deeper validation.
   </p>
 
   <p class="verify-example">
     Example: legal brief, clinical recommendation, financial claim, or agent action output
   </p>
 
+  <!-- INPUT -->
   <textarea id="inputText" placeholder="Paste AI- or agent-generated text here…"></textarea>
 
+  <p class="micro" style="margin-top:-6px; margin-bottom:10px; text-align:center;">
+    Start by pasting AI output — TruCite will evaluate it even without sources.
+  </p>
+
+  <!-- OPTIONAL EVIDENCE -->
   <textarea
     id="evidenceText"
     class="evidence-box"
-    placeholder="Optional: Paste supporting evidence (URLs / DOI / PMID)."
+    placeholder="Optional: Add supporting sources (URLs, citations, references) to improve verification"
   ></textarea>
 
-  <button id="verifyBtn" class="primary-btn">EVALUATE</button>
+  <!-- ACTION BUTTONS -->
+  <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+    <button id="verifyBtn" class="primary-btn">EVALUATE</button>
+    <button onclick="resetForm()" class="copy-btn">Clear</button>
+  </div>
 
+  <!-- COPY UTILITIES -->
   <div class="copy-row">
     <button class="copy-btn" onclick="copyJSONPayload()">Copy JSON payload</button>
     <button class="copy-btn" onclick="copyCurl()">Copy curl</button>
     <button class="copy-btn" onclick="copyResponse()">Copy response</button>
   </div>
 
+  <!-- STATUS -->
   <p id="verifyStatus" class="section-subtitle" style="margin-top:10px;">
-    Evidence is optional — but required for ALLOW on volatile, numeric, or high-liability execution paths.
+    TruCite evaluates content first. Add sources only if you want stronger verification confidence.
   </p>
 
+  <!-- GAUGE -->
   <div id="gaugeContainer">
+
     <div class="gauge-label">Execution Readiness Index</div>
 
     <svg id="gauge" width="220" height="120">
@@ -672,14 +687,18 @@ SECTION: VERIFY
     <div id="volatilityLine" class="realtime-note" style="margin-top:6px;">
       Volatile knowledge: <span id="volatilityValue">—</span>
     </div>
+
     <div id="policyLine" class="realtime-note" style="margin-top:4px;">
       Policy: <span id="policyValue">—</span>
     </div>
+
     <div id="apiMeta" class="realtime-note" style="margin-top:6px;">
       runtime gate · server —ms
     </div>
+
   </div>
 
+  <!-- DECISION -->
   <div class="decision-card">
     <div class="decision-title">Decision Gate</div>
     <div id="decisionAction" class="decision-action">—</div>
@@ -689,22 +708,50 @@ SECTION: VERIFY
     </div>
   </div>
 
+  <!-- RESULT -->
   <div class="result-wrapper">
     <div class="result-label">Validation details, explanation &amp; references</div>
     <pre id="result"></pre>
   </div>
 
+  <!-- EXECUTION COMMIT -->
   <div id="execCommitCard" class="card" style="display:none; margin-top:14px;">
     <div class="cardTitle">Execution Commit</div>
     <div class="kvGrid">
-      <div class="kv"><div class="k">Execution Boundary</div><div class="v" id="execBoundary">—</div></div>
-      <div class="kv"><div class="k">Authorized</div><div class="v" id="execAuthorized">—</div></div>
-      <div class="kv"><div class="k">Action</div><div class="v" id="execAction">—</div></div>
-      <div class="kv"><div class="k">Event ID</div><div class="v mono" id="execEventId">—</div></div>
-      <div class="kv"><div class="k">Policy Hash</div><div class="v mono" id="execPolicyHash">—</div></div>
-      <div class="kv"><div class="k">Audit Fingerprint (sha256)</div><div class="v mono" id="execAudit">—</div></div>
+
+      <div class="kv">
+        <div class="k">Execution Boundary</div>
+        <div class="v" id="execBoundary">—</div>
+      </div>
+
+      <div class="kv">
+        <div class="k">Authorized</div>
+        <div class="v" id="execAuthorized">—</div>
+      </div>
+
+      <div class="kv">
+        <div class="k">Action</div>
+        <div class="v" id="execAction">—</div>
+      </div>
+
+      <div class="kv">
+        <div class="k">Event ID</div>
+        <div class="v mono" id="execEventId">—</div>
+      </div>
+
+      <div class="kv">
+        <div class="k">Policy Hash</div>
+        <div class="v mono" id="execPolicyHash">—</div>
+      </div>
+
+      <div class="kv">
+        <div class="k">Audit Fingerprint (sha256)</div>
+        <div class="v mono" id="execAudit">—</div>
+      </div>
+
     </div>
   </div>
+
 </section>
 
 <!-- =========================================================
