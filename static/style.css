@@ -2353,6 +2353,14 @@ REAL-TIME WORKFLOW SECTION
     grid-template-columns: 1fr 1fr;
   }
 }
+.demo-context {
+  text-align: center;
+  color: #aaa;
+  font-size: 13px;
+  margin: 0 auto 12px;
+  max-width: 700px;
+  line-height: 1.5;
+}
 
 
 
