@@ -403,5 +403,16 @@
     );
   };
 
+  if (claimBox) {
+    claimBox.addEventListener("paste", () => {
+      setTimeout(() => {
+        const text = (claimBox.value || "").trim();
+        if (text && verifyButton) {
+          verifyButton.textContent = "RUN DEMO";
+        }
+      }, 50);
+    });
+  }
+
   setPendingUI();
 })();
