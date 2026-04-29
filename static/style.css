@@ -2306,6 +2306,54 @@ Paste at VERY BOTTOM of style.css
   }
 }
 
+/* =========================================================
+REAL-TIME WORKFLOW SECTION
+========================================================= */
+
+.realtime-section {
+  text-align: center;
+  padding: 56px 16px;
+}
+
+.realtime-grid {
+  display: grid;
+  gap: 14px;
+  margin: 28px auto 20px;
+  max-width: 860px;
+}
+
+.realtime-card {
+  background: #0a0a0a;
+  border: 1px solid rgba(230, 193, 90, 0.28);
+  border-radius: 16px;
+  padding: 18px;
+  text-align: left;
+}
+
+.realtime-card h3 {
+  color: #e6c15a;
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.realtime-card p {
+  color: #d4d4d4;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.realtime-thesis {
+  color: #e6c15a;
+  font-weight: 800;
+  margin-top: 18px;
+}
+
+@media (min-width: 768px) {
+  .realtime-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 
 
 
